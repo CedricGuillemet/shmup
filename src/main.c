@@ -79,14 +79,7 @@ void BlitSurface(SDL_Surface* surface)
     }
 }
 
-void set_pixel(int x, int y, uint8_t pixel)
-{
-    if (y < 0 || y >= SCREEN_HEIGHT || x < 0 || x >= SCREEN_WIDTH)
-    {
-        return;
-    }
-    buffer[y * SCREEN_WIDTH + x] = pixel;
-}
+
 
 void EndianSwap(uint32_t *buffer, int lengthInBytes)
 {
@@ -199,13 +192,13 @@ int main(int argc, char** argv)
         
         angle = Add(angle, FromFixed(600));
         struct Fixed circular = RadianToCircular(angle);
-        struct Vector3 eye = V3Mul(V3FromFixed(Cosine(circular), FromInt(0), Sine(circular)), FromInt(10));
+        struct Vector3 eye = V3Mul(V3FromFixed(Cosine(circular), FromFixed(0x8000), Sine(circular)), FromInt(10));
 
 
         struct Matrix_t view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
         struct Matrix_t clipSpaceTo2D = IdentityMatrix();
         clipSpaceTo2D.v[0] = FromInt(160);
-        clipSpaceTo2D.v[5] = FromInt(100);
+        clipSpaceTo2D.v[5] = FromInt(-100); // Y is inverted because of framebuffer. top of array in screen bottom
         clipSpaceTo2D.v[12] = FromInt(160);
         clipSpaceTo2D.v[13] = FromInt(100);
         struct Matrix_t perspectiveScreen = MulMatrix(perspective, clipSpaceTo2D);
@@ -224,15 +217,39 @@ int main(int argc, char** argv)
              1, 1,-1,
         };
 
+        unsigned char quads[6 * 4] = {
+            3,2,1,0,
+            0,4,7,3,
+            3,7,6,2,
+            2,6,5,1,
+            1,5,4,0,
+            4,5,6,7,
+        };
+        unsigned char colors[6] = {
+            2,4,6,8,10,12
+        };
+
         struct Vector2 screenpos[8];
         for (int i = 0;i<8;i++)
         {
             screenpos[i] = TransformV3I8(&vp, &v[i * 3]);
-            set_pixel(screenpos[i].x.integer, screenpos[i].y.integer, 15);
         }
 
+        for (int i = 0;i < 6;i++)
+        {
+            unsigned char i0 = quads[i * 4 + 0];
+            unsigned char i1 = quads[i * 4 + 1];
+            unsigned char i2 = quads[i * 4 + 2];
+            unsigned char i3 = quads[i * 4 + 3];
+            DrawTri(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
+            DrawTri(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
+        }
 
-
+        for (int i = 0; i < 8; i++)
+        {
+            //screenpos[i] = TransformV3I8(&vp, &v[i * 3]);
+            set_pixel(screenpos[i].x.integer, screenpos[i].y.integer, 15);
+        }
 
         struct Vector2 halfExtend;
         V2SetInt(&halfExtend, 16, 16);
