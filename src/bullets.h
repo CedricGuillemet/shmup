@@ -2,6 +2,10 @@ enum BulletType
 {
     PlayerWhite,
     PlayerBlack,
+    EnemySmallWhite,
+    EnemySmallBlack,
+    PlayerWhiteTrail,
+    PlayerBlackTrail,
 };
 
 struct Bullet
@@ -9,6 +13,10 @@ struct Bullet
     struct Vector2 position;
     struct Vector2 direction;
     enum BulletType bulletType;
+    unsigned char life;
+    struct Vector2 trailPositions[8];
+    struct Vector2 destination;
+    unsigned short enemyIndex;
 };
 
 #define MAX_BULLETS 1024
@@ -48,26 +56,7 @@ void RemoveBullet(struct Bullet* bulletPtr)
     }
 }
 
-void TickBullets()
-{
-    struct Bullet* bulletPtr = bullets;
-    struct Bullet* bulletEndPtr = bullets + bulletCount;
-    while(bulletPtr < bulletEndPtr)
-    {
-        bulletPtr->position = V2Add(bulletPtr->position, bulletPtr->direction);
-        bool removeBullet = IsClipped(bulletPtr->position, -16);
 
-        if (removeBullet)
-        {
-            RemoveBullet(bulletPtr);
-            bulletEndPtr--;
-        }
-        else
-        {
-            bulletPtr++;
-        }
-    }
-}
 
 void SpawnBullet(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType)
 {
@@ -82,29 +71,100 @@ void SpawnBullet(struct Vector2 position, struct Vector2 direction, enum BulletT
     bulletCount++;
 }
 
-void DrawBullets()
+void SpawnTrail(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType, unsigned short enemyIndex)
 {
-    struct Vector2 halfExtendPlayerBullet;
-    V2SetInt(&halfExtendPlayerBullet, 16, 16);
-    struct Vector2* halfExtendPtr;
+    if (bulletCount >= MAX_BULLETS - 1)
+    {
+        return;
+    }
+    struct Bullet* bulletPtr = &bullets[bulletCount];
+    bulletPtr->position = position;
+    bulletPtr->direction = direction;
+    bulletPtr->bulletType = bulletType;
+    bulletPtr->life = 0;
+    bulletPtr->enemyIndex = enemyIndex;
+    if (enemyIndex == 0xFFFF)
+    {
+        bulletPtr->destination = V2Add(position, V2FromInt(400,0));
+    }
+    bulletCount++;
+}
+
+
+void DrawBullets(int layer)
+{
+    struct Vector2 halfExtend;
     struct Bullet* bulletPtr = bullets;
     unsigned char bulletColor = 0;
+    int bulletLayer = 0;
+    bool isCircle = false;
+    bool isTrail = false;
     for (unsigned int i = 0; i < bulletCount; i++)
     {
         switch (bulletPtr->bulletType)
         {
             case PlayerWhite:
-                halfExtendPtr = &halfExtendPlayerBullet;
-                bulletColor = 15;
+                halfExtend = V2FromInt(16, 16);
+                bulletColor = 13;
+                bulletLayer = 0;
+                isCircle = false;
+                isTrail = false;
                 break;
             case PlayerBlack:
-                halfExtendPtr = &halfExtendPlayerBullet;
-                bulletColor = 1;
+                halfExtend = V2FromInt(16, 16);
+                bulletColor = 3;
+                bulletLayer = 0;
+                isCircle = false;
+                isTrail = false;
                 break;
-
+            case EnemySmallWhite:
+                halfExtend = V2FromInt(6, 6);
+                bulletColor = 15;
+                bulletLayer = 1;
+                isCircle = true;
+                isTrail = false;
+                break;
+            case EnemySmallBlack:
+                halfExtend = V2FromInt(6, 6);
+                bulletColor = 0;
+                bulletLayer = 1;
+                isCircle = true;
+                isTrail = false;
+                break;
+            case PlayerWhiteTrail:
+                halfExtend = V2FromInt(3, 3);
+                bulletColor = 15;
+                bulletLayer = 0;
+                isCircle = true;
+                isTrail = true;
+                break;
+            case PlayerBlackTrail:
+                halfExtend = V2FromInt(3, 3);
+                bulletColor = 0;
+                bulletLayer = 0;
+                isCircle = true;
+                isTrail = true;
+                break;
         }
-        Rectangle(bulletPtr->position, *halfExtendPtr, bulletColor);
-
+        if (layer == bulletLayer)
+        {
+            if (isTrail)
+            {
+                int trailPosCount = min(bulletPtr->life, 8);
+                for (int i = 0; i < trailPosCount; i++)
+                {
+                    DrawCircle(bulletPtr->trailPositions[i], halfExtend.x.integer, 0, bulletColor);
+                }
+            }
+            else if (isCircle)
+            {
+                DrawCircle(bulletPtr->position, halfExtend.x.integer, 0, bulletColor);
+            }
+            else
+            {
+                Rectangle(bulletPtr->position, halfExtend, bulletColor);
+            }
+        }
         bulletPtr++;
     }
 }

@@ -3095,3 +3095,16 @@ struct Fixed Tan(struct Fixed circular)
     int index = circular.integer & 1023;
     return tans[index];
 }
+
+struct Vector2 V2Rotate(struct Vector2 v, struct Fixed angle)
+{
+    struct Vector2 res;
+    struct Fixed circular = RadianToCircular(angle);
+    struct Fixed cs = Cosine(circular);
+    struct Fixed sn = Sine(circular);
+
+    res.x = Sub(Mul(v.x, cs), Mul(v.y, sn));
+    res.y = Add(Mul(v.x, sn), Mul(v.y, cs));
+
+    return res;
+}

@@ -54,13 +54,19 @@ int max3(int a, int b, int c)
     return max2(a, max2(b, c));
 }
 
-void set_pixel(int x, int y, uint8_t pixel)
+
+void setPixelNoCheck(int x, int y, uint8_t color)
+{
+    buffer[y * SCREEN_WIDTH + x] = color;
+}
+
+void set_pixel(int x, int y, uint8_t color)
 {
     if (y < 0 || y >= SCREEN_HEIGHT || x < 0 || x >= SCREEN_WIDTH)
     {
         return;
     }
-    buffer[y * SCREEN_WIDTH + x] = pixel;
+    setPixelNoCheck(x, y, color);
 }
 
 void DrawTri(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
@@ -93,7 +99,33 @@ void DrawTri(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned c
             // If p is on or inside all edges, render pixel.
             if (w0 >= 0 && w1 >= 0 && w2 >= 0)
             {
-                set_pixel(x, y, color);
+                setPixelNoCheck(x, y, color);
+            }
+        }
+    }
+}
+
+void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned char color)
+{
+    int startx = max(position.x.integer - radiusOut, 0);
+    int endx = min(position.x.integer + radiusOut, SCREEN_WIDTH);
+
+    int starty = max(position.y.integer - radiusOut, 0);
+    int endy = min(position.y.integer + radiusOut, SCREEN_HEIGHT);
+
+    int radiusOutSq = radiusOut * radiusOut;
+    int radiusInSq = radiusIn * radiusIn;
+
+    for (int y = starty; y < endy; y++)
+    {
+        for (int x = startx; x < endx; x++)
+        {
+            int dx = x - position.x.integer;
+            int dy = y - position.y.integer;
+            int distSq = dx * dx + dy * dy;
+            if (distSq < radiusOutSq && distSq > radiusInSq)
+            {
+                setPixelNoCheck(x, y, color);
             }
         }
     }

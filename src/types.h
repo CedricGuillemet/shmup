@@ -1,3 +1,6 @@
+
+// Fixed point value
+
 struct Fixed
 {
     union 
@@ -84,6 +87,20 @@ struct Fixed FromFixed(int i)
     return res;
 }
 
+struct Fixed Neg(struct Fixed value)
+{
+    struct Fixed res;
+    res.value = -value.value;
+    return res;
+}
+
+struct Fixed Lerp(struct Fixed a, struct Fixed b, struct Fixed t)
+{
+    return Add(a, Mul(Sub(b, a), t));
+}
+
+// Vector2
+
 struct Vector2
 {
     struct Fixed x;
@@ -112,14 +129,80 @@ struct Vector2 V2Add(struct Vector2 a, struct Vector2 b)
     return res;
 }
 
-struct Matrix_t
+struct Vector2 V2Sub(struct Vector2 a, struct Vector2 b)
 {
-    struct Fixed v[16];
-};
+    struct Vector2 res;
+
+    res.x = Sub(a.x, b.x);
+    res.y = Sub(a.y, b.y);
+
+    return res;
+}
+
+struct Vector2 V2Normalize(struct Vector2 v)
+{
+    struct Vector2 res;
+    struct Fixed len;
+
+    if (abs(v.x.integer) > 128 || abs(v.y.integer) > 128)
+    {
+        v.x.value >>= 1;
+        v.y.value >>= 1;
+    }
+    len = Mul(v.x, v.x);
+    len = Add(len, Mul(v.y, v.y));
+    len.value = (int)(sqrt(len.value)) << 8;
+    res.x = Div(v.x, len);
+    res.y = Div(v.y, len);
+
+    return res;
+}
+
+struct Fixed V2LengthSq(struct Vector2 v)
+{
+    struct Fixed lenSq;
+
+    lenSq = Mul(v.x, v.x);
+    lenSq = Add(lenSq, Mul(v.y, v.y));
+
+    return lenSq;
+}
+
+struct Vector2 V2FromInt(int x, int y)
+{
+    struct Vector2 res;
+
+    SetInt(&res.x, x);
+    SetInt(&res.y, y);
+
+    return res;
+}
+
+struct Vector2 V2Lerp(struct Vector2 a, struct Vector2 b, struct Fixed t)
+{
+    struct Vector2 res;
+
+    res.x = Lerp(a.x, b.x, t);
+    res.y = Lerp(a.y, b.y, t);
+
+    return res;
+}
+
+struct Vector2 V2Mul(struct Vector2 v, struct Fixed m)
+{
+    struct Vector2 res;
+
+    res.x = Mul(v.x, m);
+    res.y = Mul(v.y, m);
+
+    return res;
+}
+
+// Vector3
 
 struct Vector3
 {
-    struct Fixed x,y,z;
+    struct Fixed x, y, z;
 };
 
 struct Vector3 V3Add(struct Vector3 a, struct Vector3 b)
@@ -226,6 +309,22 @@ struct Vector3 V3FromChar(char x, char y, char z)
     return res;
 }
 
+struct Vector3 V3Neg(struct Vector3 value)
+{
+    struct Vector3 res;
+    res.x = Neg(value.x);
+    res.y = Neg(value.y);
+    res.z = Neg(value.z);
+    return res;
+}
+
+// Matrix
+
+struct Matrix_t
+{
+    struct Fixed v[16];
+};
+
 struct Matrix_t IdentityMatrix()
 {
     struct Matrix_t res;
@@ -237,23 +336,19 @@ struct Matrix_t IdentityMatrix()
     return res;
 }
 
+// Radian/Circular value
+
 struct Fixed RadianToCircular(struct Fixed radian)
 {
     return Mul(radian, FromFixed(21361414)); // /3.141592 * 1024 * 65536
 }
 
-struct Fixed Neg(struct Fixed value)
-{
-    struct Fixed res;
-    res.value = -value.value;
-    return res;
-}
 
-struct Vector3 V3Neg(struct Vector3 value)
+
+int g_seed = 17;
+
+int fastrand()
 {
-    struct Vector3 res;
-    res.x = Neg(value.x);
-    res.y = Neg(value.y);
-    res.z = Neg(value.z);
-    return res;
+    g_seed = (214013 * g_seed + 2531011);
+    return (g_seed >> 16) & 0x7FFF;
 }

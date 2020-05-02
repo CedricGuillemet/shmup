@@ -3,8 +3,11 @@ struct Ship_t
     struct Vector2 position;
     bool isWhite;
     bool switchColorReleased;
+    
     unsigned char switchTransition;
     unsigned char spawningTransition;
+    unsigned char jauge;
+    unsigned char dieTransition;
 };
 
 struct Ship_t Ship;
@@ -16,6 +19,8 @@ void SpawnShip()
     Ship.switchColorReleased = true;
     Ship.switchTransition = 0;
     Ship.spawningTransition = 60;
+    Ship.jauge = 0;
+    Ship.dieTransition = 0;
 }
 
 void MoveShip(struct Vector2 direction)
@@ -44,7 +49,7 @@ void MoveShip(struct Vector2 direction)
     }
 }
 
-void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchColor)
+void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchColor, bool discharge)
 {
     struct Vector2 direction;
     V2SetInt(&direction, 0, 0);
@@ -53,6 +58,16 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
     V2SetInt(&directionDown, 0, 1);
     V2SetInt(&directionLeft, -1, 0);
     V2SetInt(&directionRight, 1, 0);
+
+    if (Ship.dieTransition > 0)
+    {
+        Ship.dieTransition--;
+        if (!Ship.dieTransition)
+        {
+            SpawnShip();
+        }
+        return;
+    }
 
     if (left)
     {
@@ -81,11 +96,35 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
 
     if (!Ship.spawningTransition)
     {
-        if (fire && !Ship.switchTransition)
+        if (!Ship.switchTransition)
         {
-            struct Vector2 directionBullet;
-            V2SetInt(&directionBullet, 20, 0);
-            SpawnBullet(Ship.position, directionBullet, Ship.isWhite ? PlayerWhite : PlayerBlack);
+            if (fire)
+            {
+                struct Vector2 directionBullet;
+                V2SetInt(&directionBullet, 20, 0);
+                SpawnBullet(Ship.position, directionBullet, Ship.isWhite ? PlayerWhite : PlayerBlack);
+            }
+            if (discharge && Ship.jauge > 0)
+            {
+                int trailCount = max(Ship.jauge >> 4, 1);
+                if (trailCount == 1)
+                {
+                    unsigned short destination = enemyCount ? 0 : 0xFFFF;
+                    SpawnTrail(Ship.position, V2FromInt(-1, 0), Ship.isWhite ? PlayerWhiteTrail : PlayerBlackTrail, destination);
+                }
+                else
+                {
+                    for (int i = 0; i < trailCount; i++)
+                    {
+                        struct Fixed step = Div(FromInt(1), FromInt(trailCount - 1));
+                        struct Fixed t = Mul(step, FromInt(i));
+                        struct Vector2 directionBullet = V2Normalize(V2Lerp(V2FromInt(-1, 1), V2FromInt(-1, -1), t));
+                        unsigned short destination = enemyCount ? (i % enemyCount) : 0xFFFF;
+                        SpawnTrail(Ship.position, directionBullet, Ship.isWhite ? PlayerWhiteTrail : PlayerBlackTrail, destination);
+                    }
+                }
+                Ship.jauge = 0;
+            }
         }
         if (Ship.switchColorReleased && switchColor)
         {
@@ -104,10 +143,14 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
 
 void DrawShip()
 {
+    if (Ship.dieTransition)
+    {
+        return;
+    }
     struct Vector2 halfExtend;
     V2SetInt(&halfExtend, 16, 16);
     if (!(Ship.spawningTransition&1))
     {
-        Rectangle(Ship.position, halfExtend, Ship.isWhite?13:3);
+        Rectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
     }
 }
