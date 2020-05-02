@@ -96,6 +96,12 @@ void V2SetInt(struct Vector2* value, int x, int y)
     SetInt(&value->y, y);
 }
 
+void V2SetFixed(struct Vector2* value, struct Fixed x, struct Fixed y)
+{
+    value->x = x;
+    value->y = y;
+}
+
 struct Vector2 V2Add(struct Vector2 a, struct Vector2 b)
 {
     struct Vector2 res;
@@ -234,4 +240,20 @@ struct Matrix_t IdentityMatrix()
 struct Fixed RadianToCircular(struct Fixed radian)
 {
     return Mul(radian, FromFixed(21361414)); // /3.141592 * 1024 * 65536
+}
+
+struct Fixed Neg(struct Fixed value)
+{
+    struct Fixed res;
+    res.value = -value.value;
+    return res;
+}
+
+struct Vector3 V3Neg(struct Vector3 value)
+{
+    struct Vector3 res;
+    res.x = Neg(value.x);
+    res.y = Neg(value.y);
+    res.z = Neg(value.z);
+    return res;
 }

@@ -17,6 +17,7 @@ typedef unsigned char bool;
 #include "types.h"
 #include "tables.h"
 #include "display.h"
+#include "bullets.h"
 #include "ship.h"
 #include "geometry.h"
 
@@ -96,6 +97,8 @@ struct Input_t
     bool right;
     bool up;
     bool down;
+    bool fire;
+    bool switchColor;
 };
 
 struct Input_t Input;
@@ -110,6 +113,8 @@ int main(int argc, char** argv)
     memset(buffer, 17, sizeof(buffer));
     memset(&Input, 0, sizeof(Input));
     angle = FromInt(0);
+
+    SpawnShip();
     /*
     FILE *fp = fopen("tan.txt", "wt");
     for (int i = 0;i<1024;i++)
@@ -147,6 +152,12 @@ int main(int argc, char** argv)
                 case SDLK_DOWN:
                     Input.down = true;
                     break;
+                case SDLK_z:
+                    Input.fire = true;
+                    break;
+                case SDLK_x:
+                    Input.switchColor = true;
+                    break;
                 default:
                     break;
                 }
@@ -166,6 +177,12 @@ int main(int argc, char** argv)
                 case SDLK_DOWN:
                     Input.down = false;
                     break;
+                case SDLK_z:
+                    Input.fire = false;
+                    break;
+                case SDLK_x:
+                    Input.switchColor = false;
+                    break;
                 }
                 break;
             case SDL_QUIT:
@@ -175,10 +192,9 @@ int main(int argc, char** argv)
         }
 
         // tick game
-        TickShip(Input.left, Input.right, Input.up, Input.down);
+        TickShip(Input.left, Input.right, Input.up, Input.down, Input.fire, Input.switchColor);
 
-        // clear
-        memset(buffer, 17, sizeof(buffer));
+        
 
 
         // test geom3d
@@ -190,9 +206,9 @@ int main(int argc, char** argv)
         struct Matrix_t perspective = PerspectiveFov(fovy, aspect, zn, zf);
 
         
-        angle = Add(angle, FromFixed(600));
+        angle = Sub(angle, FromFixed(600));
         struct Fixed circular = RadianToCircular(angle);
-        struct Vector3 eye = V3Mul(V3FromFixed(Cosine(circular), FromFixed(0x8000), Sine(circular)), FromInt(10));
+        struct Vector3 eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x4000)), Sine(circular)), Add(FromInt(4), Cosine(circular)));
 
 
         struct Matrix_t view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
@@ -204,6 +220,15 @@ int main(int argc, char** argv)
         struct Matrix_t perspectiveScreen = MulMatrix(perspective, clipSpaceTo2D);
         struct Matrix_t vp = MulMatrix(view, perspectiveScreen);
         
+        struct Vector3 horizonPos = V3Mul(V3Normalize(V3FromFixed(eye.x, FromInt(0), eye.z)), FromInt(-100));
+        struct Vector2 horizonPosScreen = TransformV3V3(&vp, horizonPos);
+        int groundHeight = horizonPosScreen.y.integer;
+
+        // clear
+        uint8_t *backBufferPtr = buffer;
+        memset(backBufferPtr, 17, SCREEN_WIDTH * groundHeight);
+        backBufferPtr += SCREEN_WIDTH * groundHeight;
+        memset(backBufferPtr, 18, SCREEN_WIDTH * (SCREEN_HEIGHT - groundHeight));
 
         char v[8 * 3] = {
             -1,-1,-1,
@@ -251,9 +276,11 @@ int main(int argc, char** argv)
             set_pixel(screenpos[i].x.integer, screenpos[i].y.integer, 15);
         }
 
-        struct Vector2 halfExtend;
-        V2SetInt(&halfExtend, 16, 16);
-        Rectangle(Ship.position, halfExtend, 16);
+        TickBullets();
+        DrawBullets();
+
+        DrawShip();
+        set_pixel(horizonPosScreen.x.integer, horizonPosScreen.y.integer, 0);
 
         //set_pixel(160,100, 16);
         BlitSurface(img);

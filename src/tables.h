@@ -3079,19 +3079,19 @@ struct Fixed tans[1024] = {
 // circular value : [0..1024] corresponds to [0..pi]
 struct Fixed Cosine(struct Fixed circular)
 {
-    int index = (circular.integer )%2047; // /32 = 65536 / 2048 
+    int index = circular.integer & 2047; // /32 = 65536 / 2048 
     return cosines[index];
 }
 
 struct Fixed Sine(struct Fixed circular)
 {
-    int index = ((circular.integer) + 512) % 2047;
+    int index = (circular.integer + 512) & 2047;
     return cosines[index];
 }
 
 // circular value : [0..1024] corresponds to [0..pi]
 struct Fixed Tan(struct Fixed circular)
 {
-    int index = (circular.integer) % 1023;
+    int index = circular.integer & 1023;
     return tans[index];
 }

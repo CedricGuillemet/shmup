@@ -1,16 +1,50 @@
 struct Ship_t
 {
     struct Vector2 position;
+    bool isWhite;
+    bool switchColorReleased;
+    unsigned char switchTransition;
+    unsigned char spawningTransition;
 };
 
 struct Ship_t Ship;
 
+void SpawnShip()
+{
+    V2SetInt(&Ship.position, -16, 100);
+    Ship.isWhite = true;
+    Ship.switchColorReleased = true;
+    Ship.switchTransition = 0;
+    Ship.spawningTransition = 60;
+}
+
 void MoveShip(struct Vector2 direction)
 {
     Ship.position = V2Add(Ship.position, direction);
+
+    int margin = 14;
+    if (Ship.position.x.integer < margin)
+    {
+        SetInt(&Ship.position.x, margin);
+    }
+
+    if (Ship.position.x.integer > SCREEN_WIDTH - margin)
+    {
+        SetInt(&Ship.position.x, SCREEN_WIDTH - margin);
+    }
+
+    if (Ship.position.y.integer < margin)
+    {
+        SetInt(&Ship.position.y, margin);
+    }
+
+    if (Ship.position.y.integer > SCREEN_HEIGHT - margin)
+    {
+        SetInt(&Ship.position.y, SCREEN_HEIGHT - margin);
+    }
 }
 
-void TickShip(bool left, bool right, bool up, bool down)
+void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchColor)
 {
     struct Vector2 direction;
     V2SetInt(&direction, 0, 0);
@@ -36,6 +70,44 @@ void TickShip(bool left, bool right, bool up, bool down)
     {
         direction = V2Add(direction, directionDown);
     }
+    if (Ship.spawningTransition > 0)
+    {
+        Ship.spawningTransition--;
+        if (Ship.spawningTransition > 30)
+        {
+            V2SetFixed(&direction, FromFixed(0x8000), FromFixed(0));
+        }
+    }
+
+    if (!Ship.spawningTransition)
+    {
+        if (fire && !Ship.switchTransition)
+        {
+            struct Vector2 directionBullet;
+            V2SetInt(&directionBullet, 20, 0);
+            SpawnBullet(Ship.position, directionBullet, Ship.isWhite ? PlayerWhite : PlayerBlack);
+        }
+        if (Ship.switchColorReleased && switchColor)
+        {
+            Ship.isWhite = !Ship.isWhite;
+            Ship.switchTransition = 20;
+        }
+    }
+    Ship.switchColorReleased = !switchColor;
+    if (Ship.switchTransition > 0)
+    {
+        Ship.switchTransition--;
+    }
 
     MoveShip(direction);
+}
+
+void DrawShip()
+{
+    struct Vector2 halfExtend;
+    V2SetInt(&halfExtend, 16, 16);
+    if (!(Ship.spawningTransition&1))
+    {
+        Rectangle(Ship.position, halfExtend, Ship.isWhite?13:3);
+    }
 }
