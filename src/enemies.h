@@ -7,7 +7,9 @@ enum EnemyType
 struct Enemy
 {
     struct Vector2 position;
-    int life;
+    short life;
+    short localTime;
+    unsigned short pathIndex;
     enum EnemyType enemyType;
 };
 
@@ -34,6 +36,8 @@ void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType)
     enemy->position = position;
     enemy->life = 48;
     enemy->enemyType = enemyType;
+    enemy->localTime = 0;
+    enemy->pathIndex = 0;
     enemyCount++;
 }
 
@@ -43,8 +47,18 @@ void TickEnemies()
     struct Enemy* enemyEndPtr = Enemies + enemyCount;
     while (enemyPtr < enemyEndPtr)
     {
-        enemyPtr->position = V2Add(enemyPtr->position, V2FromInt(-1, 0));
-        bool removeEnemy = (enemyPtr->life < 0) || IsClipped(enemyPtr->position, -30);
+        /*
+        struct Fixed t = Mul(FromInt(enemyPtr->localTime), FromFixed(0x100));
+        struct Vector2 pts[3] = {V2FromInt(330, 160), V2FromInt(100, 100), V2FromInt(110, 0)};
+
+        enemyPtr->position = V2Lerp(V2Lerp(pts[0], pts[1], t), V2Lerp(pts[1], pts[2], t), t);
+        */
+        struct Path* path = &Paths[enemyPtr->pathIndex];
+        
+        enemyPtr->position = path->positions[enemyPtr->localTime];
+        enemyPtr->localTime++;
+
+        bool removeEnemy = (enemyPtr->life < 0) || (enemyPtr->localTime >= path->positionCount) || IsClipped(enemyPtr->position, -30);
 
         if (removeEnemy)
         {

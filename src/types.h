@@ -343,8 +343,6 @@ struct Fixed RadianToCircular(struct Fixed radian)
     return Mul(radian, FromFixed(21361414)); // /3.141592 * 1024 * 65536
 }
 
-
-
 int g_seed = 17;
 
 int fastrand()

@@ -25,7 +25,7 @@ void SpawnShip()
 
 void MoveShip(struct Vector2 direction)
 {
-    Ship.position = V2Add(Ship.position, direction);
+    Ship.position = V2Add(Ship.position, V2Mul(direction, FromFixed(0x18000)));
 
     int margin = 14;
     if (Ship.position.x.integer < margin)

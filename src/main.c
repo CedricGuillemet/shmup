@@ -17,6 +17,7 @@ typedef unsigned char bool;
 #include "display.h"
 #include "hud.h"
 #include "effects.h"
+#include "paths.h"
 #include "bullets.h"
 #include "enemies.h"
 #include "ship.h"
@@ -119,6 +120,8 @@ int main(int argc, char** argv)
     memset(buffer, 17, sizeof(buffer));
     memset(&Input, 0, sizeof(Input));
     angle = FromInt(0);
+
+    PrecomputePaths();
 
     SpawnShip();
     /*
@@ -235,12 +238,12 @@ int main(int argc, char** argv)
             SDL_BlitSurface(img, NULL, screenSurface, NULL);
             SDL_UpdateWindowSurface(window);
         }
-
+        
         currentTime = SDL_GetTicks();
         while (SDL_GetTicks() - lastTime < 16) 
         {
         };
-
+        
         currentTime = SDL_GetTicks();
         lastTime = currentTime;
         
