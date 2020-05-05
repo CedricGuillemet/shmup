@@ -14,6 +14,7 @@ typedef unsigned char bool;
 #include "tga.h"
 #include "types.h"
 #include "tables.h"
+#include "constants.h"
 #include "display.h"
 #include "hud.h"
 #include "effects.h"

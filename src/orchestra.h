@@ -17,10 +17,29 @@ void PrecomputePaths()
 
 void TickOrchestra()
 {
-    
+    /*
     if ((GlobalFrame & 0x7F) == 0x7F)
     {
-        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1)? EnemyTypeWhite : EnemyTypeBlack);
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1)? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(0, -30));
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1) ? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(5, -60));
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1) ? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(10, -90));
+        enemySpawnCount++;
+    }
+    */
+
+    if (GlobalFrame == 0x80)
+    {
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1) ? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(0, -30));
+        enemySpawnCount++;
+    }
+    if (GlobalFrame == 0xA0)
+    {
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1) ? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(0, -60));
+        enemySpawnCount++;
+    }
+    if (GlobalFrame == 0xC0)
+    {
+        SpawnEnemy(V2FromInt(330, ((enemySpawnCount & 3) == 0) ? 140 : 60), (enemySpawnCount & 1) ? EnemyTypeWhite : EnemyTypeBlack, V2FromInt(0, -90));
         enemySpawnCount++;
     }
 

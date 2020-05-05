@@ -56,8 +56,6 @@ void RemoveBullet(struct Bullet* bulletPtr)
     }
 }
 
-
-
 void SpawnBullet(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType)
 {
     if (bulletCount >= MAX_BULLETS - 1)
@@ -162,7 +160,7 @@ void DrawBullets(int layer)
             }
             else
             {
-                Rectangle(bulletPtr->position, halfExtend, bulletColor);
+                DrawRectangle(bulletPtr->position, halfExtend, bulletColor);
             }
         }
         bulletPtr++;

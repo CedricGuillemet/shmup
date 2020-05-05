@@ -10,6 +10,7 @@ struct Enemy
     short life;
     short localTime;
     unsigned short pathIndex;
+    struct Vector2 pathOffset;
     enum EnemyType enemyType;
 };
 
@@ -26,7 +27,7 @@ void RemoveEnemy(struct Enemy* enemyPtr)
     }
 }
 
-void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType)
+void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType, struct Vector2 pathOffset)
 {
     if (enemyCount >= MAX_ENEMIES -1)
     {
@@ -38,6 +39,7 @@ void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType)
     enemy->enemyType = enemyType;
     enemy->localTime = 0;
     enemy->pathIndex = 0;
+    enemy->pathOffset = pathOffset;
     enemyCount++;
 }
 
@@ -55,7 +57,7 @@ void TickEnemies()
         */
         struct Path* path = &Paths[enemyPtr->pathIndex];
         
-        enemyPtr->position = path->positions[enemyPtr->localTime];
+        enemyPtr->position = V2Add(path->positions[enemyPtr->localTime], enemyPtr->pathOffset);
         enemyPtr->localTime++;
 
         bool removeEnemy = (enemyPtr->life < 0) || (enemyPtr->localTime >= path->positionCount) || IsClipped(enemyPtr->position, -30);
@@ -94,7 +96,7 @@ void DrawEnemies()
     for (unsigned int i = 0; i < enemyCount; i++)
     {
         unsigned char enemyColor = (enemyPtr->enemyType == EnemyTypeWhite) ? 12 : 3;
-        Rectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
+        DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
 
         enemyPtr++;
     }

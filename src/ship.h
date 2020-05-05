@@ -151,6 +151,6 @@ void DrawShip()
     V2SetInt(&halfExtend, 16, 16);
     if (!(Ship.spawningTransition&1))
     {
-        Rectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
+        DrawRectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
     }
 }

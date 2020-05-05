@@ -144,7 +144,7 @@ struct Vector2 V2Normalize(struct Vector2 v)
     struct Vector2 res;
     struct Fixed len;
 
-    if (abs(v.x.integer) > 128 || abs(v.y.integer) > 128)
+    while (abs(v.x.integer) > 128 || abs(v.y.integer) > 128)
     {
         v.x.value >>= 1;
         v.y.value >>= 1;
@@ -349,4 +349,33 @@ int fastrand()
 {
     g_seed = (214013 * g_seed + 2531011);
     return (g_seed >> 16) & 0x7FFF;
+}
+
+// Rectangle for collision detection
+
+struct Rectangle
+{
+    short left;
+    short top;
+    short right;
+    short bottom;
+};
+
+bool IntersectRect(struct Rectangle r1, struct Rectangle r2)
+{
+    return !(r2.left > r1.right
+        || r2.right < r1.left
+        || r2.top > r1.bottom
+        || r2.bottom < r1.top
+        );
+}
+
+struct Rectangle GetRectangle(struct Vector2 position, int halfExtend)
+{
+    struct Rectangle res;
+    res.left = position.x.integer - halfExtend;
+    res.right = res.left + halfExtend * 2;
+    res.top = position.y.integer - halfExtend;
+    res.bottom = res.top + halfExtend * 2;
+    return res;
 }

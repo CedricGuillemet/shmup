@@ -1,7 +1,7 @@
 uint32_t palette[256] = { 0xFF000000, 0xFFFFFFFF };
 uint8_t buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
-void Rectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t color)
+void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t color)
 {
     int width = halfExtend.x.integer * 2;
     int height = halfExtend.y.integer * 2;
@@ -54,13 +54,12 @@ int max3(int a, int b, int c)
     return max2(a, max2(b, c));
 }
 
-
 void setPixelNoCheck(int x, int y, uint8_t color)
 {
     buffer[y * SCREEN_WIDTH + x] = color;
 }
 
-void set_pixel(int x, int y, uint8_t color)
+void setPixel(int x, int y, uint8_t color)
 {
     if (y < 0 || y >= SCREEN_HEIGHT || x < 0 || x >= SCREEN_WIDTH)
     {
@@ -69,7 +68,7 @@ void set_pixel(int x, int y, uint8_t color)
     setPixelNoCheck(x, y, color);
 }
 
-void DrawTri(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
+void DrawTriangle(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
 {
     // Compute triangle bounding box
     int minX = min3(v0.x.integer, v1.x.integer, v2.x.integer);

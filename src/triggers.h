@@ -1,21 +1,4 @@
 
-struct Rectangle
-{
-    short left;
-    short top;
-    short right;
-    short bottom;
-};
-
-bool IntersectRect(struct Rectangle r1, struct Rectangle r2)
-{
-    return !(r2.left > r1.right
-        || r2.right < r1.left
-        || r2.top > r1.bottom
-        || r2.bottom < r1.top
-        );
-}
-
 void TickBulletsDamagingEnemies()
 {
     struct Bullet* bulletPtr = bullets;
@@ -27,25 +10,17 @@ void TickBulletsDamagingEnemies()
             bulletPtr++;
             continue;
         }
-        struct Rectangle bulletRectangle;
-        bulletRectangle.left = bulletPtr->position.x.integer - 16;
-        bulletRectangle.right = bulletRectangle.left + 32;
-        bulletRectangle.top = bulletPtr->position.y.integer - 16;
-        bulletRectangle.bottom = bulletRectangle.top + 32;
+        struct Rectangle bulletRectangle = GetRectangle(bulletPtr->position, PLAYER_BULLET_COLLISION_HE);
 
-        bool removeBullet = false;
+        bool bulletHit = false;
 
         struct Enemy* enemyPtr = Enemies;
         struct Enemy* enemyEndPtr = Enemies + enemyCount;
         while (enemyPtr < enemyEndPtr)
         {
-            struct Rectangle enemyRectangle;
-            enemyRectangle.left = enemyPtr->position.x.integer - 8;
-            enemyRectangle.right = enemyRectangle.left + 16;
-            enemyRectangle.top = enemyPtr->position.y.integer - 8;
-            enemyRectangle.bottom = enemyRectangle.top + 16;
-            removeBullet = IntersectRect(bulletRectangle, enemyRectangle);
-            if (removeBullet)
+            struct Rectangle enemyRectangle = GetRectangle(enemyPtr->position, ENEMY_COLLISION_HE[0]);
+            bulletHit = IntersectRect(bulletRectangle, enemyRectangle);
+            if (bulletHit)
             {
                 if ((enemyPtr->life & 3) == 0)
                 {
@@ -57,7 +32,7 @@ void TickBulletsDamagingEnemies()
             enemyPtr++;
         }
 
-        if (removeBullet)
+        if (bulletHit)
         {
             RemoveBullet(bulletPtr);
             bulletEndPtr--;
@@ -77,17 +52,20 @@ void ShipDies()
     SpawnPlayerExplosion(Ship.position);
 }
 
+bool IsSameColorAsShip(enum BulletType bulletType)
+{
+    return ( (bulletType == EnemySmallWhite && Ship.isWhite) ||
+        (bulletType == EnemySmallBlack && (!Ship.isWhite)));
+}
+
 void TickBulletsDamagingShip()
 {
     if (Ship.dieTransition || Ship.spawningTransition)
     {
         return;
     }
-    struct Rectangle shipRectangle;
-    shipRectangle.left = Ship.position.x.integer - 8;
-    shipRectangle.right = shipRectangle.left + 16;
-    shipRectangle.top = Ship.position.y.integer - 8;
-    shipRectangle.bottom = shipRectangle.top + 16;
+    struct Rectangle shipRectangle = GetRectangle(Ship.position, SHIP_COLLISION_HE);
+    struct Rectangle shipRectangleForAcquiring = GetRectangle(Ship.position, SHIP_COLLISION_ACQUIRE_HE);
 
     struct Bullet* bulletPtr = bullets;
     struct Bullet* bulletEndPtr = bullets + bulletCount;
@@ -98,41 +76,24 @@ void TickBulletsDamagingShip()
             bulletPtr++;
             continue;
         }
-
-        struct Rectangle bulletRectangle;
-        bulletRectangle.left = bulletPtr->position.x.integer - 8;
-        bulletRectangle.right = bulletRectangle.left + 16;
-        bulletRectangle.top = bulletPtr->position.y.integer - 8;
-        bulletRectangle.bottom = bulletRectangle.top + 16;
-
-        bool removeBullet = IntersectRect(bulletRectangle, shipRectangle);
-        if (removeBullet)
+        bool hasHit;
+        bool sameColor = IsSameColorAsShip(bulletPtr->bulletType);
+        if (sameColor)
         {
-            int jaugeAcquired = 0;
-            bool die = false;
-            switch (bulletPtr->bulletType)
-            {
-            case EnemySmallWhite:
-                if (Ship.isWhite)
-                {
-                    jaugeAcquired = 8;
-                }
-                else
-                {
-                    die = true;
-                }
-                break;
-            case EnemySmallBlack:
-                if (!Ship.isWhite)
-                {
-                    jaugeAcquired = 8;
-                }
-                else
-                {
-                    die = true;
-                }
-                break;
-            }
+            struct Rectangle bulletRectangle = GetRectangle(bulletPtr->position, ENEMY_BULLET_COLLISION_HE[0]);
+            hasHit = IntersectRect(bulletRectangle, shipRectangleForAcquiring);
+        }
+        else
+        {
+            struct Rectangle bulletRectangle = GetRectangle(bulletPtr->position, ENEMY_BULLET_COLLISION_HE[0]);
+            hasHit = IntersectRect(bulletRectangle, shipRectangle);
+        }
+        
+        if (hasHit)
+        {
+            int jaugeAcquired = sameColor ? JAUGE_VALUE[0] : 0;
+            bool die = !sameColor;
+
             Ship.jauge = min(Ship.jauge + jaugeAcquired, 255);
             if (jaugeAcquired)
             {
@@ -157,11 +118,7 @@ void TickBulletsDamagingShip()
     struct Enemy* enemyEndPtr = Enemies + enemyCount;
     while (enemyPtr < enemyEndPtr)
     {
-        struct Rectangle enemyRectangle;
-        enemyRectangle.left = enemyPtr->position.x.integer - 8;
-        enemyRectangle.right = enemyRectangle.left + 16;
-        enemyRectangle.top = enemyPtr->position.y.integer - 8;
-        enemyRectangle.bottom = enemyRectangle.top + 16;
+        struct Rectangle enemyRectangle = GetRectangle(enemyPtr->position, ENEMY_TO_SHIP_COLLISION_HE);
         if (IntersectRect(shipRectangle, enemyRectangle))
         {
             ShipDies();
@@ -170,7 +127,6 @@ void TickBulletsDamagingShip()
         enemyPtr++;
     }
 }
-
 
 void TickBullets()
 {

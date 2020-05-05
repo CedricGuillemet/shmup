@@ -7,8 +7,8 @@ void DrawHUD(unsigned char jauge)
     //Ship.jauge = 255;
     int halfJaugeBump = jaugeBump >> 1;
     int jaugeValue = jauge >> 3;
-    Rectangle(V2FromInt(6 + halfJaugeBump/2, 35 + jaugeBump/2), V2FromInt(4 + halfJaugeBump, 32 + jaugeBump), 0);
-    Rectangle(V2FromInt(6 + halfJaugeBump/2, 4 + jaugeValue + jaugeBump/2), V2FromInt(3 + halfJaugeBump, jaugeValue + jaugeBump), 15);
+    DrawRectangle(V2FromInt(6 + halfJaugeBump/2, 35 + jaugeBump/2), V2FromInt(4 + halfJaugeBump, 32 + jaugeBump), 0);
+    DrawRectangle(V2FromInt(6 + halfJaugeBump/2, 4 + jaugeValue + jaugeBump/2), V2FromInt(3 + halfJaugeBump, jaugeValue + jaugeBump), 15);
 
 }
 

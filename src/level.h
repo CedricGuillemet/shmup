@@ -69,14 +69,14 @@ void DrawLevel()
         unsigned char i1 = quads[i * 4 + 1];
         unsigned char i2 = quads[i * 4 + 2];
         unsigned char i3 = quads[i * 4 + 3];
-        DrawTri(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
-        DrawTri(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
+        DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
+        DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
     }
 
     for (int i = 0; i < 8; i++)
     {
         //screenpos[i] = TransformV3I8(&vp, &v[i * 3]);
-        set_pixel(screenpos[i].x.integer, screenpos[i].y.integer, 15);
+        setPixel(screenpos[i].x.integer, screenpos[i].y.integer, 15);
     }
-    set_pixel(horizonPosScreen.x.integer, horizonPosScreen.y.integer, 0);
+    setPixel(horizonPosScreen.x.integer, horizonPosScreen.y.integer, 0);
 }

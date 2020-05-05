@@ -1,9 +1,4 @@
-/*struct Sparkles
-{
-    struct Vector2 position;
-    unsigned char life;
-};
-*/
+
 struct Explosion
 {
     struct Vector2 position;
@@ -136,14 +131,9 @@ void DrawExplosions()
         ptr++;
     }
 }
-/*
-void DrawSparkles()
-{
-}
-*/
+
 void DrawEffects()
 {
-    //DrawSparkles();
     DrawExplosions();
 }
 
