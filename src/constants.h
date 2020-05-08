@@ -18,3 +18,6 @@ static const int ENEMY_BULLET_COLLISION_HE[1] = { 6 };
 
 // Jauge increment when acquired
 static const int JAUGE_VALUE[1] = {8};
+
+// Invalid enemy index for trails destination
+#define INVALID_ENEMY_INDEX 0xFFFF

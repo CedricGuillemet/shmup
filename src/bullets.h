@@ -81,7 +81,7 @@ void SpawnTrail(struct Vector2 position, struct Vector2 direction, enum BulletTy
     bulletPtr->bulletType = bulletType;
     bulletPtr->life = 0;
     bulletPtr->enemyIndex = enemyIndex;
-    if (enemyIndex == 0xFFFF)
+    if (enemyIndex == INVALID_ENEMY_INDEX)
     {
         bulletPtr->destination = V2Add(position, V2FromInt(400,0));
     }
@@ -149,9 +149,12 @@ void DrawBullets(int layer)
             if (isTrail)
             {
                 int trailPosCount = min(bulletPtr->life, 8);
-                for (int i = 0; i < trailPosCount; i++)
+                for (int i = 0; i < trailPosCount - 1; i++)
                 {
-                    DrawCircle(bulletPtr->trailPositions[i], halfExtend.x.integer, 0, bulletColor);
+                    //DrawCircle(bulletPtr->trailPositions[i], halfExtend.x.integer, 0, bulletColor);
+                    struct Vector2 p0 = bulletPtr->trailPositions[i];
+                    struct Vector2 p1 = bulletPtr->trailPositions[i + 1];
+                    DrawLine(p0.x.integer, p0.y.integer, p1.x.integer, p1.y.integer, bulletColor);
                 }
             }
             else if (isCircle)

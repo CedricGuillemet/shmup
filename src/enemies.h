@@ -25,6 +25,26 @@ void RemoveEnemy(struct Enemy* enemyPtr)
     {
         *enemyPtr = Enemies[enemyCount];
     }
+
+    struct Bullet* bulletPtr = bullets;
+    unsigned int enemyIndex = enemyPtr - Enemies;
+    for (unsigned int i = 0; i < bulletCount; i++)
+    {
+        if (bulletPtr->bulletType == PlayerWhiteTrail || bulletPtr->bulletType == PlayerBlackTrail)
+        {
+            if (enemyCount)
+            {
+                if (bulletPtr->enemyIndex >= enemyIndex)
+                {
+                    bulletPtr->enemyIndex --;
+                }
+            }
+            else
+            {
+                bulletPtr->enemyIndex = INVALID_ENEMY_INDEX;
+            }
+        }
+    }
 }
 
 void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType, struct Vector2 pathOffset)

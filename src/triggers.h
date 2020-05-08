@@ -138,7 +138,7 @@ void TickBullets()
         if ((bulletPtr->bulletType == PlayerWhiteTrail) ||
             (bulletPtr->bulletType == PlayerBlackTrail))
         {
-            struct Vector2 destination = (bulletPtr->enemyIndex == 0xFFFF) ? bulletPtr->destination : Enemies[bulletPtr->enemyIndex].position;
+            struct Vector2 destination = (bulletPtr->enemyIndex == INVALID_ENEMY_INDEX) ? bulletPtr->destination : Enemies[bulletPtr->enemyIndex].position;
             struct Vector2 delta = V2Sub(destination, bulletPtr->position);
             bool hasHit = false;
             if (abs(delta.x.integer) < 20 && abs(delta.y.integer) < 20)
@@ -151,7 +151,7 @@ void TickBullets()
             {
                 removeBullet = true;
                 // hit enemy
-                if (bulletPtr->enemyIndex != 0xFFFF)
+                if (bulletPtr->enemyIndex != INVALID_ENEMY_INDEX)
                 {
                     struct Enemy* enemyPtr = &Enemies[bulletPtr->enemyIndex];
                     if ((enemyPtr->life & 3) == 0)

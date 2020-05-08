@@ -19,7 +19,7 @@ void SpawnShip()
     Ship.switchColorReleased = true;
     Ship.switchTransition = 0;
     Ship.spawningTransition = 60;
-    Ship.jauge = 0;
+    Ship.jauge = 255;
     Ship.dieTransition = 0;
 }
 
@@ -109,7 +109,7 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
                 int trailCount = max(Ship.jauge >> 4, 1);
                 if (trailCount == 1)
                 {
-                    unsigned short destination = enemyCount ? 0 : 0xFFFF;
+                    unsigned short destination = enemyCount ? 0 : INVALID_ENEMY_INDEX;
                     SpawnTrail(Ship.position, V2FromInt(-1, 0), Ship.isWhite ? PlayerWhiteTrail : PlayerBlackTrail, destination);
                 }
                 else
@@ -119,7 +119,7 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
                         struct Fixed step = Div(FromInt(1), FromInt(trailCount - 1));
                         struct Fixed t = Mul(step, FromInt(i));
                         struct Vector2 directionBullet = V2Normalize(V2Lerp(V2FromInt(-1, 1), V2FromInt(-1, -1), t));
-                        unsigned short destination = enemyCount ? (i % enemyCount) : 0xFFFF;
+                        unsigned short destination = enemyCount ? (i % enemyCount) : INVALID_ENEMY_INDEX;
                         SpawnTrail(Ship.position, directionBullet, Ship.isWhite ? PlayerWhiteTrail : PlayerBlackTrail, destination);
                     }
                 }
