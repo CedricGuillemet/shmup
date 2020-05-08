@@ -8,8 +8,8 @@ struct Fixed
         int value;
         struct parts
         {
-            unsigned short decimal; // int
-            short integer; // fixed point
+            unsigned short decimal;  // fixed point
+            short integer; // int
         };
     };
 };
@@ -99,6 +99,16 @@ struct Fixed Lerp(struct Fixed a, struct Fixed b, struct Fixed t)
     return Add(a, Mul(Sub(b, a), t));
 }
 
+struct Fixed Min(struct Fixed a, struct Fixed b)
+{
+    return (a.value < b.value) ? a : b;
+}
+
+struct Fixed Max(struct Fixed a, struct Fixed b)
+{
+    return (a.value > b.value) ? a : b;
+}
+
 // Vector2
 
 struct Vector2
@@ -106,6 +116,8 @@ struct Vector2
     struct Fixed x;
     struct Fixed y;
 };
+
+#define V2INT(x, y) {x<<16, y<<16}
 
 void V2SetInt(struct Vector2* value, int x, int y)
 {
@@ -139,6 +151,20 @@ struct Vector2 V2Sub(struct Vector2 a, struct Vector2 b)
     return res;
 }
 
+struct Fixed V2Dot(struct Vector2 a, struct Vector2 b)
+{
+    struct Fixed res;
+
+    res = Mul(a.x, b.x);
+    res.value >>= 4;
+    struct Fixed temp = Mul(a.y, b.y);
+    temp.value >>= 4;
+    res = Add(res, temp);
+    res.value <<= 4;
+
+    return res;
+}
+
 struct Vector2 V2Normalize(struct Vector2 v)
 {
     struct Vector2 res;
@@ -164,6 +190,18 @@ struct Fixed V2LengthSq(struct Vector2 v)
 
     lenSq = Mul(v.x, v.x);
     lenSq = Add(lenSq, Mul(v.y, v.y));
+
+    return lenSq;
+}
+
+struct Fixed V2Length(struct Vector2 v)
+{
+    struct Fixed lenSq;
+
+    lenSq = Mul(v.x, v.x);
+    struct Fixed temp = Mul(v.y, v.y);
+    lenSq = Add(lenSq, temp);
+    lenSq.value = (int)(sqrt(lenSq.value)) << 8;
 
     return lenSq;
 }
@@ -194,6 +232,16 @@ struct Vector2 V2Mul(struct Vector2 v, struct Fixed m)
 
     res.x = Mul(v.x, m);
     res.y = Mul(v.y, m);
+
+    return res;
+}
+
+struct Vector2 V2Div(struct Vector2 v, struct Fixed m)
+{
+    struct Vector2 res;
+
+    res.x = Div(v.x, m);
+    res.y = Div(v.y, m);
 
     return res;
 }
@@ -379,3 +427,26 @@ struct Rectangle GetRectangle(struct Vector2 position, int halfExtend)
     res.bottom = res.top + halfExtend * 2;
     return res;
 }
+
+/*
+vec_t vec_t::interpolateHermite(const vec_t& nextKey, const vec_t& nextKeyP1, const vec_t& prevKey, float ratio) const
+{
+    //((tvec_t3*)res)->Lerp(m_Value, nextKey.m_Value, ratio );
+    //return *((tvec_t3*)res);
+    float t = ratio;
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float h1 = 2.f * t3 - 3.f * t2 + 1.0f;
+    float h2 = -2.f * t3 + 3.f * t2;
+    float h3 = (t3 - 2.f * t2 + t) * .5f;
+    float h4 = (t3 - t2) * .5f;
+
+    vec_t res;
+    res = (*this) * h1;
+    res += nextKey * h2;
+    res += (nextKey - prevKey) * h3;
+    res += (nextKeyP1 - (*this)) * h4;
+    res.w = 0.f;
+    return  res;
+}
+*/

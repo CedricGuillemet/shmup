@@ -18,7 +18,7 @@ void TickBulletsDamagingEnemies()
         struct Enemy* enemyEndPtr = Enemies + enemyCount;
         while (enemyPtr < enemyEndPtr)
         {
-            struct Rectangle enemyRectangle = GetRectangle(enemyPtr->position, ENEMY_COLLISION_HE[0]);
+            struct Rectangle enemyRectangle = GetRectangle(enemyPtr->position, ENEMY_COLLISION_HE[enemyPtr->enemyType]);
             bulletHit = IntersectRect(bulletRectangle, enemyRectangle);
             if (bulletHit)
             {

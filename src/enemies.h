@@ -3,6 +3,8 @@ enum EnemyType
 {
     EnemyTypeWhite,
     EnemyTypeBlack,
+    EnemyTypeWhiteSmall,
+    EnemyTypeBlackSmall,
 };
 struct Enemy
 {
@@ -34,7 +36,7 @@ void RemoveEnemy(struct Enemy* enemyPtr)
         {
             if (enemyCount)
             {
-                if (bulletPtr->enemyIndex >= enemyIndex)
+                if (bulletPtr->enemyIndex != INVALID_ENEMY_INDEX && bulletPtr->enemyIndex >= enemyIndex)
                 {
                     bulletPtr->enemyIndex --;
                 }
@@ -47,18 +49,18 @@ void RemoveEnemy(struct Enemy* enemyPtr)
     }
 }
 
-void SpawnEnemy(struct Vector2 position, enum EnemyType enemyType, struct Vector2 pathOffset)
+void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathIndex)
 {
     if (enemyCount >= MAX_ENEMIES -1)
     {
         return;
     }
     struct Enemy* enemy = &Enemies[enemyCount];
-    enemy->position = position;
-    enemy->life = 48;
+    //enemy->position = position;
+    enemy->life = ENEMY_LIFE[enemyType];
     enemy->enemyType = enemyType;
     enemy->localTime = 0;
-    enemy->pathIndex = 0;
+    enemy->pathIndex = pathIndex;
     enemy->pathOffset = pathOffset;
     enemyCount++;
 }
@@ -80,7 +82,7 @@ void TickEnemies()
         enemyPtr->position = V2Add(path->positions[enemyPtr->localTime], enemyPtr->pathOffset);
         enemyPtr->localTime++;
 
-        bool removeEnemy = (enemyPtr->life < 0) || (enemyPtr->localTime >= path->positionCount) || IsClipped(enemyPtr->position, -30);
+        bool removeEnemy = (enemyPtr->life < 0) || (enemyPtr->localTime >= path->positionCount) || IsClipped(enemyPtr->position, -300);
 
         if (removeEnemy)
         {
@@ -95,7 +97,7 @@ void TickEnemies()
                     struct Vector2 direction = V2Rotate(V2FromInt(-1, 0), angle);
                     SpawnBullet(enemyPtr->position, direction, (enemyPtr->enemyType == EnemyTypeWhite) ? EnemySmallWhite : EnemySmallBlack);
                 }
-                FreezeFrame(3);
+                FreezeFrame(ENEMY_FREEZE_FRAMES[enemyPtr->enemyType]);
             }
             RemoveEnemy(enemyPtr);
             enemyEndPtr--;
@@ -109,15 +111,30 @@ void TickEnemies()
 
 void DrawEnemies()
 {
-    struct Vector2 halfExtendEnemy;
-    V2SetInt(&halfExtendEnemy, 8, 8);
     struct Enemy* enemyPtr = Enemies;
-    unsigned char bulletColor = 0;
-    for (unsigned int i = 0; i < enemyCount; i++)
+    struct Vector2 halfExtendEnemy;
+    unsigned char enemyColor;
+    for (unsigned int i = 0; i < enemyCount; i++, enemyPtr++)
     {
-        unsigned char enemyColor = (enemyPtr->enemyType == EnemyTypeWhite) ? 12 : 3;
+        switch(enemyPtr->enemyType)
+        {
+            case EnemyTypeWhite:
+                enemyColor = 12;
+                halfExtendEnemy = V2FromInt(8, 8);
+                break;
+            case EnemyTypeBlack:
+                enemyColor = 3;
+                halfExtendEnemy = V2FromInt(8, 8);
+                break;
+            case EnemyTypeWhiteSmall:
+                enemyColor = 12;
+                halfExtendEnemy = V2FromInt(4, 4);
+                break;
+            case EnemyTypeBlackSmall:
+                enemyColor = 3;
+                halfExtendEnemy = V2FromInt(4, 4);
+                break;
+        }
         DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
-
-        enemyPtr++;
     }
 }

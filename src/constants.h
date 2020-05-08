@@ -11,7 +11,13 @@
 #define ENEMY_TO_SHIP_COLLISION_HE 4
 
 // Enemy sizes when testing with ship bullet
-static const int ENEMY_COLLISION_HE[1] = {8};
+static const int ENEMY_COLLISION_HE[4] = {8, 8, 4, 4};
+
+// Life point per enemy type
+static const int ENEMY_LIFE[4] = {32, 32, 4, 4};
+
+// freeze frame when enemy dies
+static const int ENEMY_FREEZE_FRAMES[4] = { 3, 3, 1, 1 };
 
 // Enemy bullet size when testing with ship
 static const int ENEMY_BULLET_COLLISION_HE[1] = { 6 };

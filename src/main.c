@@ -123,6 +123,7 @@ int main(int argc, char** argv)
     angle = FromInt(0);
 
     PrecomputePaths();
+    PrecomputeSpawns();
 
     SpawnShip();
     /*
@@ -233,7 +234,6 @@ int main(int argc, char** argv)
             DrawEffects();
             DrawHUD(Ship.jauge);
         
-
             //set_pixel(160,100, 16);
             BlitSurface(img);
             SDL_BlitSurface(img, NULL, screenSurface, NULL);

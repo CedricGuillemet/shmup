@@ -144,3 +144,17 @@ void DrawLine(int x0, int y0, int x1, int y1, unsigned char color)
         if (e2 < dy) { err += dx; y0 += sy; }
     }
 }
+
+void DrawBeam(struct Vector2 pta, struct Vector2 ptb, int side, unsigned char color)
+{
+    struct Vector2 dir = V2Normalize(V2Sub(ptb, pta));
+    struct Vector2 right;
+    right.x = Neg(dir.y);
+    right.y = dir.x;
+
+    struct Vector2 rl = V2Mul(right, FromInt(side));
+    struct Vector2 pts[4] = {V2Add(pta, rl), V2Add(ptb, rl), V2Sub(ptb, rl), V2Sub(pta, rl)};
+
+    DrawTriangle(pts[2], pts[1], pts[0], color);
+    DrawTriangle(pts[0], pts[3], pts[2], color);
+}
