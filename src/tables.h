@@ -3108,3 +3108,19 @@ struct Vector2 V2Rotate(struct Vector2 v, struct Fixed angle)
 
     return res;
 }
+
+struct Matrix_t RotateX(struct Fixed angle)
+{
+    struct Matrix_t res;
+    memset(res.v, 0, sizeof(struct Fixed) * 16);
+
+    struct Fixed cs = Cosine(angle);
+    struct Fixed sn = Sine(angle);
+    res.v[0] = FromInt(1);
+    res.v[5] = cs;
+    res.v[6] = sn;
+    res.v[9] = Neg(sn);
+    res.v[10] = cs;
+    res.v[15] = FromInt(1);
+    return res;
+}

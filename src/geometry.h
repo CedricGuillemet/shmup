@@ -105,9 +105,15 @@ struct Vector2 TransformV3I8(struct Matrix_t* matrix, char *p)
 
     struct Fixed outx = Add(Add(Mul(pos.x, matrix->v[0 * 4 + 0]), Mul(pos.y, matrix->v[1 * 4 + 0])), Add(Mul(pos.z, matrix->v[2 * 4 + 0]), matrix->v[3 * 4 + 0]));
     struct Fixed outy = Add(Add(Mul(pos.x, matrix->v[0 * 4 + 1]), Mul(pos.y, matrix->v[1 * 4 + 1])), Add(Mul(pos.z, matrix->v[2 * 4 + 1]), matrix->v[3 * 4 + 1]));
-    //struct Fixed outz = Add(Add(Mul(pos.x, matrix->v[0 * 4 + 2]), Mul(pos.y, matrix->v[1 * 4 + 2])), Add(Mul(pos.z, matrix->v[2 * 4 + 2]), matrix->v[3 * 4 + 2]));
+    struct Fixed outz = Add(Add(Mul(pos.x, matrix->v[0 * 4 + 2]), Mul(pos.y, matrix->v[1 * 4 + 2])), Add(Mul(pos.z, matrix->v[2 * 4 + 2]), matrix->v[3 * 4 + 2]));
     struct Fixed outw = Add(Add(Mul(pos.x, matrix->v[0 * 4 + 3]), Mul(pos.y, matrix->v[1 * 4 + 3])), Add(Mul(pos.z, matrix->v[2 * 4 + 3]), matrix->v[3 * 4 + 3]));
+    /*if (outz.value < 0 )
+    {
+        res.x = FromInt(0);
+        res.y = FromInt(0);
 
+        return res;
+    }*/
     res.x = Div(outx, outw);
     res.y = Div(outy, outw);
 

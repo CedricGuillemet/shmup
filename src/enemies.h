@@ -1,11 +1,5 @@
 
-enum EnemyType
-{
-    EnemyTypeWhite,
-    EnemyTypeBlack,
-    EnemyTypeWhiteSmall,
-    EnemyTypeBlackSmall,
-};
+
 struct Enemy
 {
     struct Vector2 position;
@@ -14,6 +8,8 @@ struct Enemy
     unsigned short pathIndex;
     struct Vector2 pathOffset;
     enum EnemyType enemyType;
+    unsigned char circularOffset;
+    unsigned char circularRadius;
 };
 
 #define MAX_ENEMIES 128
@@ -49,7 +45,7 @@ void RemoveEnemy(struct Enemy* enemyPtr)
     }
 }
 
-void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathIndex)
+void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathIndex, unsigned char circularOffset, unsigned char circularRadius)
 {
     if (enemyCount >= MAX_ENEMIES -1)
     {
@@ -60,6 +56,8 @@ void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathInd
     enemy->life = ENEMY_LIFE[enemyType];
     enemy->enemyType = enemyType;
     enemy->localTime = 0;
+    enemy->circularOffset = circularOffset;
+    enemy->circularRadius = circularRadius;
     enemy->pathIndex = pathIndex;
     enemy->pathOffset = pathOffset;
     enemyCount++;
@@ -71,15 +69,17 @@ void TickEnemies()
     struct Enemy* enemyEndPtr = Enemies + enemyCount;
     while (enemyPtr < enemyEndPtr)
     {
-        /*
-        struct Fixed t = Mul(FromInt(enemyPtr->localTime), FromFixed(0x100));
-        struct Vector2 pts[3] = {V2FromInt(330, 160), V2FromInt(100, 100), V2FromInt(110, 0)};
-
-        enemyPtr->position = V2Lerp(V2Lerp(pts[0], pts[1], t), V2Lerp(pts[1], pts[2], t), t);
-        */
         struct Path* path = &Paths[enemyPtr->pathIndex];
         
         enemyPtr->position = V2Add(path->positions[enemyPtr->localTime], enemyPtr->pathOffset);
+        if (enemyPtr->circularRadius > 0)
+        {
+            struct Fixed angle = RadianToCircular(Mul(FromInt(enemyPtr->localTime + enemyPtr->circularOffset), FromFixed(0x800)));
+            struct Fixed cs = Cosine(angle);
+            struct Fixed sn = Sine(angle);
+            struct Vector2 rot = V2Mul(V2FromFixed(cs, sn), FromInt(enemyPtr->circularRadius));
+            enemyPtr->position = V2Add(enemyPtr->position, rot);
+        }
         enemyPtr->localTime++;
 
         bool removeEnemy = (enemyPtr->life < 0) || (enemyPtr->localTime >= path->positionCount) || IsClipped(enemyPtr->position, -300);
@@ -116,25 +116,8 @@ void DrawEnemies()
     unsigned char enemyColor;
     for (unsigned int i = 0; i < enemyCount; i++, enemyPtr++)
     {
-        switch(enemyPtr->enemyType)
-        {
-            case EnemyTypeWhite:
-                enemyColor = 12;
-                halfExtendEnemy = V2FromInt(8, 8);
-                break;
-            case EnemyTypeBlack:
-                enemyColor = 3;
-                halfExtendEnemy = V2FromInt(8, 8);
-                break;
-            case EnemyTypeWhiteSmall:
-                enemyColor = 12;
-                halfExtendEnemy = V2FromInt(4, 4);
-                break;
-            case EnemyTypeBlackSmall:
-                enemyColor = 3;
-                halfExtendEnemy = V2FromInt(4, 4);
-                break;
-        }
+        enemyColor = ENEMY_DISPLAY_COLOR[enemyPtr->enemyType];
+        halfExtendEnemy = V2FromInt(ENEMY_DISPLAY_HE[enemyPtr->enemyType], ENEMY_DISPLAY_HE[enemyPtr->enemyType]);
         DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
     }
 }

@@ -8,6 +8,7 @@ struct Ship_t
     unsigned char spawningTransition;
     unsigned char jauge;
     unsigned char dieTransition;
+    char upDownMomentum;
 };
 
 struct Ship_t Ship;
@@ -21,6 +22,7 @@ void SpawnShip()
     Ship.spawningTransition = 60;
     Ship.jauge = 255;
     Ship.dieTransition = 0;
+    Ship.upDownMomentum = 0;
 }
 
 void MoveShip(struct Vector2 direction)
@@ -80,10 +82,25 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
     if (up)
     {
         direction = V2Add(direction, directionUp);
+        if (Ship.upDownMomentum>-16)
+        {
+            Ship.upDownMomentum --;
+        }
     }
     if (down)
     {
         direction = V2Add(direction, directionDown);
+        if (Ship.upDownMomentum < 16)
+        {
+            Ship.upDownMomentum++;
+        }
+    }
+    if (!down && ! up && abs(Ship.upDownMomentum))
+    {
+        if (Ship.upDownMomentum > 0)
+            Ship.upDownMomentum --;
+        else
+            Ship.upDownMomentum ++;
     }
     if (Ship.spawningTransition > 0)
     {
@@ -151,6 +168,6 @@ void DrawShip()
     V2SetInt(&halfExtend, 16, 16);
     if (!(Ship.spawningTransition&1))
     {
-        DrawRectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
+        //DrawRectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
     }
 }

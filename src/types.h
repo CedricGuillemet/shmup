@@ -216,6 +216,16 @@ struct Vector2 V2FromInt(int x, int y)
     return res;
 }
 
+struct Vector2 V2FromFixed(struct Fixed x, struct Fixed y)
+{
+    struct Vector2 res;
+
+    res.x = x;
+    res.y = y;
+
+    return res;
+}
+
 struct Vector2 V2Lerp(struct Vector2 a, struct Vector2 b, struct Fixed t)
 {
     struct Vector2 res;
@@ -384,6 +394,22 @@ struct Matrix_t IdentityMatrix()
     return res;
 }
 
+struct Matrix_t TranslateScale(struct Fixed scaleX, struct Fixed scaleY, struct Fixed scaleZ, 
+    struct Fixed posX, struct Fixed posY, struct Fixed posZ)
+{
+    struct Matrix_t res;
+    memset(res.v, 0, sizeof(struct Fixed) * 16);
+    res.v[0] = scaleX;
+    res.v[5] = scaleY;
+    res.v[10] = scaleZ;
+
+    res.v[12] = posX;
+    res.v[13] = posY;
+    res.v[14] = posZ;
+
+    res.v[15] = FromInt(1);
+    return res;
+}
 // Radian/Circular value
 
 struct Fixed RadianToCircular(struct Fixed radian)
@@ -427,6 +453,7 @@ struct Rectangle GetRectangle(struct Vector2 position, int halfExtend)
     res.bottom = res.top + halfExtend * 2;
     return res;
 }
+
 
 /*
 vec_t vec_t::interpolateHermite(const vec_t& nextKey, const vec_t& nextKeyP1, const vec_t& prevKey, float ratio) const
