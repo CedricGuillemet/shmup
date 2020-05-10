@@ -122,15 +122,16 @@ void DrawLevel()
 
 
     unsigned char shipTris[14 * 3] = {
-
-        2,3,1, // left wing inside
-        5,7,6, // riht wing inside
-
         3,2,0, // left wing reactor
         4,6,7, // right wing reactor
 
         8,10,9, // center reactor 1 
         8,9,12, // center reactor 2
+
+        2,3,1, // left wing inside
+        5,7,6, // riht wing inside
+
+
 
 
        0,1,3,      // top left wing
@@ -145,7 +146,7 @@ void DrawLevel()
     };
 
     unsigned char shipTrisColor[14] = {
-    8,8,19,19,19,19,
+    19,19,19,19, 8,8,
 
     3,4,3,4, 14,12,14,12
     };
@@ -180,7 +181,7 @@ void DrawLevel()
 
     struct Matrix_t mvps, modelScaleRot, rotx;
 
-    rotx = RotateX(RadianToCircular(Add(Mul(Add(FromInt(Ship.switchTransition), Mul(FromInt(Ship.upDownMomentum), FromFixed(-0x2000))), FromFixed(0x2836)), Ship.isWhite ? FromInt(0) : FromFixed(0x3243F))));
+    rotx = RotateX(RadianToCircular(Add(Mul(Add(FromInt(Ship.switchTransition), Mul(FromInt(Ship.upDownMomentum), FromFixed(0x2000))), FromFixed(0x2836)), Ship.isWhite ? FromInt(0) : FromFixed(0x3243F))));
 
     modelScaleRot = MulMatrix(rotx, modelScale);
     mvps = MulMatrix(modelScaleRot, gameVP);

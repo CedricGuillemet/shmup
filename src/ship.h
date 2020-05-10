@@ -118,8 +118,10 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
             if (fire)
             {
                 struct Vector2 directionBullet;
-                V2SetInt(&directionBullet, 20, 0);
-                SpawnBullet(Ship.position, directionBullet, Ship.isWhite ? PlayerWhite : PlayerBlack);
+                V2SetInt(&directionBullet, 32, 0);
+                static int shotIt = 0;
+                SpawnBullet(V2Add(Ship.position, V2FromInt(-4 + (shotIt &7), 0)) , directionBullet, Ship.isWhite ? PlayerWhite : PlayerBlack);
+                shotIt ++;
             }
             if (discharge && Ship.jauge > 0)
             {

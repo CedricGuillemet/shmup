@@ -158,3 +158,41 @@ void DrawBeam(struct Vector2 pta, struct Vector2 ptb, int side, unsigned char co
     DrawTriangle(pts[2], pts[1], pts[0], color);
     DrawTriangle(pts[0], pts[3], pts[2], color);
 }
+
+void DrawSprite(struct Vector2 pt, uint8_t* sprite, int width, int height, bool inverse)
+{
+    int sy = pt.y.integer - height / 2;
+    int ey = sy + height;
+    int sx = pt.x.integer - width / 2;
+    int ex = sx + width;
+
+    int index = 0;
+    if (inverse)
+    {
+        for (int y = ey; y >= sy; y--)
+        {
+            for (int x = sx; x < ex; x++)
+            {
+                unsigned char col = sprite[index++];
+                if (col)
+                {
+                    setPixel(x, y, col);
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int y = sy ; y < ey; y++)
+        {
+            for (int x = sx; x < ex; x++)
+            {
+                unsigned char col = sprite[index++];
+                if (col)
+                {
+                    setPixel(x, y, col);
+                }
+            }
+        }
+    }
+}

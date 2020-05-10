@@ -110,6 +110,38 @@ struct Input_t
 };
 
 struct Input_t Input;
+uint8_t* remappedShootWhite;
+uint8_t* remappedShootBlack;
+
+uint8_t* RemapBitmap(struct gl_texture_t* texture)
+{
+    int texSize = texture->width * texture->height;
+    EndianSwap((uint32_t*)texture->texels, texSize * 4);
+
+    unsigned char *bitmap = (unsigned char*)malloc(texSize);
+    memset(bitmap, 0, texSize);
+
+    int index = 0;
+    for (int y = texture->height - 1; y >= 0; y--)
+    //for (int y = 0; y < texture->height; y++)
+    {
+        for (int x = 0; x < texture->width; x++)
+        {
+            uint32_t color = ((uint32_t*)texture->texels)[y * texture->width + x];
+            for (int j = 1; j < 256; j++)
+            {
+                if ( palette[j] == color)
+                {
+                    bitmap[index] = j;
+                    break;
+                }
+            }
+            index++;
+        }
+    }
+
+    return bitmap;
+}
 
 int main(int argc, char** argv)
 {
@@ -118,6 +150,13 @@ int main(int argc, char** argv)
     struct gl_texture_t* paletteFile = ReadTGAFile("palette.tga");
     memcpy(palette, paletteFile->texels, 256 * 4);
     EndianSwap(palette, 256*4);
+
+
+    struct gl_texture_t* shootFileWhite = ReadTGAFile("shootWhite.tga");
+    struct gl_texture_t* shootFileBlack = ReadTGAFile("shootBlack.tga");
+    remappedShootWhite = RemapBitmap(shootFileWhite);
+    remappedShootBlack = RemapBitmap(shootFileBlack);
+
     memset(buffer, 17, sizeof(buffer));
     memset(&Input, 0, sizeof(Input));
     angle = FromInt(0);
@@ -228,6 +267,9 @@ int main(int argc, char** argv)
 
             DrawLevel();
             DrawBullets(0);
+
+            //DrawSprite(V2FromInt(100,100), remappedShoot, 32, 64, false);
+
             DrawShip();
             DrawEnemies();
             DrawBullets(1);

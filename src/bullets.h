@@ -144,6 +144,43 @@ void DrawBullets(int layer)
                 isTrail = true;
                 break;
         }
+        if (bulletPtr->bulletType == PlayerWhite || bulletPtr->bulletType == PlayerBlack)
+        {
+            static const int styWhite[8] = {
+                0, 8, 13, 22, 33, 39, 45, 52
+            };
+            static const int lyWhite[8] = {
+                7, 5, 7, 8, 4, 5, 6, 7
+            };
+            static const int styBlack[8] = {
+                1, 8, 13, 22, 28, 35, 39, 49
+            };
+            static const int lyBlack[8] = {
+                5, 3, 7, 4, 5, 2, 8, 4
+            };
+            const int* sty = styBlack;
+            const int* ly = lyBlack;
+            extern uint8_t* remappedShootWhite;
+            extern uint8_t* remappedShootBlack;
+            uint8_t* remappedShoot = remappedShootBlack;
+            if (bulletPtr->bulletType == PlayerWhite)
+            {
+                const int* sty = styWhite;
+                const int* ly = lyWhite;
+                remappedShoot = remappedShootWhite;
+            }
+            static int shotIt = 0;
+            int bindex = shotIt&7;
+            shotIt++;
+            
+            struct Vector2 b1 = bulletPtr->position;
+            struct Vector2 b2 = bulletPtr->position;
+            b1.y = Sub(b1.y, FromInt(5));
+            b2.y = Add(b2.y, FromInt(5));
+            DrawSprite(b1, remappedShoot + sty[bindex] * 32, 32, ly[bindex], false);
+            DrawSprite(b2, remappedShoot + sty[bindex] * 32, 32, ly[bindex], true);
+        }
+        else
         if (layer == bulletLayer)
         {
             if (isTrail)
