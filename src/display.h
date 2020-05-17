@@ -1,4 +1,4 @@
-uint32_t palette[256] = { 0xFF000000, 0xFFFFFFFF };
+
 uint8_t buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
 void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t color)
@@ -19,6 +19,31 @@ void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t col
             continue;
         }
         for (int x = startx; x<endx; x++)
+        {
+            if (x < 0 || x >= SCREEN_WIDTH)
+            {
+                continue;
+            }
+            buffer[y * SCREEN_WIDTH + x] = color;
+        }
+    }
+}
+
+void DrawRectangle2(struct Vector2 start, struct Vector2 end, uint8_t color)
+{
+    int startx = start.x.integer;
+    int starty = start.y.integer;
+
+    int endx = end.x.integer;
+    int endy = end.y.integer;
+
+    for (int y = starty; y < endy; y++)
+    {
+        if (y < 0 || y >= SCREEN_HEIGHT)
+        {
+            continue;
+        }
+        for (int x = startx; x < endx; x++)
         {
             if (x < 0 || x >= SCREEN_WIDTH)
             {
@@ -122,7 +147,7 @@ void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned c
             int dx = x - position.x.integer;
             int dy = y - position.y.integer;
             int distSq = dx * dx + dy * dy;
-            if (distSq < radiusOutSq && distSq > radiusInSq)
+            if (distSq < radiusOutSq && distSq >= radiusInSq)
             {
                 setPixelNoCheck(x, y, color);
             }
@@ -194,5 +219,92 @@ void DrawSprite(struct Vector2 pt, uint8_t* sprite, int width, int height, bool 
                 }
             }
         }
+    }
+}
+
+#define MAX_TRAILS 32
+
+void DrawSpeed()
+{
+    memset(buffer, 0, 320*36);
+
+    for (int x = 0; x < 320; x++)
+    {
+        for (int y = 0;y<100;y++)
+        {
+            unsigned char col = (y + (fastrand()&3))>> 4;
+            col |= 32;
+            setPixelNoCheck(x, y+36, col);
+            setPixelNoCheck(x, 200 - y - 1, col);
+        }
+    }
+
+    static bool setup = false;
+    static short val[MAX_TRAILS];
+    static int curLines[MAX_TRAILS];
+    static int thickness[MAX_TRAILS];
+    static int shift[MAX_TRAILS];
+    static int factors[MAX_TRAILS];
+    static int currentTrailCount = 8;
+    static int currentSpeed = 24;
+    static int animAv = 0;
+
+    if (!setup)
+    {
+        setup = true;
+        for (int i = 0; i < MAX_TRAILS; i++)
+        {
+            curLines[i] = fastrand() % 192;
+            val[i] = (fastrand() % 1536) - 768;
+            thickness[i] = (fastrand()&7) + 1;
+            shift[i] = (fastrand()&3) + 2;
+            factors[i] = (fastrand() & 7) + 1;
+        }
+    }
+    for (int i = 0;i< currentTrailCount;i++)
+    {
+        for (int y = 0; y < thickness[i]; y++)
+        {
+            short offset = fastrand() & 0x7;
+            for (int x = 0;x<320;x++)
+            {
+                unsigned short nval = (val[i] + x) * factors[i] + offset;
+                unsigned char col = 0;
+                if (nval < 128)
+                    col = (nval>>4)&0xF;
+                else if (nval < 1024)
+                    col = 0xF;
+                else if (nval < 1024+128)
+                    col = ((1024 + 128 - nval)>>4)&0xF;
+                else
+                    continue;
+
+                col >>= shift[i];
+                col |= 32;
+
+                setPixelNoCheck(x, curLines[i] + y, col);
+            }
+        }
+    }
+
+    for (int i = 0;i< currentTrailCount;i++)
+    {
+        val[i] += currentSpeed;
+        if (val[i] > 1536 )
+        {
+            curLines[i] = fastrand() % 192;
+            val[i] = -(fastrand()&0x1FF) - 40 * 24;
+            shift[i] = fastrand() & 3;
+        }
+    }
+    
+    animAv ++;
+    if (animAv == 2)
+    {
+        animAv = 0;
+        currentSpeed += 4;
+        currentTrailCount += 2;
+        currentSpeed = (currentSpeed>32)? 32 : currentSpeed;
+        currentTrailCount = (currentTrailCount > MAX_TRAILS) ? MAX_TRAILS : currentTrailCount;
     }
 }

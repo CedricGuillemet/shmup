@@ -1,8 +1,16 @@
 struct Fixed angle;
-void DrawLevel()
+
+struct Matrix_t view;
+struct Matrix_t clipSpaceTo2D;
+struct Matrix_t perspectiveScreen;
+struct Matrix_t vp;
+struct Vector2 screenpos[20];
+struct Vector3 eye;
+struct Fixed fovy = {60622}, aspect, zn, zf;
+
+void ComputeMatrices()
 {
-    struct Fixed fovy, aspect, zn, zf;
-    SetFixed(&fovy, 60622);
+    //SetFixed(&fovy, 60622);
     SetFixed(&aspect, (65536 * 320) / 200);
     SetFixed(&zn, 32768);
     SetFixed(&zf, 65536 * 1000);
@@ -11,18 +19,21 @@ void DrawLevel()
 
     angle = Sub(angle, FromFixed(600));
     struct Fixed circular = RadianToCircular(angle);
-    struct Vector3 eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x4000)), Sine(circular)), Add(FromInt(4), Cosine(circular)));
+    eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x4000)), Sine(circular)), Add(FromInt(4), Cosine(circular)));
 
 
-    struct Matrix_t view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
-    struct Matrix_t clipSpaceTo2D = IdentityMatrix();
+    view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
+    clipSpaceTo2D = IdentityMatrix();
     clipSpaceTo2D.v[0] = FromInt(160);
     clipSpaceTo2D.v[5] = FromInt(-100); // Y is inverted because of framebuffer. top of array in screen bottom
     clipSpaceTo2D.v[12] = FromInt(160);
     clipSpaceTo2D.v[13] = FromInt(100);
-    struct Matrix_t perspectiveScreen = MulMatrix(perspective, clipSpaceTo2D);
-    struct Matrix_t vp = MulMatrix(view, perspectiveScreen);
+    perspectiveScreen = MulMatrix(perspective, clipSpaceTo2D);
+    vp = MulMatrix(view, perspectiveScreen);
+}
 
+void DrawLevel()
+{
     struct Vector3 horizonPos = V3Mul(V3Normalize(V3FromFixed(eye.x, FromInt(0), eye.z)), FromInt(-100));
     struct Vector2 horizonPosScreen = TransformV3V3(&vp, horizonPos);
     int groundHeight = horizonPosScreen.y.integer;
@@ -70,12 +81,12 @@ void DrawLevel()
 
             mvp = MulMatrix(model, vp);
             */
-    struct Vector2 screenpos[20];
+    
     for (int i = 0; i < 8; i++)
     {
         screenpos[i] = TransformV3I8(&vp, &v[i * 3]);
     }
-
+    
     for (int i = 0; i < 6; i++)
     {
         unsigned char i0 = quads[i * 4 + 0];
@@ -85,7 +96,10 @@ void DrawLevel()
         DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
         DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
     }
+}
 
+void DrawShip3D(int flameRadius)
+{
     // game space view
     struct Matrix_t gameView = LookAt(V3FromInt(16, 10, 20), V3FromInt(16, 10, 0), V3FromInt(0, -1, 0));
     struct Matrix_t gameVP = MulMatrix(gameView, perspectiveScreen);
@@ -101,55 +115,6 @@ void DrawLevel()
 
 
 
-    char shipv[13 * 3] = {
-    -127, 120,   0,
-     127,  90,   0,
-     -55,  50, -32,
-     -55,  50,  32,
-
-    -127, -120,   0,
-     127,  -90,   0,
-     -55,  -50, -32,
-     -55,  -50,  32,
-
-     -100, 0, -32,
-     -100, 0,  32,
-
-     -90,  40, 0,
-     -10,   0, 0,
-     -90, -40, 0
-    };
-
-
-    unsigned char shipTris[14 * 3] = {
-        3,2,0, // left wing reactor
-        4,6,7, // right wing reactor
-
-        8,10,9, // center reactor 1 
-        8,9,12, // center reactor 2
-
-        2,3,1, // left wing inside
-        5,7,6, // riht wing inside
-
-
-
-
-       0,1,3,      // top left wing
-       7,5,4, // top right wing
-       9,10,11, // center top
-       9,11,12, // center top 2
-
-       11,10,8, // center bottom
-       12,11,8, // center bottom 2
-       2,1,0, // bottom left wing
-       4,5,6, // bottom right wing
-    };
-
-    unsigned char shipTrisColor[14] = {
-    19,19,19,19, 8,8,
-
-    3,4,3,4, 14,12,14,12
-    };
 
 
     struct Matrix_t model = TranslateScale(FromFixed(0x19990), FromFixed(0x19990), FromFixed(0x19990), // div10 = 0x2000
@@ -159,12 +124,12 @@ void DrawLevel()
     struct Matrix_t mvp;
 
     mvp = MulMatrix(model, gameVP);
-
+    /*
     for (int i = 0; i < 8; i++)
     {
         screenpos[i] = TransformV3I8(&mvp, &v[i * 3]);
     }
-    /*
+    
     for (int i = 0; i < 6; i++)
     {
         unsigned char i0 = quads[i * 4 + 0];
@@ -191,7 +156,7 @@ void DrawLevel()
 
         for (int c = 0; c < 13; c++)
         {
-            screenpos[c] = TransformV3I8(&mvps, &shipv[c * 3]);
+            screenpos[c] = TransformV3I8(&mvps, &shipPositions[c * 3]);
             //setPixel(screenpos[c].x.integer, screenpos[c].y.integer, 16);
         }
 
@@ -204,6 +169,19 @@ void DrawLevel()
         }
     }
 
+    if (flameRadius > 0)
+    {
+        char circles[9] = { 0,0,0,
+                            -127,0,0,
+                            -127,40,0 };
+        screenpos[0] = TransformV3I8(&mvps, &circles[0]);
+        screenpos[1] = TransformV3I8(&mvps, &circles[3]);
+        screenpos[2] = TransformV3I8(&mvps, &circles[6]);
+
+        screenpos[1].x = Sub(screenpos[1].x, FromInt(10 + flameRadius));
+        DrawCircle(screenpos[1], flameRadius * 2, 0, 15);
+        DrawRectangle2(V2FromInt(0, screenpos[1].y.integer - flameRadius), V2FromInt(screenpos[1].x.integer, screenpos[1].y.integer + flameRadius), 15);
+    }
 
     /*}
 }

@@ -15,6 +15,8 @@ typedef unsigned char bool;
 #include "types.h"
 #include "tables.h"
 #include "constants.h"
+#include "meshes.h"
+#include "palette.h"
 #include "display.h"
 #include "hud.h"
 #include "effects.h"
@@ -27,6 +29,7 @@ typedef unsigned char bool;
 
 #include "triggers.h"
 #include "level.h"
+#include "states.h"
 
 SDL_Window* window = NULL;
 SDL_Surface* screenSurface = NULL;
@@ -98,18 +101,7 @@ void EndianSwap(uint32_t *buffer, int lengthInBytes)
     }
 }
 
-struct Input_t
-{
-    bool left;
-    bool right;
-    bool up;
-    bool down;
-    bool fire;
-    bool switchColor;
-    bool discharge;
-};
-
-struct Input_t Input;
+//struct Input_t Input;
 uint8_t* remappedShootWhite;
 uint8_t* remappedShootBlack;
 
@@ -150,7 +142,7 @@ int main(int argc, char** argv)
     struct gl_texture_t* paletteFile = ReadTGAFile("palette.tga");
     memcpy(palette, paletteFile->texels, 256 * 4);
     EndianSwap(palette, 256*4);
-
+    memcpy(paletteSource, palette, 256*4);
 
     struct gl_texture_t* shootFileWhite = ReadTGAFile("shootWhite.tga");
     struct gl_texture_t* shootFileBlack = ReadTGAFile("shootBlack.tga");
@@ -158,6 +150,8 @@ int main(int argc, char** argv)
     remappedShootBlack = RemapBitmap(shootFileBlack);
 
     memset(buffer, 17, sizeof(buffer));
+
+    struct Input_t Input;
     memset(&Input, 0, sizeof(Input));
     angle = FromInt(0);
 
@@ -182,6 +176,8 @@ int main(int argc, char** argv)
     bool done = false;
     while(!done)
     {
+        
+
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -248,39 +244,13 @@ int main(int argc, char** argv)
         }
 
         
-
+        GameLoop(Input);
+            
+        //set_pixel(160,100, 16);
+        BlitSurface(img);
+        SDL_BlitSurface(img, NULL, screenSurface, NULL);
+        SDL_UpdateWindowSurface(window);
         
-        TickHUD(Ship.jauge, GlobalFrame);
-
-        // tick game
-        if (freezeFrame == 0)
-        {
-            TickShip(Input.left, Input.right, Input.up, Input.down, Input.fire, Input.switchColor, Input.discharge);
-            TickOrchestra();
-            TickBullets();
-            TickEnemies();
-            TickEffects();
-        
-
-            TickBulletsDamagingEnemies();
-            TickBulletsDamagingShip();
-
-            DrawLevel();
-            DrawBullets(0);
-
-            //DrawSprite(V2FromInt(100,100), remappedShoot, 32, 64, false);
-
-            DrawShip();
-            DrawEnemies();
-            DrawBullets(1);
-            DrawEffects();
-            DrawHUD(Ship.jauge);
-        
-            //set_pixel(160,100, 16);
-            BlitSurface(img);
-            SDL_BlitSurface(img, NULL, screenSurface, NULL);
-            SDL_UpdateWindowSurface(window);
-        }
         
         currentTime = SDL_GetTicks();
         while (SDL_GetTicks() - lastTime < 16) 
