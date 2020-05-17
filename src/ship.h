@@ -159,17 +159,3 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
 
     MoveShip(direction);
 }
-
-void DrawShip()
-{
-    if (Ship.dieTransition)
-    {
-        return;
-    }
-    struct Vector2 halfExtend;
-    V2SetInt(&halfExtend, 16, 16);
-    if (!(Ship.spawningTransition&1))
-    {
-        //DrawRectangle(Ship.position, halfExtend, Ship.isWhite?11:5);
-    }
-}

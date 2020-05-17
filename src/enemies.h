@@ -118,6 +118,7 @@ void DrawEnemies()
     {
         enemyColor = ENEMY_DISPLAY_COLOR[enemyPtr->enemyType];
         halfExtendEnemy = V2FromInt(ENEMY_DISPLAY_HE[enemyPtr->enemyType], ENEMY_DISPLAY_HE[enemyPtr->enemyType]);
-        DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
+        //DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
+        DrawEnemy(0, enemyPtr->position);
     }
 }

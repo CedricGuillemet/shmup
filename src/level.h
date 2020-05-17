@@ -1,12 +1,5 @@
-struct Fixed angle;
 
-struct Matrix_t view;
-struct Matrix_t clipSpaceTo2D;
-struct Matrix_t perspectiveScreen;
-struct Matrix_t vp;
-struct Vector2 screenpos[20];
-struct Vector3 eye;
-struct Fixed fovy = {60622}, aspect, zn, zf;
+
 
 void ComputeMatrices()
 {
@@ -30,10 +23,15 @@ void ComputeMatrices()
     clipSpaceTo2D.v[13] = FromInt(100);
     perspectiveScreen = MulMatrix(perspective, clipSpaceTo2D);
     vp = MulMatrix(view, perspectiveScreen);
+
+    // game space view
+    gameView = LookAt(V3FromInt(16, 10, 20), V3FromInt(16, 10, 0), V3FromInt(0, -1, 0));
+    gameVP = MulMatrix(gameView, perspectiveScreen);
 }
 
 void DrawLevel()
 {
+    struct Vector2 screenpos[64];
     struct Vector3 horizonPos = V3Mul(V3Normalize(V3FromFixed(eye.x, FromInt(0), eye.z)), FromInt(-100));
     struct Vector2 horizonPosScreen = TransformV3V3(&vp, horizonPos);
     int groundHeight = horizonPosScreen.y.integer;
@@ -68,20 +66,6 @@ void DrawLevel()
         2,4,6,8,10,12
     };
 
-    /*
-    for (int y = 0;y<3;y++)
-    {
-        for (int x = 0;x<3;x++)
-        {
-            struct Matrix_t model = TranslateScale(FromFixed(0x8000 + 0x2000 * y), FromFixed(0x15000 - 0x4000*x), FromFixed(0x8000 + 0x2000 * y),
-                FromInt( (x-1) * 4 ), FromFixed(0), FromInt((y - 1) * 4) );
-
-
-            struct Matrix_t mvp;
-
-            mvp = MulMatrix(model, vp);
-            */
-    
     for (int i = 0; i < 8; i++)
     {
         screenpos[i] = TransformV3I8(&vp, &v[i * 3]);
@@ -98,51 +82,10 @@ void DrawLevel()
     }
 }
 
-void DrawShip3D(int flameRadius)
+void DrawShip(int flameRadius)
 {
-    // game space view
-    struct Matrix_t gameView = LookAt(V3FromInt(16, 10, 20), V3FromInt(16, 10, 0), V3FromInt(0, -1, 0));
-    struct Matrix_t gameVP = MulMatrix(gameView, perspectiveScreen);
-    struct Vector3 corners[4] = { V3FromInt(-16, -10, 0),
-    V3FromInt(-16,  10, 0),
-    V3FromInt(16, -10, 0),
-    V3FromInt(16,  10, 0) };
-    for (int c = 0; c < 4; c++)
-    {
-        screenpos[0] = TransformV3V3(&gameVP, corners[c]);
-        setPixel(screenpos[0].x.integer, screenpos[0].y.integer, 16);
-    }
-
-
-
-
-
-    struct Matrix_t model = TranslateScale(FromFixed(0x19990), FromFixed(0x19990), FromFixed(0x19990), // div10 = 0x2000
-        FromInt(0), FromFixed(0), FromInt(0));
-
-
-    struct Matrix_t mvp;
-
-    mvp = MulMatrix(model, gameVP);
-    /*
-    for (int i = 0; i < 8; i++)
-    {
-        screenpos[i] = TransformV3I8(&mvp, &v[i * 3]);
-    }
-    
-    for (int i = 0; i < 6; i++)
-    {
-        unsigned char i0 = quads[i * 4 + 0];
-        unsigned char i1 = quads[i * 4 + 1];
-        unsigned char i2 = quads[i * 4 + 2];
-        unsigned char i3 = quads[i * 4 + 3];
-        DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
-        DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
-    }
-    */
     struct Matrix_t modelScale = TranslateScale(FromFixed(0x300), FromFixed(0x300), FromFixed(0x300), // div10 = 0x2000
         FromFixed(Ship.position.x.value / 10), FromFixed(Ship.position.y.value / 10), FromInt(0));
-
 
     struct Matrix_t mvps, modelScaleRot, rotx;
 
@@ -153,25 +96,13 @@ void DrawShip3D(int flameRadius)
 
     if (!(Ship.spawningTransition & 1) && !Ship.dieTransition)
     {
-
-        for (int c = 0; c < 13; c++)
-        {
-            screenpos[c] = TransformV3I8(&mvps, &shipPositions[c * 3]);
-            //setPixel(screenpos[c].x.integer, screenpos[c].y.integer, 16);
-        }
-
-        for (int i = 0; i < 14; i++)
-        {
-            unsigned char i0 = shipTris[i * 3 + 0];
-            unsigned char i1 = shipTris[i * 3 + 1];
-            unsigned char i2 = shipTris[i * 3 + 2];
-            DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], shipTrisColor[i]);
-        }
+        DrawMesh(&mvps, shipPositions, sizeof(shipPositions)/3, shipTriangles, shipTriangleColors, sizeof(shipTriangleColors));
     }
 
     if (flameRadius > 0)
     {
-        char circles[9] = { 0,0,0,
+        struct Vector2 screenpos[3];
+        static const char circles[9] = { 0,0,0,
                             -127,0,0,
                             -127,40,0 };
         screenpos[0] = TransformV3I8(&mvps, &circles[0]);
@@ -182,8 +113,12 @@ void DrawShip3D(int flameRadius)
         DrawCircle(screenpos[1], flameRadius * 2, 0, 15);
         DrawRectangle2(V2FromInt(0, screenpos[1].y.integer - flameRadius), V2FromInt(screenpos[1].x.integer, screenpos[1].y.integer + flameRadius), 15);
     }
+}
 
-    /*}
+
+
+
+/*}
 }
 /*for (int i = 0; i < 8; i++)
 {
@@ -192,4 +127,43 @@ void DrawShip3D(int flameRadius)
 }
 setPixel(horizonPosScreen.x.integer, horizonPosScreen.y.integer, 0);
 */
+/*
+for (int i = 0; i < 8; i++)
+{
+    screenpos[i] = TransformV3I8(&mvp, &v[i * 3]);
 }
+
+for (int i = 0; i < 6; i++)
+{
+    unsigned char i0 = quads[i * 4 + 0];
+    unsigned char i1 = quads[i * 4 + 1];
+    unsigned char i2 = quads[i * 4 + 2];
+    unsigned char i3 = quads[i * 4 + 3];
+    DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
+    DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
+}
+*/
+
+/*struct Vector3 corners[4] = { V3FromInt(-16, -10, 0),
+V3FromInt(-16,  10, 0),
+V3FromInt(16, -10, 0),
+V3FromInt(16,  10, 0) };
+for (int c = 0; c < 4; c++)
+{
+    screenpos[0] = TransformV3V3(&gameVP, corners[c]);
+    setPixel(screenpos[0].x.integer, screenpos[0].y.integer, 16);
+}
+*/
+/*
+for (int y = 0;y<3;y++)
+{
+    for (int x = 0;x<3;x++)
+    {
+        struct Matrix_t model = TranslateScale(FromFixed(0x8000 + 0x2000 * y), FromFixed(0x15000 - 0x4000*x), FromFixed(0x8000 + 0x2000 * y),
+            FromInt( (x-1) * 4 ), FromFixed(0), FromInt((y - 1) * 4) );
+
+
+        struct Matrix_t mvp;
+
+        mvp = MulMatrix(model, vp);
+        */

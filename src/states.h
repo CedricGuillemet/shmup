@@ -9,7 +9,7 @@ struct Input_t
     bool discharge;
 };
 
-int warping = 1;
+int warping = 0;
 
 void GameWarping()
 {
@@ -24,18 +24,18 @@ void GameWarping()
         fovy.value = 60622 - warping * 200;
         Ship.position = V2Lerp(Ship.position, V2FromInt(220, 100), FromFixed(0x600));
         Ship.switchTransition = (150 - warping) / 2;
-        DrawShip3D(0);
+        DrawShip(0);
     }
     else if (warping < 300)
     {
         fovy.value += 200;
         Ship.position = V2Sub(Ship.position, V2FromInt(1, 0));
-        DrawShip3D(((++flick) & 1) * ((warping - 150) / 10));
+        DrawShip(((++flick) & 1) * ((warping - 150) / 10));
     }
     else if (warping < 400)
     {
         Ship.position = V2Lerp(Ship.position, V2FromInt(300, 100), FromFixed(0x1000));
-        DrawShip3D(((++flick) & 3) * 4);
+        DrawShip(((++flick) & 3) * 4);
         paletteFade = ((warping - 300) / 2) * 6;
     }
     else
@@ -71,10 +71,9 @@ void GamePlay(struct Input_t Input)
 
         //DrawSprite(V2FromInt(100,100), remappedShoot, 32, 64, false);
 
-        DrawShip();
         DrawEnemies();
         DrawBullets(1);
-        DrawShip3D(0);
+        DrawShip(0);
         DrawEffects();
         DrawHUD(Ship.jauge);
     }

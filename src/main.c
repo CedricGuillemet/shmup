@@ -17,6 +17,7 @@ typedef unsigned char bool;
 #include "constants.h"
 #include "meshes.h"
 #include "palette.h"
+#include "geometry.h"
 #include "display.h"
 #include "hud.h"
 #include "effects.h"
@@ -25,7 +26,7 @@ typedef unsigned char bool;
 #include "enemies.h"
 #include "ship.h"
 #include "orchestra.h"
-#include "geometry.h"
+
 
 #include "triggers.h"
 #include "level.h"

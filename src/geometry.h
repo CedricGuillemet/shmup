@@ -97,7 +97,7 @@ struct Matrix_t MulMatrix(struct Matrix_t mata, struct Matrix_t matb)
     return res;
 }
 
-struct Vector2 TransformV3I8(struct Matrix_t* matrix, char *p)
+struct Vector2 TransformV3I8(struct Matrix_t* matrix, const char* p)
 {
     struct Vector2 res;
 
@@ -135,3 +135,15 @@ struct Vector2 TransformV3V3(struct Matrix_t* matrix, struct Vector3 pos)
 
     return res;
 }
+
+struct Fixed angle;
+
+struct Matrix_t view;
+struct Matrix_t clipSpaceTo2D;
+struct Matrix_t perspectiveScreen;
+struct Matrix_t vp;
+
+struct Vector3 eye;
+struct Fixed fovy = { 60622 }, aspect, zn, zf;
+struct Matrix_t gameView;
+struct Matrix_t gameVP;
