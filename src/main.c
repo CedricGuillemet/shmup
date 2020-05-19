@@ -31,6 +31,7 @@ typedef unsigned char bool;
 #include "triggers.h"
 #include "level.h"
 #include "states.h"
+#include "record.h"
 
 SDL_Window* window = NULL;
 SDL_Surface* screenSurface = NULL;
@@ -91,8 +92,6 @@ void BlitSurface(SDL_Surface* surface)
     }
 }
 
-
-
 void EndianSwap(uint32_t *buffer, int lengthInBytes)
 {
     for (int i = 0; i < lengthInBytes/4;i++)
@@ -136,7 +135,6 @@ uint8_t* RemapBitmap(struct gl_texture_t* texture)
     return bitmap;
 }
 
-unsigned char glyph[21*5*8];
 void ConvertFontTextureToFontGlyphs(uint32_t* texture)
 {
     memset(glyph, 0, sizeof(glyph));
@@ -161,31 +159,6 @@ void ConvertFontTextureToFontGlyphs(uint32_t* texture)
             }
         }
     }
-}
-
-void DrawText(int px, int py, const char* text)
-{
-    do
-    {
-        char c = *text++;
-        unsigned char* pg = &glyph[glyphTable[c]];
-        for (int y = 0; y < 8; y++)
-        {
-            unsigned char g =  *pg++;
-            unsigned char mask = 1;
-            for (int x = 0; x < 8; x++, mask <<= 1)
-            {
-                if (!(g & mask))
-                {
-                    //setPixel(px - y , py + x, 15);
-                    setPixel(px + x, py + y, 15);
-                }
-            }
-        }
-        //py += 8;
-        px += 8;
-    }
-    while(*text);
 }
 
 int main(int argc, char** argv)
@@ -224,6 +197,7 @@ int main(int argc, char** argv)
     }
     fclose(fp);
     */
+    bool playingback = false;//LoadRecord("Record.bin");
 
     SDL_Surface* img = SDL_CreateRGBSurface(0, SCREEN_WIDTH * SCREEN_FACTOR, SCREEN_HEIGHT * SCREEN_FACTOR, 32, 0, 0, 0, 0);
     if (img == NULL) return 1;
@@ -232,8 +206,8 @@ int main(int argc, char** argv)
     bool done = false;
     while(!done)
     {
-        
-
+        struct InputRecord* currentRecord = &Record[RecordEntryCount];
+        memset(currentRecord, 0, sizeof(struct InputRecord));
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -243,25 +217,53 @@ int main(int argc, char** argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_LEFT:
-                    Input.left = true;
+                    if (!playingback && !Input.left)
+                    {
+                        Input.left = true;
+                        currentRecord->leftChanged = true;
+                    }
                     break;
                 case SDLK_RIGHT:
-                    Input.right = true;
+                    if (!playingback && !Input.right)
+                    {
+                        Input.right = true;
+                        currentRecord->rightChanged = true;
+                    }
                     break;
                 case SDLK_UP:
-                    Input.up = true;
+                    if (!playingback && !Input.up)
+                    {
+                        Input.up = true;
+                        currentRecord->upChanged = true;
+                    }
                     break;
                 case SDLK_DOWN:
-                    Input.down = true;
+                    if (!playingback && !Input.down)
+                    {
+                        Input.down = true;
+                        currentRecord->downChanged = true;
+                    }
                     break;
                 case SDLK_z:
-                    Input.fire = true;
+                    if (!playingback && !Input.fire)
+                    {
+                        Input.fire = true;
+                        currentRecord->fireChanged = true;
+                    }
                     break;
                 case SDLK_x:
-                    Input.switchColor = true;
+                    if (!playingback && !Input.switchColor)
+                    {
+                        Input.switchColor = true;
+                        currentRecord->switchColorChanged = true;
+                    }
                     break;
                 case SDLK_c:
-                    Input.discharge = true;
+                    if (!playingback && !Input.discharge)
+                    {
+                        Input.discharge = true;
+                        currentRecord->dischargeChanged = true;
+                    }
                     break;
                 default:
                     break;
@@ -271,25 +273,53 @@ int main(int argc, char** argv)
                 switch (event.key.keysym.sym) 
                 {
                 case SDLK_LEFT:
-                    Input.left = false;
+                    if (!playingback && Input.left)
+                    {
+                        Input.left = false;
+                        currentRecord->leftChanged = true;
+                    }
                     break;
                 case SDLK_RIGHT:
-                    Input.right = false;
+                    if (!playingback && Input.right)
+                    {
+                        Input.right = false;
+                        currentRecord->rightChanged = true;
+                    }
                     break;
                 case SDLK_UP:
-                    Input.up = false;
+                    if (!playingback && Input.up)
+                    {
+                        Input.up = false;
+                        currentRecord->upChanged = true;
+                    }
                     break;
                 case SDLK_DOWN:
-                    Input.down = false;
+                    if (!playingback && Input.down)
+                    {
+                        Input.down = false;
+                        currentRecord->downChanged = true;
+                    }
                     break;
                 case SDLK_z:
-                    Input.fire = false;
+                    if (!playingback && Input.fire)
+                    {
+                        Input.fire = false;
+                        currentRecord->fireChanged = true;
+                    }
                     break;
                 case SDLK_x:
-                    Input.switchColor = false;
+                    if (!playingback && Input.switchColor)
+                    {
+                        Input.switchColor = false;
+                        currentRecord->switchColorChanged = true;
+                    }
                     break;
                 case SDLK_c:
-                    Input.discharge = false;
+                    if (!playingback && Input.discharge)
+                    {
+                        Input.discharge = false;
+                        currentRecord->dischargeChanged = true;
+                    }
                     break;
                 }
                 break;
@@ -298,12 +328,22 @@ int main(int argc, char** argv)
                 break;
             }
         }
+        if (playingback)
+        {
+            HandlePlayback(&Input);
+        }
+        else
+        {
+            if ( *(unsigned int*)currentRecord )
+            {
+                currentRecord->frame = GlobalFrame;
+                RecordEntryCount++;
+            }
+        }
 
         
         GameLoop(Input);
-        DrawText(100, 100, "Lol #$$@ 1234");
 
-        //set_pixel(160,100, 16);
         BlitSurface(img);
         SDL_BlitSurface(img, NULL, screenSurface, NULL);
         SDL_UpdateWindowSurface(window);
@@ -322,5 +362,9 @@ int main(int argc, char** argv)
     SDL_FreeSurface(img); img = NULL;
     close();
 
+    if (!playingback)
+    {
+        SaveRecord("Record.bin");
+    }
     return 0;
 }

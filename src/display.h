@@ -335,3 +335,53 @@ void DrawEnemy(int enemyIndex, struct Vector2 position)
 
     DrawMesh(&mvps, enemy1Positions, sizeof(enemy1Positions) / 3, enemy1Triangles, enemy1TriangleWhiteColors, sizeof(enemy1TriangleWhiteColors));
 }
+
+unsigned char glyph[21 * 5 * 8];
+void DrawText(int px, int py, const char* text)
+{
+    do
+    {
+        char c = *text++;
+        unsigned char* pg = &glyph[glyphTable[c]];
+        for (int y = 0; y < 8; y++)
+        {
+            unsigned char g = *pg++;
+            unsigned char mask = 1;
+            for (int x = 0; x < 8; x++, mask <<= 1)
+            {
+                if (!(g & mask))
+                {
+                    //setPixel(px - y , py + x, 15);
+                    setPixel(px + x, py + y, 15);
+                }
+            }
+        }
+        //py += 8;
+        px += 8;
+    } while (*text);
+}
+
+void DrawNumber(int px, int py, unsigned int number)
+{
+    unsigned int denum = 1000000000;
+    while (denum >= 1)
+    {
+        unsigned int v = number / denum;
+        number %= denum;
+        unsigned char* pg = &glyph[glyphTable['0' + v]];
+        for (int y = 0; y < 8; y++)
+        {
+            unsigned char g = *pg++;
+            unsigned char mask = 1;
+            for (int x = 0; x < 8; x++, mask <<= 1)
+            {
+                if (!(g & mask))
+                {
+                    setPixel(px + x, py + y, 15);
+                }
+            }
+        }
+        px += 8;
+        denum /= 10;
+    };
+}
