@@ -136,6 +136,58 @@ uint8_t* RemapBitmap(struct gl_texture_t* texture)
     return bitmap;
 }
 
+unsigned char glyph[21*5*8];
+void ConvertFontTextureToFontGlyphs(uint32_t* texture)
+{
+    memset(glyph, 0, sizeof(glyph));
+    int out = 0;
+    for (int h = 5; h >= 0; h--)
+    {
+        int offsetH = (h * 8 -1) * 21 * 8;
+        for (int g = 0; g < 21; g++)
+        {
+            int offset = offsetH + g * 8;
+            for (int y = 0;y<8;y++)
+            {
+                for (int x = 0;x<8;x++)
+                {
+                    int index = (offset - y * 21 * 8 + x);
+                    if (texture[index]&0xFF)
+                    {
+                        glyph[out] |= 1 << x;
+                    }
+                }
+                out++;
+            }
+        }
+    }
+}
+
+void DrawText(int px, int py, const char* text)
+{
+    do
+    {
+        char c = *text++;
+        unsigned char* pg = &glyph[glyphTable[c]];
+        for (int y = 0; y < 8; y++)
+        {
+            unsigned char g =  *pg++;
+            unsigned char mask = 1;
+            for (int x = 0; x < 8; x++, mask <<= 1)
+            {
+                if (!(g & mask))
+                {
+                    //setPixel(px - y , py + x, 15);
+                    setPixel(px + x, py + y, 15);
+                }
+            }
+        }
+        //py += 8;
+        px += 8;
+    }
+    while(*text);
+}
+
 int main(int argc, char** argv)
 {
     if (!init()) return 1;
@@ -144,6 +196,9 @@ int main(int argc, char** argv)
     memcpy(palette, paletteFile->texels, 256 * 4);
     EndianSwap(palette, 256*4);
     memcpy(paletteSource, palette, 256*4);
+
+    struct gl_texture_t* fontFile = ReadTGAFile("font.tga");
+    ConvertFontTextureToFontGlyphs((uint32_t*)fontFile->texels);
 
     struct gl_texture_t* shootFileWhite = ReadTGAFile("shootWhite.tga");
     struct gl_texture_t* shootFileBlack = ReadTGAFile("shootBlack.tga");
@@ -246,7 +301,8 @@ int main(int argc, char** argv)
 
         
         GameLoop(Input);
-            
+        DrawText(100, 100, "Lol #$$@ 1234");
+
         //set_pixel(160,100, 16);
         BlitSurface(img);
         SDL_BlitSurface(img, NULL, screenSurface, NULL);
