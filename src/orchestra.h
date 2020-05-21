@@ -129,7 +129,7 @@ struct Spawn
 };
 
 struct Spawn Spawns[] = {
-
+    
     { -0x80, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
@@ -157,9 +157,8 @@ struct Spawn Spawns[] = {
     {  0x20, EnemyTypeBlack, V2INT(330, 80), 12},
     {  0x20, EnemyTypeBlack, V2INT(330, 80), 13},
     {  0x20, EnemyTypeBlack, V2INT(330, 80), 14},
-    
 
-
+    // 2 banks of smalls
     {-0x400, EnemyTypeWhiteSmall, V2INT(330, 20), 15},
     {  0x02, EnemyTypeWhiteSmall, V2INT(350, 20), 15},
     {  0x03, EnemyTypeWhiteSmall, V2INT(370, 20), 15},
@@ -209,46 +208,46 @@ struct Spawn Spawns[] = {
     {  0x02, EnemyTypeBlackSmall, V2INT(430, 140), 16},
 
     // Batch of 3 comming and going
-    { -0x580, EnemyTypeWhite, V2INT(330, 40), 17},
-    {   0x02, EnemyTypeWhite, V2INT(355, 65), 17},
-    {   0x01, EnemyTypeWhite, V2INT(355, 15), 17},
+    { -0x580, EnemyTypeWhiteHunter, V2INT(330, 40), 17},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355, 65), 17},
+    {   0x01, EnemyTypeWhiteHunter, V2INT(355, 15), 17},
 
-    { -0x700, EnemyTypeWhite, V2INT(330, (200 - 40)), 18},
-    {   0x02, EnemyTypeWhite, V2INT(355, (200 - 65)), 18},
-    {   0x01, EnemyTypeWhite, V2INT(355, (200 - 15)), 18},
+    { -0x700, EnemyTypeWhiteHunter, V2INT(330, (200 - 40)), 18},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355, (200 - 65)), 18},
+    {   0x01, EnemyTypeWhiteHunter, V2INT(355, (200 - 15)), 18},
 
-    { -0x800, EnemyTypeBlack, V2INT(330, 40), 17},
-    {   0x02, EnemyTypeBlack, V2INT(355, 65), 17},
-    {   0x01, EnemyTypeBlack, V2INT(355, 15), 17},
+    { -0x800, EnemyTypeBlackHunter, V2INT(330, 40), 17},
+    {   0x02, EnemyTypeBlackHunter, V2INT(355, 65), 17},
+    {   0x01, EnemyTypeBlackHunter, V2INT(355, 15), 17},
 
-    { -0x880, EnemyTypeBlack, V2INT(330, (200 - 40)), 18},
-    {   0x02, EnemyTypeBlack, V2INT(355, (200 - 65)), 18},
-    {   0x01, EnemyTypeBlack, V2INT(355, (200 - 15)), 18},
+    { -0x880, EnemyTypeBlackHunter, V2INT(330, (200 - 40)), 18},
+    {   0x02, EnemyTypeBlackHunter, V2INT(355, (200 - 65)), 18},
+    {   0x01, EnemyTypeBlackHunter, V2INT(355, (200 - 15)), 18},
 
-    { -0x900, EnemyTypeWhite, V2INT(330, 40), 17},
-    {   0x02, EnemyTypeWhite, V2INT(355, 65), 17},
-    {   0x01, EnemyTypeWhite, V2INT(355, 15), 17},
+    { -0x900, EnemyTypeWhiteHunter, V2INT(330, 40), 17},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355, 65), 17},
+    {   0x01, EnemyTypeWhiteHunter, V2INT(355, 15), 17},
 
-    { -0x980, EnemyTypeBlack, V2INT(330, (200 - 40)), 18},
-    {   0x02, EnemyTypeBlack, V2INT(355, (200 - 65)), 18},
-    {   0x01, EnemyTypeBlack, V2INT(355, (200 - 15)), 18},
+    { -0x980, EnemyTypeBlackHunter, V2INT(330, (200 - 40)), 18},
+    {   0x02, EnemyTypeBlackHunter, V2INT(355, (200 - 65)), 18},
+    {   0x01, EnemyTypeBlackHunter, V2INT(355, (200 - 15)), 18},
 
     // 2 batches of 2 comming, shooting and going
-    {-0xA80, EnemyTypeWhite, V2INT(330,   0), 19},
-    {   0x04, EnemyTypeWhite, V2INT(355, -25), 19},
-    {   0x02, EnemyTypeWhite, V2INT(355,  25), 19},
+    {-0xA80, EnemyTypeWhiteHunter, V2INT(330,   0), 19},
+    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19},
 
-    {-0xB40, EnemyTypeBlack, V2INT(330, (200 -  0)), 20},
-    {   0x04, EnemyTypeBlack, V2INT(355, (200 + 25)), 20},
-    {   0x02, EnemyTypeBlack, V2INT(355, (200 - 25)), 20},
+    {-0xB40, EnemyTypeBlackHunter, V2INT(330, (200 -  0)), 20},
+    {   0x04, EnemyTypeBlackHunter, V2INT(355, (200 + 25)), 20},
+    {   0x02, EnemyTypeBlackHunter, V2INT(355, (200 - 25)), 20},
 
-    {-0xC00, EnemyTypeWhite, V2INT(330,   0), 19},
-    {   0x04, EnemyTypeWhite, V2INT(355, -25), 19},
-    {   0x02, EnemyTypeBlack, V2INT(355,  25), 19},
+    {-0xC00, EnemyTypeWhiteHunter, V2INT(330,   0), 19},
+    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19},
+    {   0x02, EnemyTypeBlackHunter, V2INT(355,  25), 19},
 
-    {-0xC01, EnemyTypeBlack, V2INT(330, (200 - 0)), 20},
-    {   0x04, EnemyTypeBlack, V2INT(355, (200 + 25)), 20},
-    {   0x02, EnemyTypeWhite, V2INT(355, (200 - 25)), 20},
+    {-0xC01, EnemyTypeBlackHunter, V2INT(330, (200 - 0)), 20},
+    {   0x04, EnemyTypeBlackHunter, V2INT(355, (200 + 25)), 20},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355, (200 - 25)), 20},
 
     // on both side + zigzag in the middle
     {-0xD80, EnemyTypeWhite, V2INT(330, 100), 23},

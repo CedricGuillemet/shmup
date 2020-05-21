@@ -312,7 +312,7 @@ void DrawSpeed()
 void DrawMesh(struct Matrix_t* matrix, char* positions, int positionCount, unsigned char* triangles, unsigned char* triangleColors, int triangleCount)
 {
     struct Vector2 screenpos[64];
-    for (int c = 0; c < 13; c++)
+    for (int c = 0; c < positionCount; c++)
     {
         screenpos[c] = TransformV3I8(matrix, &positions[c * 3]);
     }
@@ -324,16 +324,6 @@ void DrawMesh(struct Matrix_t* matrix, char* positions, int positionCount, unsig
         unsigned char i2 = triangles[i * 3 + 2];
         DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], triangleColors[i]);
     }
-}
-
-void DrawEnemy(int enemyIndex, struct Vector2 position)
-{
-    struct Matrix_t modelScale = TranslateScale(FromFixed(0x300), FromFixed(0x300), FromFixed(0x300), // div10 = 0x2000
-        FromFixed(position.x.value / 10), FromFixed(position.y.value / 10), FromInt(0));
-
-    struct Matrix_t mvps = MulMatrix(modelScale, gameVP);
-
-    DrawMesh(&mvps, enemy1Positions, sizeof(enemy1Positions) / 3, enemy1Triangles, enemy1TriangleWhiteColors, sizeof(enemy1TriangleWhiteColors));
 }
 
 unsigned char glyph[21 * 5 * 8];

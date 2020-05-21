@@ -109,16 +109,48 @@ void TickEnemies()
     }
 }
 
+
+struct EmemyMesh
+{
+    char* positions;
+    unsigned char* triangles;
+    unsigned char* triangleColors;
+    int positionCount;
+    int triangleCount;
+};
+static const struct EmemyMesh EnemyMeshes[EnemyCount] =
+{
+    {enemy1Positions, enemy1Triangles, enemy1TriangleWhiteColors, sizeof(enemy1Positions) / 3, sizeof(enemy1TriangleWhiteColors)},
+    {enemy1Positions, enemy1Triangles, enemy1TriangleBlackColors, sizeof(enemy1Positions) / 3, sizeof(enemy1TriangleWhiteColors)},
+    {enemy0Positions, enemy0Triangles, enemy0TriangleWhiteColors, sizeof(enemy0Positions) / 3, sizeof(enemy0TriangleWhiteColors)},
+    {enemy0Positions, enemy0Triangles, enemy0TriangleBlackColors, sizeof(enemy0Positions) / 3, sizeof(enemy0TriangleWhiteColors)},
+    {enemy2Positions, enemy2Triangles, enemy2TriangleWhiteColors, sizeof(enemy2Positions) / 3, sizeof(enemy2TriangleWhiteColors)},
+    {enemy2Positions, enemy2Triangles, enemy2TriangleBlackColors, sizeof(enemy2Positions) / 3, sizeof(enemy2TriangleWhiteColors)},
+    {enemy3Positions, enemy3Triangles, enemy3TriangleWhiteColors, sizeof(enemy3Positions) / 3, sizeof(enemy3TriangleWhiteColors)},
+    {enemy3Positions, enemy3Triangles, enemy3TriangleBlackColors, sizeof(enemy3Positions) / 3, sizeof(enemy3TriangleWhiteColors)},
+};
+
+void DrawEnemy(int enemyIndex, struct Vector2 position)
+{
+    struct Fixed scale = FromFixed(ENEMY_DISPLAY_SCALE[enemyIndex]);
+
+    struct Matrix_t modelScale = TranslateScale(scale, scale, scale,
+        FromFixed(position.x.value / 10), FromFixed(position.y.value / 10), FromInt(0));
+
+    struct Matrix_t mvps = MulMatrix(modelScale, gameVP);
+
+    const struct EmemyMesh* enemyMesh = &EnemyMeshes[enemyIndex];
+
+    DrawMesh(&mvps, enemyMesh->positions, enemyMesh->positionCount, enemyMesh->triangles, enemyMesh->triangleColors, enemyMesh->triangleCount);
+}
+
 void DrawEnemies()
 {
     struct Enemy* enemyPtr = Enemies;
-    struct Vector2 halfExtendEnemy;
-    unsigned char enemyColor;
-    for (unsigned int i = 0; i < enemyCount; i++, enemyPtr++)
+    struct Enemy* enemyPtrEnd = Enemies + enemyCount;
+    while(enemyPtr < enemyPtrEnd)
     {
-        enemyColor = ENEMY_DISPLAY_COLOR[enemyPtr->enemyType];
-        halfExtendEnemy = V2FromInt(ENEMY_DISPLAY_HE[enemyPtr->enemyType], ENEMY_DISPLAY_HE[enemyPtr->enemyType]);
-        //DrawRectangle(enemyPtr->position, halfExtendEnemy, enemyColor);
-        DrawEnemy(0, enemyPtr->position);
+        DrawEnemy(enemyPtr->enemyType, enemyPtr->position);
+        enemyPtr++;
     }
 }
