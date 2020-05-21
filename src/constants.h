@@ -27,7 +27,7 @@ enum EnemyType
 // Enemy sizes when testing with ship bullet
 static const int ENEMY_COLLISION_HE[EnemyCount] = {8, 8, 4, 4, 8,8, 32, 32};
 
-static const int ENEMY_DISPLAY_SCALE[EnemyCount] = {0x400,0x400, 0x1B0,0x1B0, 0x480, 0x480, 0xA00,0xA00};
+static const int ENEMY_DISPLAY_SCALE[EnemyCount] = {0x400,0x400, 0x1B0,0x1B0, 0x480, 0x480, 0x800,0x800};
 // Life point per enemy type
 static const int ENEMY_LIFE[EnemyCount] = {24, 24, 4, 4, 30, 30, 128, 128};
 

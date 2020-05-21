@@ -161,6 +161,31 @@ void ConvertFontTextureToFontGlyphs(uint32_t* texture)
     }
 }
 
+void RotateSprite(uint8_t *source, int width, int height, uint8_t* destination, struct Fixed angle)
+{
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0;x < width; x++)
+        {
+            struct Vector2 coord = V2FromInt(x - width / 2, y - height / 2);
+            struct Vector2 rot = V2Rotate(coord, angle);
+            int py = rot.y.integer + height / 2;
+            int px = rot.x.integer + width / 2;
+            if (py < 0 || py >= height || px < 0 || px >= width)
+            {
+                *destination++ = 0;
+            }
+            else
+            {
+                *destination++ = source[py * width + px];
+            }
+        }
+    }
+}
+
+uint8_t tearShotWhite[3 * 16 * 16 * 16];
+uint8_t tearShotBlack[3 * 16 * 16 * 16];
+
 int main(int argc, char** argv)
 {
     if (!init()) return 1;
@@ -175,8 +200,27 @@ int main(int argc, char** argv)
 
     struct gl_texture_t* shootFileWhite = ReadTGAFile("shootWhite.tga");
     struct gl_texture_t* shootFileBlack = ReadTGAFile("shootBlack.tga");
+    
+    
     remappedShootWhite = RemapBitmap(shootFileWhite);
     remappedShootBlack = RemapBitmap(shootFileBlack);
+
+    for (int j = 0; j < 6; j++)
+    {
+        static const char *tearShootFileNames[6] = {"bulletTear0Black.tga","bulletTear1Black.tga", "bulletTear2Black.tga",
+            "bulletTear0White.tga","bulletTear1White.tga", "bulletTear2White.tga"};
+        struct gl_texture_t* shootTear = ReadTGAFile(tearShootFileNames[j]);
+        uint8_t* remappedShootTear = RemapBitmap(shootTear);
+
+        for (int i = 0; i < 16; i++)
+        {
+            struct Fixed angleSpr = RadianToCircular(Mul(FromInt(i), FromFixed(80)));
+            int index = j * 16 * 16 * 16 + i * 16 * 16;
+            RotateSprite(remappedShootTear, 16, 16, &((j < 3) ? tearShotWhite : tearShotBlack)[index], angleSpr);
+        }
+    }
+
+
 
     memset(buffer, 17, sizeof(buffer));
 
@@ -343,6 +387,17 @@ int main(int argc, char** argv)
 
         
         GameLoop(Input);
+
+        static int index = 0;
+        static int flick = 0;
+        flick ++;
+        if ((flick &3) == 0)
+        {
+        index ++;
+        index %= 3;
+        }
+        DrawSprite(V2FromInt(160,100), &tearShotWhite[index * 16 * 16 * 16], 16, 16, false);
+
 
         BlitSurface(img);
         SDL_BlitSurface(img, NULL, screenSurface, NULL);

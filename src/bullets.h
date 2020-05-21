@@ -6,6 +6,8 @@ enum BulletType
     EnemySmallBlack,
     PlayerWhiteTrail,
     PlayerBlackTrail,
+    EnemyTearWhite,
+    EnemyTearBlack,
 };
 
 struct Bullet
