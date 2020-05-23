@@ -10,6 +10,29 @@ void DrawHUD(unsigned char jauge)
     DrawRectangle(V2FromInt(6 + halfJaugeBump/2, 35 + jaugeBump/2), V2FromInt(4 + halfJaugeBump, 32 + jaugeBump), 0);
     DrawRectangle(V2FromInt(6 + halfJaugeBump/2, 4 + jaugeValue + jaugeBump/2), V2FromInt(3 + halfJaugeBump, jaugeValue + jaugeBump), 15);
 
+    DrawNumber(50, 2, score, MAX_DENUM);
+    for (int i = 0; i < combo; i ++)
+    {
+        DrawRectangle(V2FromInt(140 + i * 10, 5), V2FromInt(4, 4), (comboType == ComboWhite) ? 15 : 0);
+    }
+
+    DrawText(170, 2, "X");
+    if (comboMultiplier > 999)
+    {
+        DrawNumber(180, 2, comboMultiplier, 1000);
+    }
+    else if (comboMultiplier > 99)
+    {
+        DrawNumber(180, 2, comboMultiplier, 100);
+    }
+    else if (comboMultiplier > 9)
+    {
+        DrawNumber(180, 2, comboMultiplier, 10);
+    }
+    else
+    {
+        DrawNumber(180, 2, comboMultiplier, 1);
+    }
 }
 
 void TickHUD(unsigned char jauge, int globalFrame)

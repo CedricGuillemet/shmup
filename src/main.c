@@ -18,6 +18,7 @@ typedef unsigned char bool;
 #include "meshes.h"
 #include "palette.h"
 #include "geometry.h"
+#include "score.h"
 #include "display.h"
 #include "hud.h"
 #include "effects.h"
@@ -115,9 +116,8 @@ uint8_t* RemapBitmap(struct gl_texture_t* texture)
 
     int index = 0;
     for (int y = texture->height - 1; y >= 0; y--)
-    //for (int y = 0; y < texture->height; y++)
     {
-        for (int x = 0; x < texture->width; x++)
+        for (unsigned int x = 0; x < texture->width; x++)
         {
             uint32_t color = ((uint32_t*)texture->texels)[y * texture->width + x];
             for (int j = 1; j < 256; j++)

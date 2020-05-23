@@ -98,6 +98,7 @@ void TickEnemies()
                     SpawnBullet(enemyPtr->position, direction, (enemyPtr->enemyType == EnemyTypeWhite) ? EnemySmallWhite : EnemySmallBlack);
                 }
                 FreezeFrame(ENEMY_FREEZE_FRAMES[enemyPtr->enemyType]);
+                ScoreOnDestroy(enemyPtr->enemyType);
             }
             RemoveEnemy(enemyPtr);
             enemyEndPtr--;

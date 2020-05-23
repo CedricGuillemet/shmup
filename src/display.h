@@ -351,13 +351,13 @@ void DrawText(int px, int py, const char* text)
     } while (*text);
 }
 
-void DrawNumber(int px, int py, unsigned int number)
+void DrawNumber(int px, int py, unsigned int number, unsigned int denum)
 {
-    unsigned int denum = 1000000000;
     while (denum >= 1)
     {
         unsigned int v = number / denum;
         number %= denum;
+        denum /= 10;
         unsigned char* pg = &glyph[glyphTable['0' + v]];
         for (int y = 0; y < 8; y++)
         {
@@ -372,6 +372,5 @@ void DrawNumber(int px, int py, unsigned int number)
             }
         }
         px += 8;
-        denum /= 10;
     };
 }

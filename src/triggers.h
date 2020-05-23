@@ -27,6 +27,7 @@ void TickBulletsDamagingEnemies()
                     SpawnRandomTinyExplosion(enemyPtr->position);
                 }
                 enemyPtr->life--;
+                ScoreOnHit();
                 break;
             }
             enemyPtr++;

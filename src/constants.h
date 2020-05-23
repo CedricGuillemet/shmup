@@ -42,3 +42,17 @@ static const int JAUGE_VALUE[1] = {8};
 
 // Invalid enemy index for trails destination
 #define INVALID_ENEMY_INDEX 0xFFFF
+
+static const int HIT_SCORE = 13;
+static const int DESTROY_SCORE[EnemyCount] = {47, 47, 29, 29, 103, 103, 246, 246};
+
+enum ComboType
+{
+    ComboUndefined,
+    ComboWhite,
+    ComboBlack,
+};
+
+static const int DESTROY_COMBO[EnemyCount] = { ComboWhite, ComboBlack, ComboWhite, ComboBlack, ComboWhite, ComboBlack, ComboWhite, ComboBlack };
+
+#define MAX_DENUM 1000000000
