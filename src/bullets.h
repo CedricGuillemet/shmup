@@ -21,6 +21,14 @@ struct Bullet
     unsigned short enemyIndex;
 };
 
+uint8_t ballShitWhite[4 * 16 * 16];
+uint8_t ballShitBlack[4 * 16 * 16];
+uint8_t rotorShitWhite[4 * 16 * 16];
+uint8_t rotorShitBlack[4 * 16 * 16];
+uint8_t tearShotWhite[3 * 16 * 16 * 16];
+uint8_t tearShotBlack[3 * 16 * 16 * 16];
+
+
 #define MAX_BULLETS 1024
 struct Bullet bullets[MAX_BULLETS];
 unsigned int bulletCount = 0;
@@ -97,7 +105,6 @@ void DrawBullets(int layer)
     struct Bullet* bulletPtr = bullets;
     unsigned char bulletColor = 0;
     int bulletLayer = 0;
-    bool isCircle = false;
     bool isTrail = false;
     for (unsigned int i = 0; i < bulletCount; i++)
     {
@@ -107,42 +114,36 @@ void DrawBullets(int layer)
                 halfExtend = V2FromInt(16, 16);
                 bulletColor = 13;
                 bulletLayer = 0;
-                isCircle = false;
                 isTrail = false;
                 break;
             case PlayerBlack:
                 halfExtend = V2FromInt(16, 16);
                 bulletColor = 3;
                 bulletLayer = 0;
-                isCircle = false;
                 isTrail = false;
                 break;
             case EnemySmallWhite:
                 halfExtend = V2FromInt(6, 6);
                 bulletColor = 15;
                 bulletLayer = 1;
-                isCircle = true;
                 isTrail = false;
                 break;
             case EnemySmallBlack:
                 halfExtend = V2FromInt(6, 6);
                 bulletColor = 0;
                 bulletLayer = 1;
-                isCircle = true;
                 isTrail = false;
                 break;
             case PlayerWhiteTrail:
                 halfExtend = V2FromInt(3, 3);
                 bulletColor = 15;
                 bulletLayer = 0;
-                isCircle = true;
                 isTrail = true;
                 break;
             case PlayerBlackTrail:
                 halfExtend = V2FromInt(3, 3);
                 bulletColor = 0;
                 bulletLayer = 0;
-                isCircle = true;
                 isTrail = true;
                 break;
         }
@@ -196,13 +197,12 @@ void DrawBullets(int layer)
                     DrawLine(p0.x.integer, p0.y.integer, p1.x.integer, p1.y.integer, bulletColor);
                 }
             }
-            else if (isCircle)
-            {
-                DrawCircle(bulletPtr->position, halfExtend.x.integer, 0, bulletColor);
-            }
             else
             {
-                DrawRectangle(bulletPtr->position, halfExtend, bulletColor);
+                uint8_t *sprite = (bulletPtr->bulletType&1) ? ballShitBlack : ballShitWhite;
+                //uint8_t* sprite = (bulletPtr->bulletType & 1) ? rotorShitBlack : rotorShitWhite;
+                int index = ((bulletPtr->life + i) >> 2) & 3;
+                DrawSprite(bulletPtr->position, &sprite[index * 16 * 16], 16, 16, false);
             }
         }
         bulletPtr++;

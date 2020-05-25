@@ -183,8 +183,6 @@ void RotateSprite(uint8_t *source, int width, int height, uint8_t* destination, 
     }
 }
 
-uint8_t tearShotWhite[3 * 16 * 16 * 16];
-uint8_t tearShotBlack[3 * 16 * 16 * 16];
 
 int main(int argc, char** argv)
 {
@@ -220,7 +218,21 @@ int main(int argc, char** argv)
         }
     }
 
-
+    for (int j = 0; j < 4; j++)
+    {
+        static const char* shootFileNames[4][4] = {
+            { "bulletBalls0Black.tga","bulletBalls1Black.tga", "bulletBalls2Black.tga", "bulletBalls3Black.tga"},
+            { "bulletBalls0White.tga", "bulletBalls1White.tga", "bulletBalls2White.tga", "bulletBalls3White.tga" },
+            { "bulletRotor0Black.tga","bulletRotor1Black.tga", "bulletRotor2Black.tga", "bulletRotor3Black.tga"},
+            { "bulletRotor0White.tga", "bulletRotor1White.tga", "bulletRotor2White.tga", "bulletRotor3White.tga" } };
+        uint8_t* dests[4] = { ballShitBlack, ballShitWhite, rotorShitBlack, rotorShitWhite };
+        for (int i = 0; i < 4; i++)
+        {
+            struct gl_texture_t* shoot = ReadTGAFile(shootFileNames[i][j]);
+            uint8_t* remappedShoot = RemapBitmap(shoot);
+            memcpy(&dests[i][j*16*16], remappedShoot, 16 * 16);
+        }
+    }
 
     memset(buffer, 17, sizeof(buffer));
 
@@ -230,6 +242,7 @@ int main(int argc, char** argv)
 
     PrecomputePaths();
     PrecomputeSpawns();
+    InitLevels();
 
     SpawnShip();
     /*
@@ -387,7 +400,7 @@ int main(int argc, char** argv)
 
         
         GameLoop(Input);
-
+        /*
         static int index = 0;
         static int flick = 0;
         flick ++;
@@ -397,7 +410,7 @@ int main(int argc, char** argv)
         index %= 3;
         }
         DrawSprite(V2FromInt(160,100), &tearShotWhite[index * 16 * 16 * 16], 16, 16, false);
-
+        */
 
         BlitSurface(img);
         SDL_BlitSurface(img, NULL, screenSurface, NULL);

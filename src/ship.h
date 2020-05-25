@@ -159,3 +159,36 @@ void TickShip(bool left, bool right, bool up, bool down, bool fire, bool switchC
 
     MoveShip(direction);
 }
+
+void DrawShip(int flameRadius)
+{
+    struct Matrix_t modelScale = TranslateScale(FromFixed(0x300), FromFixed(0x300), FromFixed(0x300), // div10 = 0x2000
+        FromFixed(Ship.position.x.value / 10), FromFixed(Ship.position.y.value / 10), FromInt(0));
+
+    struct Matrix_t mvps, modelScaleRot, rotx;
+
+    rotx = RotateX(RadianToCircular(Add(Mul(Add(FromInt(Ship.switchTransition), Mul(FromInt(Ship.upDownMomentum), FromFixed(0x2000))), FromFixed(0x2836)), Ship.isWhite ? FromInt(0) : FromFixed(0x3243F))));
+
+    modelScaleRot = MulMatrix(rotx, modelScale);
+    mvps = MulMatrix(modelScaleRot, gameVP);
+
+    if (!(Ship.spawningTransition & 1) && !Ship.dieTransition)
+    {
+        DrawMesh(&mvps, shipPositions, sizeof(shipPositions) / 3, shipTriangles, shipTriangleColors, sizeof(shipTriangleColors));
+    }
+
+    if (flameRadius > 0)
+    {
+        struct Vector2 screenpos[3];
+        static const char circles[9] = { 0,0,0,
+                            -127,0,0,
+                            -127,40,0 };
+        screenpos[0] = TransformV3I8(&mvps, &circles[0]);
+        screenpos[1] = TransformV3I8(&mvps, &circles[3]);
+        screenpos[2] = TransformV3I8(&mvps, &circles[6]);
+
+        screenpos[1].x = Sub(screenpos[1].x, FromInt(10 + flameRadius));
+        DrawCircle(screenpos[1], flameRadius * 2, 0, 15);
+        DrawRectangle2(V2FromInt(0, screenpos[1].y.integer - flameRadius), V2FromInt(screenpos[1].x.integer, screenpos[1].y.integer + flameRadius), 15);
+    }
+}

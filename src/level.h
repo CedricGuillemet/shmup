@@ -12,7 +12,7 @@ void ComputeMatrices()
 
     angle = Sub(angle, FromFixed(600));
     struct Fixed circular = RadianToCircular(angle);
-    eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x4000)), Sine(circular)), Add(FromInt(4), Cosine(circular)));
+    eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x4000)), Sine(circular)), Add(FromInt(12), Cosine(circular)));
 
 
     view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
@@ -29,6 +29,109 @@ void ComputeMatrices()
     gameVP = MulMatrix(gameView, perspectiveScreen);
 }
 
+struct QuadMesh
+{
+    char* positions;
+    unsigned char* quads;
+    unsigned char* quadColors;
+    int positionCount;
+    int quadCount;
+};
+
+struct QuadMesh* generateBevel(int sliceCount, struct Vector3* dif, unsigned char* colors)
+{
+    struct QuadMesh* quadMesh = (struct QuadMesh*)malloc(sizeof(struct QuadMesh));
+
+    quadMesh->positionCount = sliceCount * 4;
+    quadMesh->quadCount = (sliceCount - 1) * 4 + 1;
+    quadMesh->positions = (char*)malloc(quadMesh->positionCount * 3);
+    quadMesh->quads = (unsigned char*)malloc(quadMesh->quadCount);
+    quadMesh->quadColors = (unsigned char*)malloc(quadMesh->quadCount);
+
+    // positions
+    char* posPtr = quadMesh->positions;
+    for (int h = 0; h < sliceCount; h++)
+    {
+        struct Vector3 pos[4];
+        struct Fixed invX = Sub(FromInt(1), dif[h].x);
+        struct Fixed invZ = Sub(FromInt(1), dif[h].z);
+        pos[0] = dif[h];
+        pos[1] = V3FromFixed(invX,     dif[h].y, dif[h].z);
+        pos[2] = V3FromFixed(invX, dif[h].y, invZ);
+        pos[3] = V3FromFixed(dif[h].x, dif[h].y, invZ);
+        
+        for (int i = 0; i < 4; i++)
+        {
+            *posPtr++ = pos[i].x.value / 16384;
+            *posPtr++ = pos[i].y.value / 16384;
+            *posPtr++ = pos[i].z.value / 16384;
+        }
+    }
+
+    // quads
+    unsigned char* ptr = quadMesh->quads;
+    for (int h = 0; h < (sliceCount - 1); h++)
+    {
+        int baseIndex = h * 4;
+        for (int i = 0;i < 4; i++)
+        {
+            *ptr++ = h + 4 + i;
+            *ptr++ = h + 4 + ((i + 1) & 3);
+            *ptr++ = h + ((i + 1) & 3);
+            *ptr++ = h + i;
+        }
+    }
+
+    // cap
+    *ptr++ = (sliceCount - 1) * 4 + 3;
+    *ptr++ = (sliceCount - 1) * 4 + 2;
+    *ptr++ = (sliceCount - 1) * 4 + 1;
+    *ptr++ = (sliceCount - 1) * 4 + 0;
+
+    // colors
+    unsigned char* colPtr = quadMesh->quadColors;
+    for (int h = 0; h < (sliceCount - 1); h++)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            *colPtr++ = colors[h];
+        }
+    }
+    // cap
+    *colPtr = colors[sliceCount - 2];
+    return quadMesh;
+}
+
+struct QuadMesh* bevel;
+void InitLevels()
+{
+    struct Vector3 vts[2] = {V3FromInt(0,0,0), V3FromFixed(FromFixed(0x4000),FromInt(1),FromFixed(0x4000)) };
+    unsigned char color = 0;
+    bevel = generateBevel(2, vts, &color);
+}
+
+void DrawQuadMesh(struct Matrix_t* matrix, struct QuadMesh* quadMesh)
+{
+    struct Vector2 screenpos[64];
+    for (int i = 0; i < quadMesh->positionCount; i++)
+    {
+        screenpos[i] = TransformV3I8(&vp, &quadMesh->positions[i * 3]);
+    }
+
+    unsigned char* quadPtr = quadMesh->quads;
+    unsigned char* colorPtr = quadMesh->quadColors;
+    for (int i = 0; i < quadMesh->quadCount; i++)
+    {
+        unsigned char i0 = *quadPtr++;
+        unsigned char i1 = *quadPtr++;
+        unsigned char i2 = *quadPtr++;
+        unsigned char i3 = *quadPtr++;
+        unsigned char color = *colorPtr++;
+        DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], color);
+        DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], color);
+    }
+}
+
 void DrawLevel()
 {
     struct Vector2 screenpos[64];
@@ -42,6 +145,9 @@ void DrawLevel()
     backBufferPtr += SCREEN_WIDTH * groundHeight;
     memset(backBufferPtr, 18, SCREEN_WIDTH * (SCREEN_HEIGHT - groundHeight));
 
+    DrawQuadMesh(&vp, bevel);
+
+    /*
     char v[8 * 3] = {
         -1,-1,-1,
         -1,-1, 1,
@@ -80,40 +186,12 @@ void DrawLevel()
         DrawTriangle(screenpos[i0], screenpos[i1], screenpos[i2], colors[i]);
         DrawTriangle(screenpos[i0], screenpos[i2], screenpos[i3], colors[i]);
     }
+    */
+
+    DrawQuadMesh(&vp, bevel);
 }
 
-void DrawShip(int flameRadius)
-{
-    struct Matrix_t modelScale = TranslateScale(FromFixed(0x300), FromFixed(0x300), FromFixed(0x300), // div10 = 0x2000
-        FromFixed(Ship.position.x.value / 10), FromFixed(Ship.position.y.value / 10), FromInt(0));
 
-    struct Matrix_t mvps, modelScaleRot, rotx;
-
-    rotx = RotateX(RadianToCircular(Add(Mul(Add(FromInt(Ship.switchTransition), Mul(FromInt(Ship.upDownMomentum), FromFixed(0x2000))), FromFixed(0x2836)), Ship.isWhite ? FromInt(0) : FromFixed(0x3243F))));
-
-    modelScaleRot = MulMatrix(rotx, modelScale);
-    mvps = MulMatrix(modelScaleRot, gameVP);
-
-    if (!(Ship.spawningTransition & 1) && !Ship.dieTransition)
-    {
-        DrawMesh(&mvps, shipPositions, sizeof(shipPositions)/3, shipTriangles, shipTriangleColors, sizeof(shipTriangleColors));
-    }
-
-    if (flameRadius > 0)
-    {
-        struct Vector2 screenpos[3];
-        static const char circles[9] = { 0,0,0,
-                            -127,0,0,
-                            -127,40,0 };
-        screenpos[0] = TransformV3I8(&mvps, &circles[0]);
-        screenpos[1] = TransformV3I8(&mvps, &circles[3]);
-        screenpos[2] = TransformV3I8(&mvps, &circles[6]);
-
-        screenpos[1].x = Sub(screenpos[1].x, FromInt(10 + flameRadius));
-        DrawCircle(screenpos[1], flameRadius * 2, 0, 15);
-        DrawRectangle2(V2FromInt(0, screenpos[1].y.integer - flameRadius), V2FromInt(screenpos[1].x.integer, screenpos[1].y.integer + flameRadius), 15);
-    }
-}
 
 
 

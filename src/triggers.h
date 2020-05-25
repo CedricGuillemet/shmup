@@ -177,6 +177,7 @@ void TickBullets()
         }
         else
         {
+            bulletPtr->life ++;
             bulletPtr->position = V2Add(bulletPtr->position, bulletPtr->direction);
             removeBullet = IsClipped(bulletPtr->position, -16);
         }
