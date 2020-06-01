@@ -7,10 +7,6 @@
 #define SCREEN_HEIGHT 200
 #define SCREEN_FACTOR 4
 
-typedef unsigned char bool;
-#define true 1
-#define false 0
-
 #include "tga.h"
 #include "types.h"
 #include "tables.h"
@@ -24,10 +20,10 @@ typedef unsigned char bool;
 #include "effects.h"
 #include "paths.h"
 #include "bullets.h"
-#include "enemies.h"
 #include "ship.h"
-#include "orchestra.h"
+#include "enemies.h"
 
+#include "orchestra.h"
 
 #include "triggers.h"
 #include "level.h"
@@ -183,7 +179,6 @@ void RotateSprite(uint8_t *source, int width, int height, uint8_t* destination, 
     }
 }
 
-
 int main(int argc, char** argv)
 {
     if (!init()) return 1;
@@ -254,6 +249,7 @@ int main(int argc, char** argv)
     }
     fclose(fp);
     */
+
     bool playingback = false;//LoadRecord("Record.bin");
 
     SDL_Surface* img = SDL_CreateRGBSurface(0, SCREEN_WIDTH * SCREEN_FACTOR, SCREEN_HEIGHT * SCREEN_FACTOR, 32, 0, 0, 0, 0);

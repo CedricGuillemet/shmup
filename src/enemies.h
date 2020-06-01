@@ -10,6 +10,7 @@ struct Enemy
     enum EnemyType enemyType;
     unsigned char circularOffset;
     unsigned char circularRadius;
+    bool align;
 };
 
 #define MAX_ENEMIES 128
@@ -45,7 +46,7 @@ void RemoveEnemy(struct Enemy* enemyPtr)
     }
 }
 
-void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathIndex, unsigned char circularOffset, unsigned char circularRadius)
+void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathIndex, unsigned char circularOffset, unsigned char circularRadius, bool align)
 {
     if (enemyCount >= MAX_ENEMIES -1)
     {
@@ -60,6 +61,7 @@ void SpawnEnemy(enum EnemyType enemyType, struct Vector2 pathOffset, int pathInd
     enemy->circularRadius = circularRadius;
     enemy->pathIndex = pathIndex;
     enemy->pathOffset = pathOffset;
+    enemy->align = align;
     enemyCount++;
 }
 
@@ -131,14 +133,29 @@ static const struct EmemyMesh EnemyMeshes[EnemyCount] =
     {enemy3Positions, enemy3Triangles, enemy3TriangleBlackColors, sizeof(enemy3Positions) / 3, sizeof(enemy3TriangleWhiteColors)},
 };
 
-void DrawEnemy(int enemyIndex, struct Vector2 position)
+void DrawEnemy(int enemyIndex, struct Vector2 position, bool align)
 {
     struct Fixed scale = FromFixed(ENEMY_DISPLAY_SCALE[enemyIndex]);
 
-    struct Matrix_t modelScale = TranslateScale(scale, scale, scale,
-        FromFixed(position.x.value / 10), FromFixed(position.y.value / 10), FromInt(0));
+    struct Matrix_t mvps;
+    if (align)
+    {
+        struct Vector2 offset = V2Sub(position, Ship.position);
+        struct Fixed angle = arctan2(Neg(offset.y), offset.x);
+        angle = RadianToCircular(angle);
+        struct Matrix_t modelScale = RotateZScale(angle, scale);
+        modelScale.v[12] = FromFixed(position.x.value / 10);
+        modelScale.v[13] = FromFixed(position.y.value / 10);
 
-    struct Matrix_t mvps = MulMatrix(modelScale, gameVP);
+        mvps = MulMatrix(modelScale, gameVP);
+    }
+    else
+    {
+        struct Matrix_t modelScale = TranslateScale(scale, scale, scale,
+            FromFixed(position.x.value / 10), FromFixed(position.y.value / 10), FromInt(0));
+
+        mvps = MulMatrix(modelScale, gameVP);
+    }
 
     const struct EmemyMesh* enemyMesh = &EnemyMeshes[enemyIndex];
 
@@ -151,7 +168,7 @@ void DrawEnemies()
     struct Enemy* enemyPtrEnd = Enemies + enemyCount;
     while(enemyPtr < enemyPtrEnd)
     {
-        DrawEnemy(enemyPtr->enemyType, enemyPtr->position);
+        DrawEnemy(enemyPtr->enemyType, enemyPtr->position, enemyPtr->align);
         enemyPtr++;
     }
 }

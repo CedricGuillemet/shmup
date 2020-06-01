@@ -118,6 +118,14 @@ void PrecomputePaths()
 
 }
 
+
+struct Shoot
+{
+    int frame;
+    unsigned char type;
+    bool align;
+};
+
 struct Spawn
 {
     int frame;
@@ -126,10 +134,16 @@ struct Spawn
     int pathIndex;
     unsigned char circularOffset;
     unsigned char circularRadius;
+    const struct Shoot shoot;
 };
 
+
 struct Spawn Spawns[] = {
-    
+    { -0x080, EnemyTypeWhiteHunter, V2INT(330,   0), 19, 0, 0,   60, 1, true},
+    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   70, 1, true},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   80, 1, true},
+
+    /*
     { -0x80, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
@@ -317,6 +331,7 @@ struct Spawn Spawns[] = {
     { 0, EnemyTypeBlackSmall, V2INT(340, 120), 27 },
     { 0, EnemyTypeBlackSmall, V2INT(370, 120), 27 },
     { 0, EnemyTypeBlackSmall, V2INT(390, 120), 27 },
+    */
 };
 
 int sortSpawn(const void *a, const void *b)
@@ -359,7 +374,7 @@ void TickOrchestra()
         while (GlobalFrame == Spawns[GlobalSpawnIndex].frame)
         {
             struct Spawn* toSpawn = &Spawns[GlobalSpawnIndex];
-            SpawnEnemy(toSpawn->enemyType, toSpawn->pathOffset, toSpawn->pathIndex, toSpawn->circularOffset, toSpawn->circularRadius);
+            SpawnEnemy(toSpawn->enemyType, toSpawn->pathOffset, toSpawn->pathIndex, toSpawn->circularOffset, toSpawn->circularRadius, toSpawn->shoot.align);
             GlobalSpawnIndex++;
         }
         GlobalFrame++;

@@ -11,7 +11,7 @@ void DrawHUD(unsigned char jauge)
     DrawRectangle(V2FromInt(6 + halfJaugeBump/2, 4 + jaugeValue + jaugeBump/2), V2FromInt(3 + halfJaugeBump, jaugeValue + jaugeBump), 15);
 
     DrawNumber(50, 2, score, MAX_DENUM);
-    for (int i = 0; i < combo; i ++)
+    for (unsigned int i = 0; i < combo; i ++)
     {
         DrawRectangle(V2FromInt(140 + i * 10, 5), V2FromInt(4, 4), (comboType == ComboWhite) ? 15 : 0);
     }

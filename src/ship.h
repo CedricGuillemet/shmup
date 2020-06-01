@@ -1,3 +1,6 @@
+
+extern unsigned char enemyCount;
+
 struct Ship_t
 {
     struct Vector2 position;

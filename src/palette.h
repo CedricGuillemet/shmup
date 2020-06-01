@@ -17,3 +17,12 @@ void FadePalette(int delta)
         ptrDest[i] = v;
     }
 }
+
+void BuildGradient(struct Vector3 diffuse, unsigned char startColor)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        struct Vector3 col = V3Lerp(V3FromInt(0,0,0), diffuse, FromFixed(0x1000 * i));
+        paletteSource[startColor + i] = V3ToUint32(col);
+    }
+}

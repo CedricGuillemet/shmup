@@ -1,3 +1,8 @@
+// bool
+
+typedef unsigned char bool;
+#define true 1
+#define false 0
 
 // Fixed point value
 
@@ -376,6 +381,21 @@ struct Vector3 V3Neg(struct Vector3 value)
     return res;
 }
 
+struct Vector3 V3Lerp(struct Vector3 a, struct Vector3 b, struct Fixed t)
+{
+    struct Vector3 res;
+
+    res.x = Lerp(a.x, b.x, t);
+    res.y = Lerp(a.y, b.y, t);
+    res.z = Lerp(a.z, b.z, t);
+
+    return res;
+}
+uint32_t V3ToUint32(struct Vector3 v)
+{
+    uint32_t res = ((v.x.integer&0xFF)<<16) + ((v.y.integer & 0xFF) << 8) + ((v.z.integer & 0xFF) << 0);
+    return res;
+}
 // Matrix
 
 struct Matrix_t
