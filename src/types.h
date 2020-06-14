@@ -310,10 +310,16 @@ struct Vector3 V3Normalize(struct Vector3 v)
     len = Add(len, Mul(v.y, v.y));
     len = Add(len, Mul(v.z, v.z));
     len.value = (int)(sqrt(len.value)) << 8;
-    res.x = Div(v.x, len);
-    res.y = Div(v.y, len);
-    res.z = Div(v.z, len);
-
+    if (abs(len.value) > 0)
+    {
+        res.x = Div(v.x, len);
+        res.y = Div(v.y, len);
+        res.z = Div(v.z, len);
+    }
+    else
+    {
+        return v;
+    }
     return res;
 }
 
@@ -497,3 +503,4 @@ vec_t vec_t::interpolateHermite(const vec_t& nextKey, const vec_t& nextKeyP1, co
     return  res;
 }
 */
+

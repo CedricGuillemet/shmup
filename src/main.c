@@ -1,7 +1,7 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <memory.h>
-
+#include <assert.h>
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 200
@@ -198,17 +198,17 @@ int main(int argc, char** argv)
     remappedShootWhite = RemapBitmap(shootFileWhite);
     remappedShootBlack = RemapBitmap(shootFileBlack);
 
-    for (int j = 0; j < 6; j++)
+    for (int j = 0; j < 8; j++)
     {
-        static const char *tearShootFileNames[6] = {"bulletTear0Black.tga","bulletTear1Black.tga", "bulletTear2Black.tga",
-            "bulletTear0White.tga","bulletTear1White.tga", "bulletTear2White.tga"};
+        static const char *tearShootFileNames[8] = {"bulletTear0Black.tga","bulletTear1Black.tga", "bulletTear2Black.tga", "bulletTear3Black.tga",
+            "bulletTear0White.tga","bulletTear1White.tga", "bulletTear2White.tga", "bulletTear3White.tga" };
         struct gl_texture_t* shootTear = ReadTGAFile(tearShootFileNames[j]);
         uint8_t* remappedShootTear = RemapBitmap(shootTear);
 
         for (int i = 0; i < 16; i++)
         {
             struct Fixed angleSpr = RadianToCircular(Mul(FromInt(i), FromFixed(80)));
-            int index = j * 16 * 16 * 16 + i * 16 * 16;
+            int index = (j & 3) * 16 * 16 * 16 + i * 16 * 16;
             RotateSprite(remappedShootTear, 16, 16, &((j < 3) ? tearShotWhite : tearShotBlack)[index], angleSpr);
         }
     }
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
             { "bulletBalls0White.tga", "bulletBalls1White.tga", "bulletBalls2White.tga", "bulletBalls3White.tga" },
             { "bulletRotor0Black.tga","bulletRotor1Black.tga", "bulletRotor2Black.tga", "bulletRotor3Black.tga"},
             { "bulletRotor0White.tga", "bulletRotor1White.tga", "bulletRotor2White.tga", "bulletRotor3White.tga" } };
-        uint8_t* dests[4] = { ballShitBlack, ballShitWhite, rotorShitBlack, rotorShitWhite };
+        uint8_t* dests[4] = { ballShotBlack, ballShotWhite, rotorShotBlack, rotorShotWhite };
         for (int i = 0; i < 4; i++)
         {
             struct gl_texture_t* shoot = ReadTGAFile(shootFileNames[i][j]);
@@ -417,6 +417,7 @@ int main(int argc, char** argv)
         while (SDL_GetTicks() - lastTime < 16) 
         {
         };
+        GlobalFrame++;
         
         currentTime = SDL_GetTicks();
         lastTime = currentTime;

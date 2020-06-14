@@ -8,6 +8,10 @@ enum BulletType
     PlayerBlackTrail,
     EnemyTearWhite,
     EnemyTearBlack,
+    EnemyRotorWhite,
+    EnemyRotorBlack,
+    EnemyBallWhite,
+    EnemyBallBlack,
 };
 
 struct Bullet
@@ -15,18 +19,19 @@ struct Bullet
     struct Vector2 position;
     struct Vector2 direction;
     enum BulletType bulletType;
+    unsigned char directionAngle16;
     unsigned char life;
     struct Vector2 trailPositions[8];
     struct Vector2 destination;
     unsigned short enemyIndex;
 };
 
-uint8_t ballShitWhite[4 * 16 * 16];
-uint8_t ballShitBlack[4 * 16 * 16];
-uint8_t rotorShitWhite[4 * 16 * 16];
-uint8_t rotorShitBlack[4 * 16 * 16];
-uint8_t tearShotWhite[3 * 16 * 16 * 16];
-uint8_t tearShotBlack[3 * 16 * 16 * 16];
+uint8_t ballShotWhite[4 * 16 * 16];
+uint8_t ballShotBlack[4 * 16 * 16];
+uint8_t rotorShotWhite[4 * 16 * 16];
+uint8_t rotorShotBlack[4 * 16 * 16];
+uint8_t tearShotWhite[4 * 16 * 16 * 16];
+uint8_t tearShotBlack[4 * 16 * 16 * 16];
 
 
 #define MAX_BULLETS 1024
@@ -66,17 +71,18 @@ void RemoveBullet(struct Bullet* bulletPtr)
     }
 }
 
-void SpawnBullet(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType)
+struct Bullet* SpawnBullet(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType)
 {
     if (bulletCount >= MAX_BULLETS - 1)
     {
-        return;
+        return NULL;
     }
     struct Bullet* bulletPtr = &bullets[bulletCount];
     bulletPtr->position = position;
     bulletPtr->direction = direction;
     bulletPtr->bulletType = bulletType;
     bulletCount++;
+    return bulletPtr;
 }
 
 void SpawnTrail(struct Vector2 position, struct Vector2 direction, enum BulletType bulletType, unsigned short enemyIndex)
@@ -101,7 +107,6 @@ void SpawnTrail(struct Vector2 position, struct Vector2 direction, enum BulletTy
 
 void DrawBullets(int layer)
 {
-    struct Vector2 halfExtend;
     struct Bullet* bulletPtr = bullets;
     unsigned char bulletColor = 0;
     int bulletLayer = 0;
@@ -111,37 +116,31 @@ void DrawBullets(int layer)
         switch (bulletPtr->bulletType)
         {
             case PlayerWhite:
-                halfExtend = V2FromInt(16, 16);
                 bulletColor = 13;
                 bulletLayer = 0;
                 isTrail = false;
                 break;
             case PlayerBlack:
-                halfExtend = V2FromInt(16, 16);
                 bulletColor = 3;
                 bulletLayer = 0;
                 isTrail = false;
                 break;
             case EnemySmallWhite:
-                halfExtend = V2FromInt(6, 6);
                 bulletColor = 15;
                 bulletLayer = 1;
                 isTrail = false;
                 break;
             case EnemySmallBlack:
-                halfExtend = V2FromInt(6, 6);
                 bulletColor = 0;
                 bulletLayer = 1;
                 isTrail = false;
                 break;
             case PlayerWhiteTrail:
-                halfExtend = V2FromInt(3, 3);
                 bulletColor = 15;
                 bulletLayer = 0;
                 isTrail = true;
                 break;
             case PlayerBlackTrail:
-                halfExtend = V2FromInt(3, 3);
                 bulletColor = 0;
                 bulletLayer = 0;
                 isTrail = true;
@@ -199,10 +198,23 @@ void DrawBullets(int layer)
             }
             else
             {
-                uint8_t *sprite = (bulletPtr->bulletType&1) ? ballShitBlack : ballShitWhite;
+                int var = ((bulletPtr->life + i) >> 2) & 3;
+                uint8_t *sprite;
+                switch (bulletPtr->bulletType)
+                {
+                case EnemyTearWhite: sprite = tearShotWhite + var * 16 * 16 * 16 + bulletPtr->directionAngle16 * 16 * 16;
+                    break;
+                case EnemyTearBlack: sprite = tearShotBlack + var * 16 * 16 * 16 + bulletPtr->directionAngle16 * 16 * 16;
+                    break;
+                case EnemyRotorWhite: sprite = rotorShotWhite; break;
+                case EnemyRotorBlack: sprite = rotorShotBlack; break;
+                case EnemyBallWhite: sprite = ballShotWhite; break;
+                case EnemyBallBlack: sprite = ballShotBlack; break;
+                default: assert(0);
+                }
+                //= (bulletPtr->bulletType&1) ? ballShitBlack : ballShitWhite;
                 //uint8_t* sprite = (bulletPtr->bulletType & 1) ? rotorShitBlack : rotorShitWhite;
-                int index = ((bulletPtr->life + i) >> 2) & 3;
-                DrawSprite(bulletPtr->position, &sprite[index * 16 * 16], 16, 16, false);
+                DrawSprite(bulletPtr->position, sprite, 16, 16, false);
             }
         }
         bulletPtr++;

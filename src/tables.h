@@ -3314,7 +3314,7 @@ struct Fixed arctan2(struct Fixed y, struct Fixed x)
     }
     else
     {
-        struct Fixed r = Div(Add(x, abs_y), Add(abs_y, x));
+        struct Fixed r = Div(Add(x, abs_y), Sub(abs_y, x));
         angle = Sub(coeff_2, Mul(coeff_1, r));
     }
     if (y.value < 0)
@@ -3325,4 +3325,27 @@ struct Fixed arctan2(struct Fixed y, struct Fixed x)
     {
         return(angle);
     }
+}
+
+
+struct Fixed GetAngle(struct Vector2* posA, struct Vector2* posB)
+{
+    struct Vector2 offset = V2Sub(*posA, *posB);
+    struct Fixed angle = arctan2(Neg(offset.y), offset.x);
+    angle = RadianToCircular(angle);
+    return angle;
+}
+
+struct Fixed GetAngleFromDirection(struct Vector2 direction)
+{
+    struct Fixed angle = arctan2(Neg(direction.y), direction.x);
+    angle = RadianToCircular(angle);
+    return angle;
+}
+
+struct Vector2 GetDirection(struct Vector2* posA, struct Vector2* posB)
+{
+    struct Vector2 direction = V2Sub(*posA, *posB);
+    direction = V2Normalize(direction);
+    return direction;
 }

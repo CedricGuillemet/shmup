@@ -1,5 +1,6 @@
 
 int GlobalFrame = 0;
+int GlobalSpawnFrame = 0;
 int enemySpawnCount = 0;
 int GlobalSpawnIndex = 0;
 
@@ -121,7 +122,8 @@ void PrecomputePaths()
 
 struct Shoot
 {
-    int frame;
+    int frameStart;
+    int frameEnd;
     unsigned char type;
     bool align;
 };
@@ -134,14 +136,38 @@ struct Spawn
     int pathIndex;
     unsigned char circularOffset;
     unsigned char circularRadius;
-    const struct Shoot shoot;
+    struct Shoot shoot;
 };
 
+void TearShot(struct Enemy* enemy)
+{
+    struct Vector2 direction = GetDirection(&Ship.position, &enemy->position);
+    struct Fixed angle = GetAngle(&Ship.position, &enemy->position);
+
+    struct Bullet* bullet = SpawnBullet(enemy->position, direction, (enemy->enemyType&1) ? EnemyTearBlack : EnemyTearWhite);
+    bullet->directionAngle16 = (angle.integer >> 6) & 15;
+}
+
+
+void TearShotCircular(struct Enemy* enemy)
+{
+    for (int i = 0; i < 32; i++)
+    {
+        struct Fixed tr = FromInt(i * 2048 / 32);
+        struct Vector2 direction = V2FromFixed(Cosine(tr), Sine(tr));
+
+        struct Vector2 dir = V2Mul(direction, FromInt(1));
+        struct Fixed angle = GetAngleFromDirection(dir);
+
+        struct Bullet* bullet = SpawnBullet(V2FromInt(200,100), V2Mul(direction, FromFixed(0x10000)), EnemyTearBlack);
+        bullet->directionAngle16 = 15 - ((angle.integer * 16 / 2048) & 15);
+    }
+}
 
 struct Spawn Spawns[] = {
-    { -0x080, EnemyTypeWhiteHunter, V2INT(330,   0), 19, 0, 0,   60, 1, true},
-    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   70, 1, true},
-    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   80, 1, true},
+    { -0x080, EnemyTypeWhiteHunter, V2INT(330,   0), 19, 0, 0,   60, 70, 1, true},
+    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   60, 70, 1, true},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   60, 70, 1, true},
 
     /*
     { -0x80, EnemyTypeWhite, V2INT(330, 80), 0},
@@ -363,6 +389,8 @@ void PrecomputeSpawns()
         {
             spawn->frame += (spawn - 1)->frame;
         }
+        spawn->shoot.frameStart += spawn->frame;
+        spawn->shoot.frameEnd += spawn->frame;
     }
     qsort(Spawns, spawnCount, sizeof(struct Spawn), sortSpawn);
 }
@@ -371,12 +399,26 @@ void TickOrchestra()
 {
     if (GlobalSpawnIndex < sizeof(Spawns)/sizeof(struct Spawn))
     {
-        while (GlobalFrame == Spawns[GlobalSpawnIndex].frame)
+        while (GlobalSpawnFrame == Spawns[GlobalSpawnIndex].frame)
         {
             struct Spawn* toSpawn = &Spawns[GlobalSpawnIndex];
             SpawnEnemy(toSpawn->enemyType, toSpawn->pathOffset, toSpawn->pathIndex, toSpawn->circularOffset, toSpawn->circularRadius, toSpawn->shoot.align);
             GlobalSpawnIndex++;
         }
-        GlobalFrame++;
+        GlobalSpawnFrame++;
+    }
+
+    if (enemyCount)
+    {
+        if (!(GlobalFrame & 7))
+        {
+            TearShot(Enemies);
+        }
+
+    }
+
+    if (GlobalFrame == 0)
+    {
+        TearShotCircular(NULL);
     }
 }

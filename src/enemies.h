@@ -133,6 +133,7 @@ static const struct EmemyMesh EnemyMeshes[EnemyCount] =
     {enemy3Positions, enemy3Triangles, enemy3TriangleBlackColors, sizeof(enemy3Positions) / 3, sizeof(enemy3TriangleWhiteColors)},
 };
 
+
 void DrawEnemy(int enemyIndex, struct Vector2 position, bool align)
 {
     struct Fixed scale = FromFixed(ENEMY_DISPLAY_SCALE[enemyIndex]);
@@ -140,9 +141,7 @@ void DrawEnemy(int enemyIndex, struct Vector2 position, bool align)
     struct Matrix_t mvps;
     if (align)
     {
-        struct Vector2 offset = V2Sub(position, Ship.position);
-        struct Fixed angle = arctan2(Neg(offset.y), offset.x);
-        angle = RadianToCircular(angle);
+        struct Fixed angle = GetAngle(&position, &Ship.position);
         struct Matrix_t modelScale = RotateZScale(angle, scale);
         modelScale.v[12] = FromFixed(position.x.value / 10);
         modelScale.v[13] = FromFixed(position.y.value / 10);

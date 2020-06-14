@@ -69,8 +69,10 @@ void ApplyLighting(struct QuadMesh* quadMesh, struct Vector3 lightDir)
         if (c == 0 || c >= 128)
         {
             struct Vector3 n = GetNormal(quadMesh, q);
-            struct Fixed dt = Max(V3Dot(n, lightDir), FromFixed(0x4000));
-            unsigned char col = Mul(dt, FromInt(16)).integer & 15;
+            //struct Fixed dt = Max(V3Dot(n, lightDir), FromFixed(0x1000));
+            //unsigned char col = Mul(dt, FromInt(16)).integer & 15;
+            struct Fixed dt = Add(Mul(V3Dot(n, lightDir), FromInt(8)), FromInt(8));
+            unsigned char col = dt.integer & 15;
             quadMesh->quadColors[q] += col;
         }
     }
@@ -237,7 +239,7 @@ void RemoveQuad(struct QuadMesh* mesh, int quadIndex)
 
 void BendMesh(struct QuadMesh* mesh, struct Fixed angle)
 {
-    struct Vector3 c = V3FromInt(0,0,0);
+    //struct Vector3 c = V3FromInt(0,0,0);
 
     struct Vector3* p = mesh->positions;
     struct Fixed max = p[0].z;
@@ -317,7 +319,7 @@ void InitLevels()
 
     struct Vector3 bvts[2] = {V3FromInt(0,0,0), V3FromFixed(FromFixed(0x4000),FromInt(1),FromFixed(0x4000)) };
     unsigned char bcolor[] = {128, 19};
-    bevel = GenerateBevel(2, bvts, &bcolor);
+    bevel = GenerateBevel(2, bvts, bcolor);
     //ApplyLighting(bevel, V3Normalize(V3FromInt(1,3,2)));
 
     struct Vector3 vts[7] = { V3FromInt(4,-6,0), V3FromInt(6,-1,0), V3FromInt(8,0,0), V3FromInt(10,0,0), V3FromInt(10,1,0), V3FromInt(20,2,0), V3FromInt(30,2,0) };
