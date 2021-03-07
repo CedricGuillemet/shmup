@@ -93,7 +93,7 @@ public:
 				//mFaces.push_back({ uint16_t(vertCount + 2), uint16_t(vertCount + 1), uint16_t(vertCount), {63,63,63}});
 
 				uint8_t *texel = &img[int(uvs[tex[0]].x * imgx) * 4];
-				mFaces.push_back({ uint16_t(pos[0]), uint16_t(pos[1]), uint16_t(pos[2]), {uint8_t(texel[0]>>2), uint8_t(texel[1]>>2), uint8_t(texel[2]>>2)} });
+				mFaces.push_back({ uint16_t(pos[0]), uint16_t(pos[1]), uint16_t(pos[2]), {uint8_t(texel[0]), uint8_t(texel[1]), uint8_t(texel[2])} });
 #if 0
 				for (int i = 0; i < 3; i++)
 				{
@@ -236,10 +236,48 @@ public:
 
 			if (count == 3) 
 			{
-				mClippedFaces.push_back(face);
+				vec_t n;
+				n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
+				n.normalize();
+
+				vec_t mid = (p[0] + p[1] + p[2]) * 0.33333f;
+				vec_t eye(4.f, 4.f, 4.f);
+				vec_t eye2tri = normalized(mid - eye);
+
+				if (eye2tri.dot(n) > 0.f)
+				{
+					mClippedFaces.push_back(face);
+				}
 			}
 		}
-		
+	}
+
+	void ApplyDirectional()
+	{
+		vec_t lightDir = normalized(vec_t(-0.6f, -0.7f, -0.8f));
+		for (size_t i = 0; i < mFaces.size(); i++)
+		{
+			vec_t n = WorldNormal(i);
+			float dt = n.dot(lightDir);
+			vec_t color = mFaces[i].mColor.GetVect();
+			color *= (dt * 0.5f) + 0.5f;
+			mFaces[i].mColor.SetVect(color);
+		}
+	}
+
+	vec_t WorldNormal(int faceIndex) const
+	{
+		auto& face = mFaces[faceIndex];
+		vec_t p[3];
+		p[0] = mPositions[face.a];
+		p[1] = mPositions[face.b];
+		p[2] = mPositions[face.c];
+
+		vec_t n;
+		n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
+		n.normalize();
+
+		return n;
 	}
 
 	void SortFaces()
@@ -275,7 +313,7 @@ public:
 
 			auto& io = ImGui::GetIO();
 
-			for (int j = 0;j<3;j++)
+			for (int j = 0; j < 3; j++)
 			{
 				pc[j] = ImVec2(p[j].x * io.DisplaySize.x / 2 + io.DisplaySize.x / 2, io.DisplaySize.y - (p[j].y * io.DisplaySize.y / 2 + io.DisplaySize.y / 2));
 			}
@@ -292,12 +330,29 @@ private:
 
     struct Color
     {
-        uint8_t r : 6;
-        uint8_t g : 6;
-        uint8_t b : 6;
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
 		uint32_t Get32() const
 		{
-			return (0xff << 24) + (b << 18) + (g << 10) + (r << 2);
+			return (0xff << 24) + (b << 16) + (g << 8) + r;
+		}
+		void Set32(uint32_t v)
+		{
+			r = v & 0xFF;
+			g = (v >> 8) & 0xFF;
+			b = (v >> 16) & 0xFF;
+		}
+		vec_t GetVect() const
+		{
+			vec_t res;
+			res.fromUInt32(Get32());
+			return res;
+		}
+		void SetVect(const vec_t& v)
+		{
+			uint32_t c = v.toUInt32();
+			Set32(c);
 		}
     };
     struct Face

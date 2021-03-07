@@ -63,6 +63,7 @@ int main(int, char**)
 
    Mesh mesh;
    mesh.LoadObj("", "");
+   mesh.ApplyDirectional();
 
    matrix_t view, proj;
 
