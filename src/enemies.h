@@ -97,7 +97,7 @@ void TickEnemies()
                     struct Fixed angle;
                     angle.value = random * 0x1AAA;
                     struct Vector2 direction = V2Rotate(V2FromInt(-1, 0), angle);
-                    SpawnBullet(enemyPtr->position, direction, (enemyPtr->enemyType == EnemyTypeWhite) ? EnemySmallWhite : EnemySmallBlack);
+                    SpawnBullet(enemyPtr->position, direction, (enemyPtr->enemyType == EnemyTypeWhite) ? EnemyBallWhite : EnemyBallBlack);
                 }
                 FreezeFrame(ENEMY_FREEZE_FRAMES[enemyPtr->enemyType]);
                 ScoreOnDestroy(enemyPtr->enemyType);

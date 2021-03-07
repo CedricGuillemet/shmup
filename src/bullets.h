@@ -2,8 +2,6 @@ enum BulletType
 {
     PlayerWhite,
     PlayerBlack,
-    EnemySmallWhite,
-    EnemySmallBlack,
     PlayerWhiteTrail,
     PlayerBlackTrail,
     EnemyTearWhite,
@@ -125,16 +123,6 @@ void DrawBullets(int layer)
                 bulletLayer = 0;
                 isTrail = false;
                 break;
-            case EnemySmallWhite:
-                bulletColor = 15;
-                bulletLayer = 1;
-                isTrail = false;
-                break;
-            case EnemySmallBlack:
-                bulletColor = 0;
-                bulletLayer = 1;
-                isTrail = false;
-                break;
             case PlayerWhiteTrail:
                 bulletColor = 15;
                 bulletLayer = 0;
@@ -206,10 +194,10 @@ void DrawBullets(int layer)
                     break;
                 case EnemyTearBlack: sprite = tearShotBlack + var * 16 * 16 * 16 + bulletPtr->directionAngle16 * 16 * 16;
                     break;
-                case EnemyRotorWhite: sprite = rotorShotWhite; break;
-                case EnemyRotorBlack: sprite = rotorShotBlack; break;
-                case EnemyBallWhite: sprite = ballShotWhite; break;
-                case EnemyBallBlack: sprite = ballShotBlack; break;
+                case EnemyRotorWhite: sprite = rotorShotWhite + var * 16 * 16; break;
+                case EnemyRotorBlack: sprite = rotorShotBlack + var * 16 * 16; break;
+                case EnemyBallWhite: sprite = ballShotWhite + var * 16 * 16; break;
+                case EnemyBallBlack: sprite = ballShotBlack + var * 16 * 16; break;
                 default: assert(0);
                 }
                 //= (bulletPtr->bulletType&1) ? ballShitBlack : ballShitWhite;

@@ -12,7 +12,7 @@ void ComputeMatrices()
 
     angle = Sub(angle, FromFixed(600));
     struct Fixed circular = RadianToCircular(angle);
-    eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x10000)), Sine(circular)), Add(FromInt(15), Cosine(circular)));
+    eye = V3Mul(V3FromFixed(Cosine(circular), Add(Mul(Sine(circular), FromFixed(0x4000)), FromFixed(0x10000)), Sine(circular)), Add(FromInt(5), Cosine(circular)));
 
 
     view = LookAt(eye, V3FromInt(0, 0, 0), V3FromInt(0, 1, 0));
@@ -157,7 +157,7 @@ struct QuadMesh* GenerateBevel(int sliceCount, struct Vector3* dif, unsigned cha
 }
 
 
-struct QuadMesh* GenerateRibbon(int quadCount, struct Vector3* positions, unsigned char* colors)
+struct QuadMesh* GenerateRibbon(int quadCount, struct Vector3* positions, unsigned char* colors, struct Vector3 offset)
 {
     struct QuadMesh* quadMesh = AllocateQuadMesh(quadCount * 2 + 2, quadCount);
 
@@ -167,7 +167,7 @@ struct QuadMesh* GenerateRibbon(int quadCount, struct Vector3* positions, unsign
     {
         struct Vector3 pos[2];
         pos[0] = positions[h];
-        pos[1] = V3Add(positions[h], V3FromInt(0, 0, 1));
+        pos[1] = V3Add(positions[h], offset);//V3FromInt(0, 0, 1));
 
         for (int i = 0; i < 2; i++)
         {
@@ -321,10 +321,10 @@ void InitLevels()
     unsigned char bcolor[] = {128, 19};
     bevel = GenerateBevel(2, bvts, bcolor);
     //ApplyLighting(bevel, V3Normalize(V3FromInt(1,3,2)));
-
+    /*
     struct Vector3 vts[7] = { V3FromInt(4,-6,0), V3FromInt(6,-1,0), V3FromInt(8,0,0), V3FromInt(10,0,0), V3FromInt(10,1,0), V3FromInt(20,2,0), V3FromInt(30,2,0) };
     unsigned char color[6] = {144,144,144,160,160, 160};
-    struct QuadMesh* ribbons = GenerateRibbon(5, vts, color);
+    struct QuadMesh* ribbons = GenerateRibbon(5, vts, color, V3FromInt(0, 0, 1));
     ribbon = Duplicate(ribbons, 16, V3FromInt(0,0,1));
 
     
@@ -348,10 +348,37 @@ void InitLevels()
     {
         AppendMesh(ribbon, pico[i]);
     }
-
-    
-
     ApplyLighting(ribbon, V3Normalize(V3FromInt(1,3,2)));
+
+    */
+    
+    struct Vector3 vts[9] = { V3FromInt(0,0,0), V3FromInt(0,0,1),V3FromInt(0,0,2),V3FromInt(0,0,3),V3FromInt(0,0,4),V3FromInt(0,0,5),V3FromInt(0,0,6),V3FromInt(0,0,7),V3FromInt(0,0,8) };
+    unsigned char color[8] = { 144,144,144,144, 144,144,144,144 };
+    /*struct QuadMesh* */ribbon = GenerateRibbon(8, vts, color, V3FromInt(0, 1, 0));
+
+    BendMesh(ribbon, Neg(FromFixed(411774)));
+
+
+
+    struct QuadMesh* pico[8];
+    for (int i = 0; i < 4; i++)
+    {
+        pico[i] = Duplicate(bevel, 1, V3FromInt(0, 0, 0));
+        DeformedMesh(pico[i], ribbon, i * 2);
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        RemoveQuad(ribbon, i * 2);
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        AppendMesh(ribbon, pico[i]);
+    }
+
+
+    ApplyLighting(ribbon, V3Normalize(V3FromInt(1, 3, 2)));
 
     //ApplyLighting(pico, V3Normalize(V3FromInt(1, 3, 2)));
 }

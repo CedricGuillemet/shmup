@@ -223,9 +223,9 @@ int main(int argc, char** argv)
         uint8_t* dests[4] = { ballShotBlack, ballShotWhite, rotorShotBlack, rotorShotWhite };
         for (int i = 0; i < 4; i++)
         {
-            struct gl_texture_t* shoot = ReadTGAFile(shootFileNames[i][j]);
+            struct gl_texture_t* shoot = ReadTGAFile(shootFileNames[j][i]);
             uint8_t* remappedShoot = RemapBitmap(shoot);
-            memcpy(&dests[i][j*16*16], remappedShoot, 16 * 16);
+            memcpy(&dests[j][i*16*16], remappedShoot, 16 * 16);
         }
     }
 

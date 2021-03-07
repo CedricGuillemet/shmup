@@ -55,8 +55,8 @@ void ShipDies()
 
 bool IsSameColorAsShip(enum BulletType bulletType)
 {
-    return ( (bulletType == EnemySmallWhite && Ship.isWhite) ||
-        (bulletType == EnemySmallBlack && (!Ship.isWhite)));
+    bool bulletIsWhite = (bulletType & 1);
+    return (bulletIsWhite == Ship.isWhite);
 }
 
 void TickBulletsDamagingShip()

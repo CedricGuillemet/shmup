@@ -124,7 +124,7 @@ struct Shoot
 {
     int frameStart;
     int frameEnd;
-    unsigned char type;
+    enum BulletType type;
     bool align;
 };
 
@@ -142,10 +142,10 @@ struct Spawn
 void TearShot(struct Enemy* enemy)
 {
     struct Vector2 direction = GetDirection(&Ship.position, &enemy->position);
-    struct Fixed angle = GetAngle(&Ship.position, &enemy->position);
+    struct Fixed angle = GetAngleFromDirection(direction);
 
-    struct Bullet* bullet = SpawnBullet(enemy->position, direction, (enemy->enemyType&1) ? EnemyTearBlack : EnemyTearWhite);
-    bullet->directionAngle16 = (angle.integer >> 6) & 15;
+    struct Bullet* bullet = SpawnBullet(enemy->position, V2Mul(direction, FromFixed(0x10000)), (enemy->enemyType&1) ? EnemyTearBlack : EnemyTearWhite);
+    bullet->directionAngle16 = 15 - ((angle.integer * 16 / 2048) & 15);
 }
 
 
@@ -156,8 +156,7 @@ void TearShotCircular(struct Enemy* enemy)
         struct Fixed tr = FromInt(i * 2048 / 32);
         struct Vector2 direction = V2FromFixed(Cosine(tr), Sine(tr));
 
-        struct Vector2 dir = V2Mul(direction, FromInt(1));
-        struct Fixed angle = GetAngleFromDirection(dir);
+        struct Fixed angle = GetAngleFromDirection(direction);
 
         struct Bullet* bullet = SpawnBullet(V2FromInt(200,100), V2Mul(direction, FromFixed(0x10000)), EnemyTearBlack);
         bullet->directionAngle16 = 15 - ((angle.integer * 16 / 2048) & 15);
@@ -165,9 +164,9 @@ void TearShotCircular(struct Enemy* enemy)
 }
 
 struct Spawn Spawns[] = {
-    { -0x080, EnemyTypeWhiteHunter, V2INT(330,   0), 19, 0, 0,   60, 70, 1, true},
-    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   60, 70, 1, true},
-    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   60, 70, 1, true},
+    { -0x080, EnemyTypeWhiteHunter, V2INT(330,   0), 19, 0, 0,   60, 70, EnemyTearWhite, true},
+    {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   60, 70, EnemyTearWhite, true},
+    {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   60, 70, EnemyTearWhite, true},
 
     /*
     { -0x80, EnemyTypeWhite, V2INT(330, 80), 0},
