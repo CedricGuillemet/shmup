@@ -208,7 +208,22 @@ public:
 			face.z = (p[0].z + p[1].z + p[2].z) * 0.3333f;
 
 		}
-		SortFaces();
+		// sort faces
+		auto mSortedFaces = mFaces;
+
+		qsort(mSortedFaces.data(), mSortedFaces.size(), sizeof(Face), [](const void* a, const void* b) {
+			Face* fa = (Face*)a;
+			Face* fb = (Face*)b;
+			if (fa->z < fb->z)
+			{
+				return 1;
+			}
+			if (fa->z > fb->z)
+			{
+				return -1;
+			}
+			return 0;
+			});
 
 		// clip
 		mClippedFaces.clear();
@@ -224,6 +239,22 @@ public:
 			p[1] = mPositions[face.b];
 			p[2] = mPositions[face.c];
 
+			// back face culling
+
+			vec_t n;
+			n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
+			n.normalize();
+
+			vec_t mid = (p[0] + p[1] + p[2]) * 0.33333f;
+			vec_t eye(4.f, 4.f, 4.f);
+			vec_t eye2tri = normalized(mid - eye);
+
+			if (eye2tri.dot(n) < 0.f)
+			{
+				continue;
+			}
+
+			// clipping
 			int count = 0;
 
 			for (int j = 0;j<3;j++)
@@ -236,19 +267,26 @@ public:
 
 			if (count == 3) 
 			{
-				vec_t n;
-				n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
-				n.normalize();
-
-				vec_t mid = (p[0] + p[1] + p[2]) * 0.33333f;
-				vec_t eye(4.f, 4.f, 4.f);
-				vec_t eye2tri = normalized(mid - eye);
-
-				if (eye2tri.dot(n) > 0.f)
+				mClippedFaces.push_back(face);
+			}
+			if (count == 1 || count == 2)
+			{
+				int countFront = 0;
+				// near clip
+				for (int j = 0; j < 3; j++)
+				{
+					const auto vt = p[j];
+					if (frustum.m_Frustum[ZFrustum::BACK][ZFrustum::A] * vt.x + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::B] * vt.y + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::C] * vt.z + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::D] > 0)
+					{
+						countFront ++;
+					}
+				}
+				if (countFront == 3)
 				{
 					mClippedFaces.push_back(face);
 				}
 			}
+
 		}
 	}
 
@@ -278,25 +316,6 @@ public:
 		n.normalize();
 
 		return n;
-	}
-
-	void SortFaces()
-	{
-		mSortedFaces = mFaces;
-
-		qsort(mSortedFaces.data(), mSortedFaces.size(), sizeof(Face), [](const void*a, const void *b) {
-			Face *fa = (Face*)a;
-			Face* fb = (Face*)b;
-			if (fa->z < fb->z)
-			{
-				return 1;
-			}
-			if (fa->z > fb->z)
-			{
-				return -1;
-			}
-			return 0;
-			});
 	}
 
 	void DebugDraw(ImDrawList& list)
@@ -364,6 +383,5 @@ private:
     std::vector<vec_t> mPositions;
 	std::vector<vec_t> mTransformedPositions;
     std::vector<Face> mFaces;
-	std::vector<Face> mSortedFaces;
 	std::vector<Face> mClippedFaces;
 };

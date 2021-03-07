@@ -937,7 +937,7 @@ struct ZFrustum
 	// matrix is an orthonormalized matrix. only orientation is used.
 	bool OBBInFrustum( const matrix_t &mt, const vec_t &pos, const vec_t& size) const;
 
-private:
+public:
 
     float m_Frustum[6][4];
     void NormalizePlane(float frustum[6][4], int side);
