@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <set>
+#include <map>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "maths.h"
@@ -25,6 +28,65 @@ class Mesh
 public:
     Mesh() {}
 
+	template<typename T>T min2(T a, T b)
+	{
+		return (a < b) ? a : b;
+	}
+
+	template<typename T>T max2(T a, T b)
+	{
+		return (a > b) ? a : b;
+	}
+
+	template<typename T>T min3(T a, T b, T c)
+	{
+		return min2(a, min2(b, c));
+	}
+
+	template<typename T>T max3(T a, T b, T c)
+	{
+		return max2(a, max2(b, c));
+	}
+
+	template<typename V> int orient2d(V a, V b, V c)
+	{
+		return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+	}
+
+	template<typename T, typename V> void DrawTriangle(T* buffer, int bufferWidth, int bufferHeight, V v0, V v1, V v2, T color)
+	{
+		// Compute triangle bounding box
+		int minX = int(min3(v0.x, v1.x, v2.x));
+		int minY = int(min3(v0.y, v1.y, v2.y));
+		int maxX = int(max3(v0.x, v1.x, v2.x));
+		int maxY = int(max3(v0.y, v1.y, v2.y));
+
+		// Clip against screen bounds
+		minX = max(minX, 0);
+		minY = max(minY, 0);
+		maxX = min(maxX, bufferWidth - 1);
+		maxY = min(maxY, bufferHeight - 1);
+
+		// Rasterize
+		int x, y;
+		for (y = minY; y <= maxY; y++) {
+			for (x = minX; x <= maxX; x++) {
+				// Determine barycentric coordinates
+				V p{x, y};
+
+				int w0 = orient2d(v1, v2, p);
+				int w1 = orient2d(v2, v0, p);
+				int w2 = orient2d(v0, v1, p);
+
+				// If p is on or inside all edges, render pixel.
+				if (w0 >= 0 && w1 >= 0 && w2 >= 0)
+				{
+					//setPixelNoCheck(x, y, color);
+					buffer[y * bufferWidth + x] = color;
+				}
+			}
+		}
+	}
 
     bool LoadObj(const std::string& path, const std::string& fileName)
     {
@@ -286,8 +348,141 @@ public:
 					mClippedFaces.push_back(face);
 				}
 			}
-
 		}
+
+		// rasterizer test
+		std::vector<uint16_t> drawBuffer(320*200, 0xFFFF);
+		//std::set<uint32_t> screenPos;
+		//std::set<uint32_t> screenColors;
+
+		//std::vector<FrameVertex> framePositions;
+		//framePositions.resize();
+
+		for (size_t i = 0; i < mClippedFaces.size(); i++)
+		{
+			const auto& face = mClippedFaces[i];
+
+			vec_t p[3];
+			vec_t pc[3];
+
+			p[0] = mTransformedPositions[face.a];
+			p[1] = mTransformedPositions[face.b];
+			p[2] = mTransformedPositions[face.c];
+
+			auto& io = ImGui::GetIO();
+
+			for (int j = 0; j < 3; j++)
+			{
+				pc[j] = vec_t(p[j].x * 320 / 2 + 320 / 2, 200 - (p[j].y * 200 / 2 + 200 / 2));
+
+				//FrameVertex coord = (int16_t(pc[j].x) << 16) | (int16_t(pc[j].y));
+				//screenPos.insert(coord);
+			}
+
+			DrawTriangle(drawBuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(i));
+		}
+
+		mRasterizedFaces.clear();
+		std::vector<bool> faceSeen(mClippedFaces.size(), false);
+		for (auto pixel: drawBuffer)
+		{
+			if (pixel == 0xFFFF)
+			{
+				continue;
+			}
+			faceSeen[pixel] = true;
+		}
+		std::map<uint32_t, uint8_t> faceColorToColorIndex;
+		std::map<uint16_t, uint16_t> oldToNewVertexIndex;
+
+		frames.resize(1);
+		for (size_t i = 0; i < faceSeen.size(); i++)
+		{
+			if (faceSeen[i])
+			{
+				Face transient = mClippedFaces[i];
+				mRasterizedFaces.push_back(transient);
+
+				FrameFace frameFace;
+
+				// append used color
+				auto faceColor = mClippedFaces[i].mColor.Get32();
+
+				auto iter = faceColorToColorIndex.find(faceColor);
+				if (iter != faceColorToColorIndex.end())
+				{
+					frameFace.colorIndex = iter->second;
+				}
+				else
+				{
+					frameFace.colorIndex = uint8_t(faceColorToColorIndex.size());
+					faceColorToColorIndex[faceColor] = frameFace.colorIndex;
+				}
+
+				uint16_t indices[3] = {transient.a, transient.b, transient.c};
+				uint16_t newIndices[3];
+				for (int j = 0; j < 3; j++)
+				{
+					uint16_t index = indices[j];
+					auto iterv = oldToNewVertexIndex.find(index);
+					if (iterv != oldToNewVertexIndex.end())
+					{
+						newIndices[j] = iterv->second;
+					}
+					else
+					{
+
+						vec_t trPos = mTransformedPositions[index];
+						FrameVertex frameVertex{int16_t(trPos.x * 320 / 2 + 320 / 2), int16_t(200 - (trPos.y * 200 / 2 + 200 / 2))};
+
+						int foundSameVertex = -1;
+						for (size_t k = 0;k< frames[0].vertices.size(); k++)
+						{
+							auto& frmp = frames[0].vertices[k];
+							if (frmp.x == frameVertex.x && frmp.y == frameVertex.y)
+							{
+								foundSameVertex = k;
+								break;
+							}
+						}
+
+						if (foundSameVertex == -1)
+						{
+							oldToNewVertexIndex[index] = frames[0].vertices.size();
+							frames[0].vertices.push_back(frameVertex);
+							newIndices[j] = oldToNewVertexIndex[index];
+						}
+						else
+						{
+							newIndices[j] = foundSameVertex;
+						}
+					}
+				}
+
+				// frame face indices
+				frameFace.a = newIndices[0];
+				frameFace.b = newIndices[1];
+				frameFace.c = newIndices[2];
+
+				// append face
+				frames[0].faces.push_back(frameFace);
+			}
+		}
+
+		// generate frame colors
+		frames[0].colors.resize(faceColorToColorIndex.size());
+		for (auto& faceColor : faceColorToColorIndex)
+		{
+			auto color = frames[0].colors[faceColor.second];
+			color.index = faceColor.second;
+			Color col;
+			col.Set32(faceColor.first);
+			color.r = col.r;
+			color.g = col.g;
+			color.b = col.b;
+		}
+
+		
 	}
 
 	void ApplyDirectional()
@@ -303,7 +498,7 @@ public:
 		}
 	}
 
-	vec_t WorldNormal(int faceIndex) const
+	vec_t WorldNormal(size_t faceIndex) const
 	{
 		auto& face = mFaces[faceIndex];
 		vec_t p[3];
@@ -320,9 +515,9 @@ public:
 
 	void DebugDraw(ImDrawList& list)
 	{
-		for (size_t i = 0; i < mClippedFaces.size(); i++)
+		for (size_t i = 0; i < mRasterizedFaces.size(); i++)
 		{
-			const auto& face = mClippedFaces[i];
+			const auto& face = mRasterizedFaces[i];
 			vec_t p[3];
 			ImVec2 pc[3];
 
@@ -338,14 +533,16 @@ public:
 			}
 
 			list.AddTriangleFilled(pc[0], pc[1], pc[2], face.mColor.Get32());
+			//list.AddTriangle(pc[0], pc[1], pc[2], 0xFFFFFFFF);//face.mColor.Get32());
 		}
 	}
 	
 
 	const uint32_t GetFaceCount() const { return uint32_t(mFaces.size()); }
 	const uint32_t GetTransformedFaceCount() const { return uint32_t(mClippedFaces.size()); }
+	const uint32_t GetRasterizedFaceCount() const { return uint32_t(mRasterizedFaces.size()); }
 
-private:
+public:
 
     struct Color
     {
@@ -379,9 +576,47 @@ private:
         uint16_t a,b,c;
         Color mColor;
 		float z;
+		//uint8_t colorIndex;
     };
     std::vector<vec_t> mPositions;
 	std::vector<vec_t> mTransformedPositions;
     std::vector<Face> mFaces;
 	std::vector<Face> mClippedFaces;
+	std::vector<Face> mRasterizedFaces;
+
+	struct FrameVertex
+	{
+		int16_t x,y;
+	};
+	struct FrameFace
+	{
+		uint8_t a,b,c, colorIndex;
+	};
+	struct FrameColor
+	{
+		uint8_t index, r, g, b;
+	};
+
+	struct Frame
+	{
+		std::vector<FrameVertex> vertices;
+		std::vector<FrameFace> faces;
+		std::vector<FrameColor> colors;
+	};
+
+	std::vector<Frame> frames;
+
+
+	void DebugDrawFrame(Frame* frame, uint32_t* rgbaBuffer)
+	{
+		for (size_t i = 0; i < frame->faces.size(); i++)
+		{
+			FrameFace* face = &frame->faces[i];
+			FrameVertex& v0 = frame->vertices[face->a];
+			FrameVertex& v1 = frame->vertices[face->b];
+			FrameVertex& v2 = frame->vertices[face->c];
+			FrameColor& color = frame->colors[face->colorIndex];
+			DrawTriangle(rgbaBuffer, 320, 200, v0, v1, v2, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
+		}
+	}
 };

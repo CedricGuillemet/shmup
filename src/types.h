@@ -1,6 +1,8 @@
 // bool
 
+#if !defined(__cplusplus)
 typedef unsigned char bool;
+#endif
 #define true 1
 #define false 0
 

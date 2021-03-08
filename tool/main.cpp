@@ -84,10 +84,14 @@ int main(int, char**)
       auto drawList = BeginFrame();
       mesh.DebugDraw(*drawList);
       
+      std::vector<uint32_t> debugDrawBuffer(320 * 200, 0xFFFF00FF);
+      mesh.DebugDrawFrame(&mesh.frames[0], debugDrawBuffer.data());
 
       ImGui::Begin("shmup");
       ImGui::Text(" %d Faces", int(mesh.GetFaceCount()));
-      ImGui::Text(" %d Rendered Faces", int(mesh.GetTransformedFaceCount()));
+      ImGui::Text(" %d visible Faces", int(mesh.GetTransformedFaceCount()));
+      ImGui::Text(" %d rasterized Faces", int(mesh.GetRasterizedFaceCount()));
+      
 
       ImGui::End();
 
