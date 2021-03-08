@@ -47,6 +47,31 @@ ImDrawList* BeginFrame()
     return res;
 }
 
+void DrawBitmap(int width, int height, uint32_t* bmp)
+{
+    int factor = 2;
+    
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 canvas_pos = ImGui::GetCursorScreenPos();            // ImDrawList API uses screen coordinates!
+    ImVec2 canvas_size = ImGui::GetContentRegionAvail();        // Resize canvas to what's available
+
+    //draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + , canvas_pos.y + canvas_size.y), 0xFF3D3837, 0);
+
+    
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            ImVec2 st = canvas_pos;
+            st.x += x * factor;
+            st.y +=  y * factor;
+            draw_list->AddRectFilled(st, ImVec2(st.x + factor, st.y + factor), bmp[y * width + x]);
+        }
+    }
+    ImGui::InvisibleButton("canvas", ImVec2(width * factor, height * factor));
+}
+
 
 int main(int, char**)
 {
@@ -87,11 +112,14 @@ int main(int, char**)
       std::vector<uint32_t> debugDrawBuffer(320 * 200, 0xFFFF00FF);
       mesh.DebugDrawFrame(&mesh.frames[0], debugDrawBuffer.data());
 
+      
+      ImGui::SetNextWindowSize(ImVec2(800,600));
       ImGui::Begin("shmup");
       ImGui::Text(" %d Faces", int(mesh.GetFaceCount()));
       ImGui::Text(" %d visible Faces", int(mesh.GetTransformedFaceCount()));
       ImGui::Text(" %d rasterized Faces", int(mesh.GetRasterizedFaceCount()));
       
+      DrawBitmap(320, 200, debugDrawBuffer.data());
 
       ImGui::End();
 

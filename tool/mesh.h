@@ -50,7 +50,7 @@ public:
 
 	template<typename V> int orient2d(V a, V b, V c)
 	{
-		return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+		return int((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
 	}
 
 	template<typename T, typename V> void DrawTriangle(T* buffer, int bufferWidth, int bufferHeight, V v0, V v1, V v2, T color)
@@ -394,7 +394,6 @@ public:
 		}
 		std::map<uint32_t, uint8_t> faceColorToColorIndex;
 		std::map<uint16_t, uint16_t> oldToNewVertexIndex;
-
 		frames.resize(1);
 		for (size_t i = 0; i < faceSeen.size(); i++)
 		{
@@ -473,7 +472,7 @@ public:
 		frames[0].colors.resize(faceColorToColorIndex.size());
 		for (auto& faceColor : faceColorToColorIndex)
 		{
-			auto color = frames[0].colors[faceColor.second];
+			auto& color = frames[0].colors[faceColor.second];
 			color.index = faceColor.second;
 			Color col;
 			col.Set32(faceColor.first);
@@ -616,7 +615,7 @@ public:
 			FrameVertex& v1 = frame->vertices[face->b];
 			FrameVertex& v2 = frame->vertices[face->c];
 			FrameColor& color = frame->colors[face->colorIndex];
-			DrawTriangle(rgbaBuffer, 320, 200, v0, v1, v2, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
+			DrawTriangle(rgbaBuffer, 320, 200, v2, v1, v0, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
 		}
 	}
 };
