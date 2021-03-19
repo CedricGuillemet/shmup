@@ -1295,3 +1295,55 @@ template<typename T> bool SegmentsIntersect(T x1, T x2, T y1, T y2)
 	// similarly for the ys.
 	return x2 >= y1 && y2 >= x1;
 }
+//static const float ZPI = 3.14159265358979323846f;
+static const float RAD2DEG = (180.f / ZPI);
+static const float DEG2RAD = (ZPI / 180.f);
+
+inline void DecomposeMatrixToComponents(const float* matrix, float* translation, float* rotation, float* scale)
+{
+	matrix_t mat = *(matrix_t*)matrix;
+
+	scale[0] = mat.right.length();
+	scale[1] = mat.up.length();
+	scale[2] = mat.dir.length();
+
+	mat.orthoNormalize();
+
+	rotation[0] = RAD2DEG * atan2f(mat.m[1][2], mat.m[2][2]);
+	rotation[1] = RAD2DEG * atan2f(-mat.m[0][2], sqrtf(mat.m[1][2] * mat.m[1][2] + mat.m[2][2] * mat.m[2][2]));
+	rotation[2] = RAD2DEG * atan2f(mat.m[0][1], mat.m[0][0]);
+
+	translation[0] = mat.position.x;
+	translation[1] = mat.position.y;
+	translation[2] = mat.position.z;
+}
+
+inline void RecomposeMatrixFromComponents(const float* translation, const float* rotation, const float* scale, float* matrix)
+{
+	matrix_t& mat = *(matrix_t*)matrix;
+	static const vec_t directionUnary[3] = { vec_t(1.f, 0.f, 0.f), vec_t(0.f, 1.f, 0.f), vec_t(0.f, 0.f, 1.f) };
+	matrix_t rot[3];
+	for (int i = 0; i < 3; i++)
+	{
+		rot[i].rotationAxis(directionUnary[i], rotation[i] * DEG2RAD);
+	}
+
+	mat = rot[0] * rot[1] * rot[2];
+
+	float validScale[3];
+	for (int i = 0; i < 3; i++)
+	{
+		if (fabsf(scale[i]) < FLT_EPSILON)
+		{
+			validScale[i] = 0.001f;
+		}
+		else
+		{
+			validScale[i] = scale[i];
+		}
+	}
+	mat.right *= validScale[0];
+	mat.up *= validScale[1];
+	mat.dir *= validScale[2];
+	mat.position = vec_t(translation[0], translation[1], translation[2], 1.f);
+}

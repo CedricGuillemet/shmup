@@ -248,7 +248,9 @@ public:
 
 	void Transform(const matrix_t& view, const matrix_t proj)
 	{
-		matrix_t matrix = view * proj;
+		matrix_t invView;
+		invView.inverse(view);
+		matrix_t matrix = invView * proj;
 
 		mTransformedPositions.resize(mPositions.size());
 		for (size_t i = 0;i<mPositions.size();i++)
@@ -259,9 +261,11 @@ public:
 			//mTransformedPositions[i].y *= 1.f / mTransformedPositions[i].w;
 		}
 		// depth
-		for (size_t i = 0; i < mFaces.size(); i++)
+		auto mSortedFaces = mFaces;
+
+		for (size_t i = 0; i < mSortedFaces.size(); i++)
 		{
-			auto& face = mFaces[i];
+			auto& face = mSortedFaces[i];
 			vec_t p[3];
 			p[0] = mTransformedPositions[face.a];
 			p[1] = mTransformedPositions[face.b];
@@ -271,7 +275,7 @@ public:
 
 		}
 		// sort faces
-		auto mSortedFaces = mFaces;
+		
 
 		qsort(mSortedFaces.data(), mSortedFaces.size(), sizeof(Face), [](const void* a, const void* b) {
 			Face* fa = (Face*)a;
@@ -288,10 +292,10 @@ public:
 			});
 
 		// clip
-		mClippedFaces.clear();
+		std::vector<Face> mClippedFaces;
 
 		ZFrustum frustum;
-		frustum.Update(view, proj);
+		frustum.Update(invView, proj);
 
 		for (size_t i = 0; i < mSortedFaces.size(); i++)
 		{
@@ -308,7 +312,8 @@ public:
 			n.normalize();
 
 			vec_t mid = (p[0] + p[1] + p[2]) * 0.33333f;
-			vec_t eye(4.f, 4.f, 4.f);
+			vec_t eye = view.position;
+			eye.w = 0.f;
 			vec_t eye2tri = normalized(mid - eye);
 
 			if (eye2tri.dot(n) < 0.f)
@@ -395,6 +400,9 @@ public:
 		std::map<uint32_t, uint8_t> faceColorToColorIndex;
 		std::map<uint16_t, uint16_t> oldToNewVertexIndex;
 		frames.resize(1);
+		frames[0].faces.clear();
+		frames[0].colors.clear();
+		frames[0].vertices.clear();
 		for (size_t i = 0; i < faceSeen.size(); i++)
 		{
 			if (faceSeen[i])
@@ -538,7 +546,7 @@ public:
 	
 
 	const uint32_t GetFaceCount() const { return uint32_t(mFaces.size()); }
-	const uint32_t GetTransformedFaceCount() const { return uint32_t(mClippedFaces.size()); }
+	//const uint32_t GetTransformedFaceCount() const { return uint32_t(mClippedFaces.size()); }
 	const uint32_t GetRasterizedFaceCount() const { return uint32_t(mRasterizedFaces.size()); }
 
 public:
@@ -580,7 +588,7 @@ public:
     std::vector<vec_t> mPositions;
 	std::vector<vec_t> mTransformedPositions;
     std::vector<Face> mFaces;
-	std::vector<Face> mClippedFaces;
+	
 	std::vector<Face> mRasterizedFaces;
 
 	struct FrameVertex
@@ -614,7 +622,15 @@ public:
 			FrameVertex& v0 = frame->vertices[face->a];
 			FrameVertex& v1 = frame->vertices[face->b];
 			FrameVertex& v2 = frame->vertices[face->c];
-			FrameColor& color = frame->colors[face->colorIndex];
+			//FrameColor& color = frame->colors[face->colorIndex];
+			FrameColor color;
+			color.r = 0xFF;
+			color.g = 0xFF;
+			color.b = 0xFF;
+			if (face->colorIndex < frame->colors.size())
+			{
+				color = frame->colors[face->colorIndex];
+			}
 			DrawTriangle(rgbaBuffer, 320, 200, v2, v1, v0, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
 		}
 	}

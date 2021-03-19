@@ -208,7 +208,7 @@ void matrix_t::LookAt(const vec_t &eye, const vec_t &at, const vec_t &up )
 
 	vec_t X, Y, Z, tmp;
 
-	Z.normalize(at - eye);
+	Z.normalize(eye - at);
 	Y.normalize(up);
 
 	tmp.cross(Y, Z);
