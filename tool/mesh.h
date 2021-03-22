@@ -23,6 +23,16 @@ inline std::vector<uint8_t> ReadFile(const std::string& filePathName)
 	return res;
 }
 
+void WriteFile(const std::string& filePathName, const std::vector<uint8_t>& bytes)
+{
+	FILE* fp = fopen(filePathName.c_str(), "wb");
+	if (fp)
+	{
+		fwrite(bytes.data(), bytes.size(), 1, fp);
+		fclose(fp);
+	}
+}
+
 class Mesh
 {
 public:
@@ -357,12 +367,6 @@ public:
 
 		// rasterizer test
 		std::vector<uint16_t> drawBuffer(320*200, 0xFFFF);
-		//std::set<uint32_t> screenPos;
-		//std::set<uint32_t> screenColors;
-
-		//std::vector<FrameVertex> framePositions;
-		//framePositions.resize();
-
 		for (size_t i = 0; i < mClippedFaces.size(); i++)
 		{
 			const auto& face = mClippedFaces[i];
@@ -379,9 +383,6 @@ public:
 			for (int j = 0; j < 3; j++)
 			{
 				pc[j] = vec_t(p[j].x * 320 / 2 + 320 / 2, 200 - (p[j].y * 200 / 2 + 200 / 2));
-
-				//FrameVertex coord = (int16_t(pc[j].x) << 16) | (int16_t(pc[j].y));
-				//screenPos.insert(coord);
 			}
 
 			DrawTriangle(drawBuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(i));
@@ -448,14 +449,14 @@ public:
 							auto& frmp = frames[0].vertices[k];
 							if (frmp.x == frameVertex.x && frmp.y == frameVertex.y)
 							{
-								foundSameVertex = k;
+								foundSameVertex = (int)k;
 								break;
 							}
 						}
 
 						if (foundSameVertex == -1)
 						{
-							oldToNewVertexIndex[index] = frames[0].vertices.size();
+							oldToNewVertexIndex[index] = (uint16_t)frames[0].vertices.size();
 							frames[0].vertices.push_back(frameVertex);
 							newIndices[j] = oldToNewVertexIndex[index];
 						}
@@ -467,9 +468,9 @@ public:
 				}
 
 				// frame face indices
-				frameFace.a = newIndices[0];
-				frameFace.b = newIndices[1];
-				frameFace.c = newIndices[2];
+				frameFace.a = (uint8_t)newIndices[0];
+				frameFace.b = (uint8_t)newIndices[1];
+				frameFace.c = (uint8_t)newIndices[2];
 
 				// append face
 				frames[0].faces.push_back(frameFace);
@@ -520,7 +521,7 @@ public:
 		return n;
 	}
 
-	void DebugDraw(ImDrawList& list)
+	void DebugDraw(ImDrawList& list, ImVec2 displaySize, ImVec2 displayOffset)
 	{
 		for (size_t i = 0; i < mRasterizedFaces.size(); i++)
 		{
@@ -536,7 +537,7 @@ public:
 
 			for (int j = 0; j < 3; j++)
 			{
-				pc[j] = ImVec2(p[j].x * io.DisplaySize.x / 2 + io.DisplaySize.x / 2, io.DisplaySize.y - (p[j].y * io.DisplaySize.y / 2 + io.DisplaySize.y / 2));
+				pc[j] = ImVec2(displayOffset.x + p[j].x * displaySize.x / 2 + displaySize.x / 2, displayOffset.y + displaySize.y - (p[j].y * displaySize.y / 2 + displaySize.y / 2));
 			}
 
 			list.AddTriangleFilled(pc[0], pc[1], pc[2], face.mColor.Get32());
@@ -609,6 +610,22 @@ public:
 		std::vector<FrameVertex> vertices;
 		std::vector<FrameFace> faces;
 		std::vector<FrameColor> colors;
+
+		std::vector<uint8_t> GetBytes() const
+		{
+			std::vector<uint8_t> bytes;
+			size_t szVertices = vertices.size() * sizeof(FrameVertex);
+			size_t szFaces = faces.size() * sizeof(FrameFace);
+			size_t szColors = colors.size() * sizeof(FrameColor);
+			bytes.resize(szVertices + szFaces + szColors);
+			uint8_t *ptr = bytes.data();
+			memcpy(ptr, vertices.data(), szVertices);
+			ptr += szVertices;
+			memcpy(ptr, faces.data(), szFaces);
+			ptr += szFaces;
+			memcpy(ptr, colors.data(), szColors);
+			return bytes;
+		}
 	};
 
 	std::vector<Frame> frames;

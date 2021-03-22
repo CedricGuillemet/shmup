@@ -12,7 +12,7 @@
 #include <algorithm>
 #include "imgui_internal.h"
 #include "mesh.h"
-
+#include "moviePlayback.h"
 
 
 
@@ -51,7 +51,7 @@ struct TransformEdit : public ImCurveEdit::Delegate
     virtual int EditPoint(size_t curveIndex, int pointIndex, ImVec2 value)
     {
         auto& key = mAnimation.mKeys[pointIndex];
-        key.mFrame = value.x;
+        key.mFrame = (int)value.x;
         switch(curveIndex)
         {
         case 0:
@@ -116,13 +116,14 @@ struct TransformEdit : public ImCurveEdit::Delegate
         for (int i = 0; i < mAnimation.mKeys.size(); i++)
         {
             const auto& key = mAnimation.mKeys[i];
-            mPoints[0][i] = ImVec2(key.mFrame, key.mCamera.mPosition.x);
-            mPoints[1][i] = ImVec2(key.mFrame, key.mCamera.mPosition.y);
-            mPoints[2][i] = ImVec2(key.mFrame, key.mCamera.mPosition.z);
+            const float frame = (float)key.mFrame;
+            mPoints[0][i] = ImVec2(frame, key.mCamera.mPosition.x);
+            mPoints[1][i] = ImVec2(frame, key.mCamera.mPosition.y);
+            mPoints[2][i] = ImVec2(frame, key.mCamera.mPosition.z);
 
-            mPoints[3][i] = ImVec2(key.mFrame, key.mCamera.mAngles.x);
-            mPoints[4][i] = ImVec2(key.mFrame, key.mCamera.mAngles.y);
-            mPoints[5][i] = ImVec2(key.mFrame, key.mCamera.mAngles.z);
+            mPoints[3][i] = ImVec2(frame, key.mCamera.mAngles.x);
+            mPoints[4][i] = ImVec2(frame, key.mCamera.mAngles.y);
+            mPoints[5][i] = ImVec2(frame, key.mCamera.mAngles.z);
         }
     }
 private:
@@ -265,9 +266,17 @@ void DrawBitmap(int width, int height, uint32_t* bmp)
             draw_list->AddRectFilled(st, ImVec2(st.x + factor, st.y + factor), bmp[y * width + x]);
         }
     }
-    ImGui::InvisibleButton("canvas", ImVec2(width * factor, height * factor));
+    ImGui::InvisibleButton("canvas", ImVec2((float)(width * factor), (float)(height * factor)));
 }
 
+/*
+playback saved movie
+update view matrix when curve is edited
+button 'fit' for curve fitting
+save animation
+level/sequence selector
+error management at frame generation (# colors, # vertices, # faces)
+*/
 
 int main(int, char**)
 {
@@ -308,29 +317,47 @@ int main(int, char**)
 
       //matrix_t viewProj = view * proj;
      
+      static const float sequencerHeight = 400;
+      static const float toolWidth = 340;
+      static const auto defaultWindowOptions = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+      // 3d preview
+      float previewHeight = io.DisplaySize.y - sequencerHeight;
+      float previewWidth = (previewHeight / 200.f) * 320.f;
+      ImGui::SetNextWindowSize(ImVec2(previewWidth, previewHeight));
+      ImGui::SetNextWindowPos(ImVec2(toolWidth, 0));
+      ImGui::Begin("3d", nullptr, defaultWindowOptions);
+      ImVec2 displaySize = ImGui::GetContentRegionAvail();
+      ImVec2 displayOffset = ImGui::GetCursorScreenPos();
+      ImDrawList* drawList = ImGui::GetWindowDrawList();
       mesh.Transform(view, proj);
-      auto drawList = BeginFrame();
-      mesh.DebugDraw(*drawList);
+      mesh.DebugDraw(*drawList, displaySize, displayOffset);
+      bool windowHovered = ImGui::IsWindowHovered();
+      ImGui::End();
+
+      // Tool
+      ImGui::SetNextWindowSize(ImVec2(toolWidth,io.DisplaySize.y - sequencerHeight));
+      ImGui::SetNextWindowPos(ImVec2(0, 0));
+      ImGui::Begin("Tool", nullptr, defaultWindowOptions);
+      ImGui::Text(" %d Faces // %d rasterized Faces", int(mesh.GetFaceCount()), int(mesh.GetRasterizedFaceCount()));
       
       std::vector<uint32_t> debugDrawBuffer(320 * 200, 0xFFFF00FF);
       mesh.DebugDrawFrame(&mesh.frames[0], debugDrawBuffer.data());
-
-      
-      ImGui::SetNextWindowSize(ImVec2(400,300));
-      ImGui::SetNextWindowPos(ImVec2(0, 0));
-      ImGui::Begin("shmup");
-      ImGui::Text(" %d Faces // %d rasterized Faces", int(mesh.GetFaceCount()), int(mesh.GetRasterizedFaceCount()));
-      
       DrawBitmap(320, 200, debugDrawBuffer.data());
-
       ImGui::End();
 
-      ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y -400));
-
-      ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, 400));
-      ImGui::Begin("Other controls");
+      // Sequencer
+      ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - sequencerHeight));
+      ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, sequencerHeight));
+      ImGui::Begin("Sequencer", nullptr, defaultWindowOptions);
       ImGui::PushItemWidth(100);
       ImGui::InputInt("Start", &animation.mStartFrame); 
+      ImGui::SameLine();
+      bool refreshCamera = false;
+      if (ImGui::InputInt("Current", &currentFrame))
+      {
+          refreshCamera = true;
+      }
       ImGui::SameLine();
       ImGui::InputInt("End", &animation.mEndFrame);
       ImGui::SameLine();
@@ -342,19 +369,29 @@ int main(int, char**)
       ImGui::SameLine();
       if (ImGui::Button("Make Movie"))
       {
+          std::vector<uint8_t> dump;
+          for (int i = animation.mStartFrame; i < animation.mEndFrame; i++)
+          {
+              Camera cam = animation.Evaluate(i);
+              matrix_t camMat = cam.ComputeView();
+              mesh.Transform(camMat, proj);
+              auto bytes = mesh.frames[0].GetBytes();
+              dump.insert(dump.end(), bytes.begin(), bytes.end());
+          }
+          WriteFile("D:/Dev/shmup/output.mv", dump);
       }
       ImGui::PopItemWidth();
       int previousFrame = currentFrame;
       Sequencer(&sequence, &currentFrame, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_STARTEND /*| ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL | ImSequencer::SEQUENCER_COPYPASTE*/ | ImSequencer::SEQUENCER_CHANGE_FRAME);
-
-      if (currentFrame != previousFrame)
+      refreshCamera |= currentFrame != previousFrame;
+      if (refreshCamera)
       {
           camera = animation.Evaluate(currentFrame);
       }
       ImGui::End();
 
       float moveFactor = 0.1f;
-      if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered())
+      if (windowHovered)//!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered() && !ImGui::IsWindowFocused())
       {
           if (io.KeysDown[io.KeyMap[ImGuiKey_LeftArrow]])
           {
@@ -396,8 +433,8 @@ int main(int, char**)
           camera.mPosition += view.dir * io.MouseWheel * -0.4f;
       }
 
-      view.rotationYawPitchRoll(camera.mAngles.x, camera.mAngles.y, camera.mAngles.z);
-      view.position = vec_t(camera.mPosition.x, camera.mPosition.y, camera.mPosition.z, 1.f);
+      view = camera.ComputeView();
+
       // render everything
       glClearColor(0.45f, 0.4f, 0.4f, 1.f);
       glClear(GL_COLOR_BUFFER_BIT);
