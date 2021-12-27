@@ -601,6 +601,8 @@ public:
 	}
 
 	void glhPerspectivef2(float fovyInDegrees, float aspectRatio, float znear, float zfar);
+	void glhPerspectivef2Rad(float fovyRad, float aspectRatio, float znear, float zfar);
+	
 	void glhFrustumf2(float left, float right, float bottom, float top,	float znear, float zfar);
 	void PerspectiveFovLH2(const float fovy, const float aspect, const float zn, const float zf );
 	void OrthoOffCenterLH(const float l, float r, float b, const float t, float zn, const float zf );

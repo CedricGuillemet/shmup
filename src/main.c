@@ -183,6 +183,8 @@ int main(int argc, char** argv)
 {
     if (!init()) return 1;
     
+    _sleep(10000);
+
     struct gl_texture_t* paletteFile = ReadTGAFile("palette.tga");
     memcpy(palette, paletteFile->texels, 256 * 4);
     EndianSwap(palette, 256*4);

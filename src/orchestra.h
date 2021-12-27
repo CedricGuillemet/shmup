@@ -168,7 +168,7 @@ struct Spawn Spawns[] = {
     {   0x04, EnemyTypeWhiteHunter, V2INT(355, -25), 19, 0, 0,   60, 70, EnemyTearWhite, true},
     {   0x02, EnemyTypeWhiteHunter, V2INT(355,  25), 19, 0, 0,   60, 70, EnemyTearWhite, true},
 
-    /*
+    
     { -0x80, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
     {  0x20, EnemyTypeWhite, V2INT(330, 80), 0},
@@ -356,7 +356,7 @@ struct Spawn Spawns[] = {
     { 0, EnemyTypeBlackSmall, V2INT(340, 120), 27 },
     { 0, EnemyTypeBlackSmall, V2INT(370, 120), 27 },
     { 0, EnemyTypeBlackSmall, V2INT(390, 120), 27 },
-    */
+    
 };
 
 int sortSpawn(const void *a, const void *b)
@@ -406,7 +406,7 @@ void TickOrchestra()
         }
         GlobalSpawnFrame++;
     }
-
+    /*
     if (enemyCount)
     {
         if (!(GlobalFrame & 7))
@@ -415,9 +415,10 @@ void TickOrchestra()
         }
 
     }
-
+    
     if (GlobalFrame == 0)
     {
         TearShotCircular(NULL);
     }
+    */
 }

@@ -105,6 +105,15 @@ void matrix_t::glhPerspectivef2(float fovyInDegrees, float aspectRatio,
     glhFrustumf2(-xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
+void matrix_t::glhPerspectivef2Rad(float fovyRad, float aspectRatio,
+	float znear, float zfar)
+{
+	float ymax, xmax;
+	ymax = znear * tanf(fovyRad);
+	xmax = ymax * aspectRatio;
+	glhFrustumf2(-xmax, xmax, -ymax, ymax, znear, zfar);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 void matrix_t::glhFrustumf2(float left, float right, float bottom, float top,

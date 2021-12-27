@@ -38,6 +38,65 @@ class Mesh
 public:
     Mesh() {}
 
+
+	struct Color
+	{
+		uint8_t r;
+		uint8_t g;
+		uint8_t b;
+		uint32_t Get32() const
+		{
+			return (0xff << 24) + (b << 16) + (g << 8) + r;
+		}
+		void Set32(uint32_t v)
+		{
+			r = v & 0xFF;
+			g = (v >> 8) & 0xFF;
+			b = (v >> 16) & 0xFF;
+		}
+		vec_t GetVect() const
+		{
+			vec_t res;
+			res.fromUInt32(Get32());
+			return res;
+		}
+		void SetVect(const vec_t& v)
+		{
+			uint32_t c = v.toUInt32();
+			Set32(c);
+		}
+
+		static Color Green()
+		{
+			return { 0,255,0 };
+		}
+		static Color Red()
+		{
+			return { 255,0,0 };
+		}
+		static Color Blue()
+		{
+			return { 0,0,255 };
+		}
+		static Color White()
+		{
+			return { 255,255,255 };
+		}
+		static Color Purple()
+		{
+			return { 255,0,255 };
+		}
+	};
+	struct Face
+	{
+		uint16_t a, b, c;
+		Color mColor;
+		float minz;
+		float maxz;
+		bool visible;
+		bool rendered;
+	};
+
 	template<typename T>T min2(T a, T b)
 	{
 		return (a < b) ? a : b;
@@ -98,242 +157,124 @@ public:
 		}
 	}
 
-    bool LoadObj(const std::string& path, const std::string& fileName)
-    {
-		mPositions.clear();
-		mFaces.clear();
+	template<typename T, typename V> void DrawTriangleDepthTested(T* buffer, float* zBuffer, int bufferWidth, int bufferHeight, V v0, V v1, V v2, T color)
+	{
+		// Compute triangle bounding box
+		int minX = int(min3(v0.x, v1.x, v2.x));
+		int minY = int(min3(v0.y, v1.y, v2.y));
+		int maxX = int(max3(v0.x, v1.x, v2.x));
+		int maxY = int(max3(v0.y, v1.y, v2.y));
 
-		std::vector<uint8_t> buffer = ReadFile("D:\\Dev\\shmup\\msh\\testRender.obj");
+		// Clip against screen bounds
+		minX = max(minX, 0);
+		minY = max(minY, 0);
+		maxX = min(maxX, bufferWidth - 1);
+		maxY = min(maxY, bufferHeight - 1);
 
-		int imgx, imgy, imgn;
-		stbi_uc* img = stbi_load("D:\\Dev\\shmup\\msh\\testRender.png", &imgx, &imgy, &imgn, 4);
+		// Rasterize
+		int x, y;
+		for (y = minY; y <= maxY; y++) {
+			for (x = minX; x <= maxX; x++) {
+				// Determine barycentric coordinates
+				V p{ x, y };
 
-		//std::vector<vec_t> positions;
-		//std::vector<vec_t> normals;
-		std::vector<vec_t> uvs;
+				int w0 = orient2d(v1, v2, p);
+				int w1 = orient2d(v2, v0, p);
+				int w2 = orient2d(v0, v1, p);
 
-		char* src = (char*)buffer.data();
-		char* srcEnd = (char*)buffer.data() + buffer.size();
-
-		char row[512];
-		int face[32];
-		int nv;
-		float x, y, z;
-		int vertCount = 0;
-		while (src < srcEnd)
-		{
-			// Parse one row
-			row[0] = '\0';
-			src = ParseRow(src, srcEnd, row, sizeof(row) / sizeof(char));
-			// Skip comments
-			if (row[0] == '#') continue;
-			if (row[0] == 'v' && row[1] != 'n' && row[1] != 't')
-			{
-				// Vertex pos
-				sscanf(row + 1, "%f %f %f", &x, &y, &z);
-				//addVertex(x, y, z, vcap);
-				mPositions.push_back(vec_t(x, y, z));
-			}
-			if (row[0] == 'v' && row[1] == 't')
-			{
-				// Vertex texture
-				sscanf(row + 2, "%f %f %f", &x, &y, &z);
-				//addVertex(x, y, z, vcap);
-				uvs.push_back(vec_t(x, y, z));
-			}
-			/*
-			if (row[0] == 'v' && row[1] == 'n')
-			{
-				// Vertex normal
-				sscanf(row + 2, "%f %f %f", &x, &y, &z);
-				normals.push_back(vec_t(x, y, z));
-			}
-			*/
-			if (row[0] == 'f')
-			{
-				// Faces
-				if (!uvs.empty())
-					nv = ParseFace(row, face);
-				/*else
-					nv = ParseFaceb(row, face);
-					*/
-				const int pos[] = { face[0], face[3], face[6] };
-				const int tex[] = { face[1], face[4], face[7] };
-				//const int nrm[] = { face[2], face[5], face[8] };
-
-				//mIndices.push_back(vertCount + 2); mIndices.push_back(vertCount + 1); mIndices.push_back(vertCount);
-				//mFaces.push_back({ uint16_t(vertCount + 2), uint16_t(vertCount + 1), uint16_t(vertCount), {63,63,63}});
-
-				uint8_t *texel = &img[int(uvs[tex[0]].x * imgx) * 4];
-				mFaces.push_back({ uint16_t(pos[0]), uint16_t(pos[1]), uint16_t(pos[2]), {uint8_t(texel[0]), uint8_t(texel[1]), uint8_t(texel[2])} });
-#if 0
-				for (int i = 0; i < 3; i++)
+				// If p is on or inside all edges, render pixel.
+				if (w0 >= 0 && w1 >= 0 && w2 >= 0)
 				{
-					const vec_t& vtPos = positions[pos[i]];
-					//mPositions.push_back(vtPos.x); mPositions.push_back(vtPos.y); mPositions.push_back(vtPos.z);
-					mPositions.push_back(vtPos);
+					float sum = w0 + w1 + w2;
+					float fw0 = w0 / sum;
+					float fw1 = w1 / sum;
+					float fw2 = w2 / sum;
+					float depth = v0.z * fw0 + v1.z * fw1 + v2.z * fw2;
 
-					/*mAABBMin.isMinOf(vtPos);
-					mAABBMax.isMaxOf(vtPos);
-					*/
-					/*if (!normals.empty())
-					{
-						mVertices.push_back(normals[nrm[i]].x); mVertices.push_back(normals[nrm[i]].y); mVertices.push_back(normals[nrm[i]].z);
+					int pixelIndex = y * bufferWidth + x;
+					float ldepth = zBuffer[pixelIndex];
+					if (ldepth > depth) {
+						buffer[pixelIndex] = color;
+						zBuffer[pixelIndex] = depth;
 					}
-					*/
-					/*if (!uvs.empty())
-					{
-						mVertices.push_back(uvs[tex[i]].x); mVertices.push_back(uvs[tex[i]].y);
-					}*/
 				}
-				vertCount += 3;
-#endif
 			}
 		}
-		return true;
 	}
 
-
-	char* ParseRow(char* buf, char* bufEnd, char* row, int len)
+	template<typename T, typename V> void TestTriangleOcclusion(const T* buffer, const float* zBuffer, int bufferWidth, int bufferHeight, V v0, V v1, V v2, T color/*, const std::vector<Face>& faces*/, std::vector<int>& occluders)
 	{
-		bool cont = false;
-		bool start = true;
-		bool done = false;
-		int n = 0;
-		while (!done && buf < bufEnd)
-		{
-			char c = *buf;
-			buf++;
-			// multirow
-			switch (c)
-			{
-			case '\\':
-				cont = true; // multirow
-				break;
-			case '\n':
-				if (start) break;
-				done = true;
-				break;
-			case '\r':
-				break;
-			case '\t':
-			case ' ':
-				if (start) break;
-			default:
-				start = false;
-				cont = false;
-				row[n++] = c;
-				if (n >= len - 1)
-					done = true;
-				break;
+		// Compute triangle bounding box
+		int minX = int(min3(v0.x, v1.x, v2.x));
+		int minY = int(min3(v0.y, v1.y, v2.y));
+		int maxX = int(max3(v0.x, v1.x, v2.x));
+		int maxY = int(max3(v0.y, v1.y, v2.y));
+
+		// Clip against screen bounds
+		minX = max(minX, 0);
+		minY = max(minY, 0);
+		maxX = min(maxX, bufferWidth - 1);
+		maxY = min(maxY, bufferHeight - 1);
+
+		// Rasterize
+		int x, y;
+		for (y = minY; y <= maxY; y++) {
+			for (x = minX; x <= maxX; x++) {
+				// Determine barycentric coordinates
+				V p{ x, y };
+
+				int w0 = orient2d(v1, v2, p);
+				int w1 = orient2d(v2, v0, p);
+				int w2 = orient2d(v0, v1, p);
+
+				// If p is on or inside all edges, render pixel.
+				if (w0 >= 0 && w1 >= 0 && w2 >= 0)
+				{
+					float sum = w0 + w1 + w2;
+					float fw0 = w0 / sum;
+					float fw1 = w1 / sum;
+					float fw2 = w2 / sum;
+					float depth = v0.z * fw0 + v1.z * fw1 + v2.z * fw2;
+
+					int pixelIndex = y * bufferWidth + x;
+					uint16_t occluder = buffer[pixelIndex];
+					float ldepth = zBuffer[pixelIndex];
+					if (ldepth < depth && color != occluder) {
+						assert(occluder != 0xFFFF);
+						occluders.push_back(occluder);
+					}
+				}
 			}
 		}
-		row[n] = '\0';
-		return buf;
 	}
 
-	int ParseFace(char* row, int* data)
-	{
-		int res = sscanf(row, "f %d/%d/%d %d/%d/%d %d/%d/%d", &data[0], &data[1], &data[2],
-			&data[3], &data[4], &data[5],
-			&data[6], &data[7], &data[8]);
 
-		for (int i = 0; i < 9; i++)
-			data[i] -= 1;
-
-		return res;
-	}
-
-	int ParseFaceb(char* row, int* data)
-	{
-		int res = sscanf(row, "f %d//%d %d//%d %d//%d", &data[0], &data[2],
-			&data[3], &data[5],
-			&data[6], &data[8]);
-
-		for (int i = 0; i < 9; i++)
-			data[i] -= 1;
-
-		return res;
-	}
-
-	void Transform(const matrix_t& view, const matrix_t proj)
+	void Transform(const matrix_t& view, const matrix_t proj, float znear)
 	{
 		matrix_t invView;
 		invView.inverse(view);
+		//invView.lookAtLH(view.position, view.position+view.dir, view.up);
 		matrix_t matrix = invView * proj;
 
-		mTransformedPositions.resize(mPositions.size());
-		for (size_t i = 0;i<mPositions.size();i++)
-		{
-			mTransformedPositions[i].TransformPoint(mPositions[i], matrix);
-			mTransformedPositions[i] *= 1.f / mTransformedPositions[i].w;
-			//mTransformedPositions[i].x *= 1.f / mTransformedPositions[i].w;
-			//mTransformedPositions[i].y *= 1.f / mTransformedPositions[i].w;
-		}
-		// depth
-		auto mSortedFaces = mFaces;
-
-		for (size_t i = 0; i < mSortedFaces.size(); i++)
-		{
-			auto& face = mSortedFaces[i];
-			vec_t p[3];
-			p[0] = mTransformedPositions[face.a];
-			p[1] = mTransformedPositions[face.b];
-			p[2] = mTransformedPositions[face.c];
-
-			face.z = (p[0].z + p[1].z + p[2].z) * 0.3333f;
-
-		}
-		// sort faces
-		
-
-		qsort(mSortedFaces.data(), mSortedFaces.size(), sizeof(Face), [](const void* a, const void* b) {
-			Face* fa = (Face*)a;
-			Face* fb = (Face*)b;
-			if (fa->z < fb->z)
-			{
-				return 1;
-			}
-			if (fa->z > fb->z)
-			{
-				return -1;
-			}
-			return 0;
-			});
-
-		// clip
+		auto nearPlane = buildPlan(view.position - view.dir * znear, -view.dir);
+		// reject faces not in frustum, clip with near plane all others
 		std::vector<Face> mClippedFaces;
 
 		ZFrustum frustum;
 		frustum.Update(invView, proj);
+		const auto faceCount = mFaces.size();
 
-		for (size_t i = 0; i < mSortedFaces.size(); i++)
+		for (size_t i = 0; i < faceCount; i++)
 		{
-			auto& face = mSortedFaces[i];
+			const auto& face = mFaces[i];
 			vec_t p[3];
 			p[0] = mPositions[face.a];
 			p[1] = mPositions[face.b];
 			p[2] = mPositions[face.c];
 
-			// back face culling
-
-			vec_t n;
-			n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
-			n.normalize();
-
-			vec_t mid = (p[0] + p[1] + p[2]) * 0.33333f;
-			vec_t eye = view.position;
-			eye.w = 0.f;
-			vec_t eye2tri = normalized(mid - eye);
-
-			if (eye2tri.dot(n) < 0.f)
-			{
-				continue;
-			}
-
 			// clipping
 			int count = 0;
-
+			
 			for (int j = 0;j<3;j++)
 			{
 				if (frustum.PointInFrustum(p[j]))
@@ -346,30 +287,105 @@ public:
 			{
 				mClippedFaces.push_back(face);
 			}
-			if (count == 1 || count == 2)
+			else
 			{
-				int countFront = 0;
+				float distancesToPlan[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+				int indexBehindPlan[3] = {-1, -1, -1};
+				int indexBehindPlanCount = 0;
+				int indexFrontPlan[3] = {-1, -1, -1};
+				int indexFrontPlanCount = 0;
+				int indices[3] = {face.a, face.b, face.c};
 				// near clip
 				for (int j = 0; j < 3; j++)
 				{
 					const auto vt = p[j];
-					if (frustum.m_Frustum[ZFrustum::BACK][ZFrustum::A] * vt.x + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::B] * vt.y + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::C] * vt.z + frustum.m_Frustum[ZFrustum::BACK][ZFrustum::D] > 0)
-					{
-						countFront ++;
+					float distanceToPlan = nearPlane.signedDistanceTo(vt);
+					distancesToPlan[j] = distanceToPlan;
+					if (distanceToPlan > 0.f) {
+						indexFrontPlan[indexFrontPlanCount++] = j;
+					} else {
+						indexBehindPlan[indexBehindPlanCount++] = j;
 					}
 				}
-				if (countFront == 3)
+				if (indexFrontPlanCount == 3)
 				{
 					mClippedFaces.push_back(face);
+				} 
+				else if (indexFrontPlanCount == 1)
+				{
+					
+					// degenerate 1  triangle
+					int frontIndex = indexFrontPlan[0];
+					int b[2] = { indexBehindPlan[0], indexBehindPlan[1] };
+					if (abs(b[0] - b[1]) == 2) {
+						std::swap(b[0], b[1]);
+					}
+					float d0 = distancesToPlan[frontIndex];
+					float da = -distancesToPlan[b[0]];
+					float db = -distancesToPlan[b[1]];
+					float ta = d0 / (d0 + da);
+					float tb = d0 / (d0 + db);
+					vec_t newA = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[0]]], ta);
+					vec_t newB = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[1]]], tb);
+					auto baseIndex = static_cast<uint16_t>(mPositions.size());
+					mPositions.push_back(newA);
+					mPositions.push_back(newB);
+					mClippedFaces.push_back({ static_cast<uint16_t>(baseIndex+1), static_cast<uint16_t>(indices[frontIndex]), static_cast<uint16_t>(baseIndex), face.mColor });
+				}
+				else if (indexFrontPlanCount == 2)
+				{
+					int behindIndex = indexBehindPlan[0];
+					int b[2] = { indexFrontPlan[0], indexFrontPlan[1] };
+					if (abs(b[0] - b[1]) == 2) {
+						std::swap(b[0], b[1]);
+					}
+					float d0 = -distancesToPlan[behindIndex];
+					float da = distancesToPlan[b[0]];
+					float db = distancesToPlan[b[1]];
+					float ta = da / (d0 + da);
+					float tb = db / (d0 + db);
+					vec_t newA = LERP(mPositions[indices[b[0]]], mPositions[indices[behindIndex]], ta);
+					vec_t newB = LERP(mPositions[indices[b[1]]], mPositions[indices[behindIndex]], tb);
+					auto baseIndex = static_cast<uint16_t>(mPositions.size());
+					mPositions.push_back(newA);
+					mPositions.push_back(newB);
+					mClippedFaces.push_back({ baseIndex, static_cast<uint16_t>(indices[b[0]]), static_cast<uint16_t>(indices[b[1]]), face.mColor });
+					mClippedFaces.push_back({ baseIndex, static_cast<uint16_t>(indices[b[1]]), static_cast<uint16_t>(baseIndex + 1), face.mColor });
 				}
 			}
 		}
 
+		// transform to clip space
+
+		mTransformedPositions.resize(mPositions.size());
+		for (size_t positionIndex = 0; positionIndex < mPositions.size(); positionIndex++)
+		{
+			mTransformedPositions[positionIndex].TransformPoint(mPositions[positionIndex], matrix);
+			mTransformedPositions[positionIndex] *= 1.f / mTransformedPositions[positionIndex].w;
+			//mTransformedPositions[positionIndex].z = Distance(mPositions[positionIndex], view.position);
+			//mTransformedPositions[i].x *= 1.f / mTransformedPositions[i].w;
+			//mTransformedPositions[i].y *= 1.f / mTransformedPositions[i].w;
+		}
+		// depth
+		auto mSortedFaces = mClippedFaces;
+
+		for (size_t faceIndex = 0; faceIndex < mSortedFaces.size(); faceIndex++)
+		{
+			auto& face = mSortedFaces[faceIndex];
+			face.visible = false;
+			face.minz = FLT_MAX;
+			face.maxz = -FLT_MAX;
+			face.rendered = false;
+		}
+
 		// rasterizer test
 		std::vector<uint16_t> drawBuffer(320*200, 0xFFFF);
-		for (size_t i = 0; i < mClippedFaces.size(); i++)
+		std::vector<float> zbuffer(320*200, FLT_MAX);
+
+		// go
+		for (size_t sortedFaceIndex = 0; sortedFaceIndex < mSortedFaces.size(); sortedFaceIndex++)
 		{
-			const auto& face = mClippedFaces[i];
+			const auto& face = mSortedFaces[sortedFaceIndex];
 
 			vec_t p[3];
 			vec_t pc[3];
@@ -378,43 +394,142 @@ public:
 			p[1] = mTransformedPositions[face.b];
 			p[2] = mTransformedPositions[face.c];
 
-			auto& io = ImGui::GetIO();
-
 			for (int j = 0; j < 3; j++)
 			{
-				pc[j] = vec_t(p[j].x * 320 / 2 + 320 / 2, 200 - (p[j].y * 200 / 2 + 200 / 2));
+				pc[j] = vec_t((p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z);
 			}
 
-			DrawTriangle(drawBuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(i));
+			DrawTriangleDepthTested(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex));
+		}
+
+		
+		mDepthTestedColor.resize(320*200);
+		for (size_t texelIndex = 0; texelIndex < drawBuffer.size(); texelIndex++)
+		{
+			auto faceIndex = drawBuffer[texelIndex];
+			if (faceIndex == 0xFFFF)
+			{
+				mDepthTestedColor[texelIndex] = 0xFFFFFFFF;
+			}
+			else
+			{
+				mDepthTestedColor[texelIndex] = mSortedFaces[faceIndex].mColor.Get32();
+			}
 		}
 
 		mRasterizedFaces.clear();
-		std::vector<bool> faceSeen(mClippedFaces.size(), false);
-		for (auto pixel: drawBuffer)
+		int effectiveVisibleFaceCount = 0;
+		for (auto index = 0; index < drawBuffer.size(); index++)
 		{
+			auto pixel = drawBuffer[index];
 			if (pixel == 0xFFFF)
 			{
 				continue;
 			}
-			faceSeen[pixel] = true;
+			auto& face = mSortedFaces[pixel];
+			if (!face.visible)
+			{
+				effectiveVisibleFaceCount++;
+			}
+			face.visible = true;
+			float depth = zbuffer[index];
+			face.minz = min(face.minz, depth);
+			face.maxz = max(face.maxz, depth);
+			face.rendered = false;
 		}
+
+		// new sort
+		///////////////////////////////////////////////////////////////////////////////////
+		std::vector<Face> reverseSortedFaceList;
+		std::vector<std::vector<int>> occludedBy;
+		occludedBy.resize(mSortedFaces.size());
+		std::vector<int> occluderCount;
+		occluderCount.resize(mSortedFaces.size());
+
+		for (size_t sortedFaceIndex = 0; sortedFaceIndex < mSortedFaces.size(); sortedFaceIndex++)
+		{
+			const auto& face = mSortedFaces[sortedFaceIndex];
+			if (face.visible && !face.rendered)
+			{
+				vec_t p[3];
+				vec_t pc[3];
+
+				p[0] = mTransformedPositions[face.a];
+				p[1] = mTransformedPositions[face.b];
+				p[2] = mTransformedPositions[face.c];
+
+				for (int j = 0; j < 3; j++)
+				{
+					pc[j] = vec_t((p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z);
+				}
+
+				auto& occluders = occludedBy[sortedFaceIndex];
+				TestTriangleOcclusion(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex), occluders);
+			}
+		}
+
+		while (effectiveVisibleFaceCount)
+		{
+			// count occluders
+			for (size_t occluderIndex = 0; occluderIndex < mSortedFaces.size(); occluderIndex++)
+			{
+				int& occluderCountValue = occluderCount[occluderIndex];
+				occluderCountValue = 0;
+				for (auto occluderFaceIndex : occludedBy[occluderIndex])
+				{
+					assert(mSortedFaces[occluderFaceIndex].visible);
+					if (!mSortedFaces[occluderFaceIndex].rendered)
+					{
+						occluderCountValue++;
+					}
+				}
+			}
+
+			// get lowest occluded tri
+			int bestOccluderIndex = -1;
+			int bestOccludedValue = 0xFFFF;
+			for (size_t occluderIndex = 0; occluderIndex < mSortedFaces.size(); occluderIndex++)
+			{
+				const auto& face = mSortedFaces[occluderIndex];
+				if (face.visible && !face.rendered)
+				{
+					int occ = occluderCount[occluderIndex];
+					if (occ < bestOccludedValue)
+					{
+						bestOccludedValue = occ;
+						bestOccluderIndex = occluderIndex;
+					}
+				}
+			}
+			assert(bestOccluderIndex != -1);
+			mSortedFaces[bestOccluderIndex].rendered = true;
+			reverseSortedFaceList.push_back(mSortedFaces[bestOccluderIndex]);
+			effectiveVisibleFaceCount--;
+		};
+		std::reverse(reverseSortedFaceList.begin(), reverseSortedFaceList.end());
+
+		mSortedFaces = reverseSortedFaceList;
+
+
+		///////////////////////////////////////////////////////////////////////////////////
+		/// <summary>
 		std::map<uint32_t, uint8_t> faceColorToColorIndex;
 		std::map<uint16_t, uint16_t> oldToNewVertexIndex;
 		frames.resize(1);
 		frames[0].faces.clear();
 		frames[0].colors.clear();
 		frames[0].vertices.clear();
-		for (size_t i = 0; i < faceSeen.size(); i++)
+		for (size_t i = 0; i < mSortedFaces.size(); i++)
 		{
-			if (faceSeen[i])
+			Face transient = mSortedFaces[i];
+			if (transient.visible)
 			{
-				Face transient = mClippedFaces[i];
 				mRasterizedFaces.push_back(transient);
 
 				FrameFace frameFace;
 
 				// append used color
-				auto faceColor = mClippedFaces[i].mColor.Get32();
+				auto faceColor = mSortedFaces[i].mColor.Get32();
 
 				auto iter = faceColorToColorIndex.find(faceColor);
 				if (iter != faceColorToColorIndex.end())
@@ -441,7 +556,7 @@ public:
 					{
 
 						vec_t trPos = mTransformedPositions[index];
-						FrameVertex frameVertex{int16_t(trPos.x * 320 / 2 + 320 / 2), int16_t(200 - (trPos.y * 200 / 2 + 200 / 2))};
+						FrameVertex frameVertex{int16_t((trPos.x * 320 / 2 + 320 / 2)), 200 - int16_t((trPos.y * 200 / 2 + 200 / 2))};
 
 						int foundSameVertex = -1;
 						for (size_t k = 0;k< frames[0].vertices.size(); k++)
@@ -493,34 +608,6 @@ public:
 		
 	}
 
-	void ApplyDirectional()
-	{
-		vec_t lightDir = normalized(vec_t(-0.6f, -0.7f, -0.8f));
-		for (size_t i = 0; i < mFaces.size(); i++)
-		{
-			vec_t n = WorldNormal(i);
-			float dt = n.dot(lightDir);
-			vec_t color = mFaces[i].mColor.GetVect();
-			color *= (dt * 0.5f) + 0.5f;
-			mFaces[i].mColor.SetVect(color);
-		}
-	}
-
-	vec_t WorldNormal(size_t faceIndex) const
-	{
-		auto& face = mFaces[faceIndex];
-		vec_t p[3];
-		p[0] = mPositions[face.a];
-		p[1] = mPositions[face.b];
-		p[2] = mPositions[face.c];
-
-		vec_t n;
-		n.cross(normalized(p[2] - p[0]), normalized(p[1] - p[0]));
-		n.normalize();
-
-		return n;
-	}
-
 	void DebugDraw(ImDrawList& list, ImVec2 displaySize, ImVec2 displayOffset)
 	{
 		for (size_t i = 0; i < mRasterizedFaces.size(); i++)
@@ -537,55 +624,20 @@ public:
 
 			for (int j = 0; j < 3; j++)
 			{
-				pc[j] = ImVec2(displayOffset.x + p[j].x * displaySize.x / 2 + displaySize.x / 2, displayOffset.y + displaySize.y - (p[j].y * displaySize.y / 2 + displaySize.y / 2));
+				pc[j] = ImVec2(displayOffset.x + /*displaySize.x -*/ (p[j].x * displaySize.x / 2 + displaySize.x / 2), displayOffset.y + displaySize.y - (p[j].y * displaySize.y / 2 + displaySize.y / 2));
 			}
 
 			list.AddTriangleFilled(pc[0], pc[1], pc[2], face.mColor.Get32());
-			//list.AddTriangle(pc[0], pc[1], pc[2], 0xFFFFFFFF);//face.mColor.Get32());
 		}
 	}
 	
 
 	const uint32_t GetFaceCount() const { return uint32_t(mFaces.size()); }
-	//const uint32_t GetTransformedFaceCount() const { return uint32_t(mClippedFaces.size()); }
 	const uint32_t GetRasterizedFaceCount() const { return uint32_t(mRasterizedFaces.size()); }
 
 public:
 
-    struct Color
-    {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-		uint32_t Get32() const
-		{
-			return (0xff << 24) + (b << 16) + (g << 8) + r;
-		}
-		void Set32(uint32_t v)
-		{
-			r = v & 0xFF;
-			g = (v >> 8) & 0xFF;
-			b = (v >> 16) & 0xFF;
-		}
-		vec_t GetVect() const
-		{
-			vec_t res;
-			res.fromUInt32(Get32());
-			return res;
-		}
-		void SetVect(const vec_t& v)
-		{
-			uint32_t c = v.toUInt32();
-			Set32(c);
-		}
-    };
-    struct Face
-    {
-        uint16_t a,b,c;
-        Color mColor;
-		float z;
-		//uint8_t colorIndex;
-    };
+
     std::vector<vec_t> mPositions;
 	std::vector<vec_t> mTransformedPositions;
     std::vector<Face> mFaces;
@@ -629,6 +681,7 @@ public:
 	};
 
 	std::vector<Frame> frames;
+	std::vector<uint32_t> mDepthTestedColor;
 
 
 	void DebugDrawFrame(Frame* frame, uint32_t* rgbaBuffer)

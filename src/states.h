@@ -9,7 +9,7 @@ struct Input_t
     bool discharge;
 };
 
-int warping = 0;
+int warping = 1;
 
 void GameWarping()
 {

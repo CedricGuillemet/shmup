@@ -321,36 +321,36 @@ void InitLevels()
     unsigned char bcolor[] = {128, 19};
     bevel = GenerateBevel(2, bvts, bcolor);
     //ApplyLighting(bevel, V3Normalize(V3FromInt(1,3,2)));
-    /*
-    struct Vector3 vts[7] = { V3FromInt(4,-6,0), V3FromInt(6,-1,0), V3FromInt(8,0,0), V3FromInt(10,0,0), V3FromInt(10,1,0), V3FromInt(20,2,0), V3FromInt(30,2,0) };
-    unsigned char color[6] = {144,144,144,160,160, 160};
-    struct QuadMesh* ribbons = GenerateRibbon(5, vts, color, V3FromInt(0, 0, 1));
-    ribbon = Duplicate(ribbons, 16, V3FromInt(0,0,1));
-
-    
-    
-
-    BendMesh(ribbon, Neg(FromFixed(411774)));
-
-    struct QuadMesh* pico[8];
-    for (int i = 0; i < 8; i++)
     {
-        pico[i] = Duplicate(bevel, 1, V3FromInt(0, 0, 0));
-        DeformedMesh(pico[i], ribbon, 16 + i * 2);
-    }
+        struct Vector3 vts[7] = { V3FromInt(4,-6,0), V3FromInt(6,-1,0), V3FromInt(8,0,0), V3FromInt(10,0,0), V3FromInt(10,1,0), V3FromInt(20,2,0), V3FromInt(30,2,0) };
+        unsigned char color[6] = { 144,144,144,160,160, 160 };
+        struct QuadMesh* ribbons = GenerateRibbon(5, vts, color, V3FromInt(0, 0, 1));
+        ribbon = Duplicate(ribbons, 16, V3FromInt(0, 0, 1));
 
-    for (int i = 0; i < 8; i++)
-    {
-        RemoveQuad(ribbon, 16 + i * 2);
-    }
 
-    for (int i = 0; i < 8; i++)
-    {
-        AppendMesh(ribbon, pico[i]);
-    }
-    ApplyLighting(ribbon, V3Normalize(V3FromInt(1,3,2)));
 
-    */
+
+        BendMesh(ribbon, Neg(FromFixed(411774)));
+
+        struct QuadMesh* pico[8];
+        for (int i = 0; i < 8; i++)
+        {
+            pico[i] = Duplicate(bevel, 1, V3FromInt(0, 0, 0));
+            DeformedMesh(pico[i], ribbon, 16 + i * 2);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            RemoveQuad(ribbon, 16 + i * 2);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            AppendMesh(ribbon, pico[i]);
+        }
+        ApplyLighting(ribbon, V3Normalize(V3FromInt(1, 3, 2)));
+
+    }
     
     struct Vector3 vts[9] = { V3FromInt(0,0,0), V3FromInt(0,0,1),V3FromInt(0,0,2),V3FromInt(0,0,3),V3FromInt(0,0,4),V3FromInt(0,0,5),V3FromInt(0,0,6),V3FromInt(0,0,7),V3FromInt(0,0,8) };
     unsigned char color[8] = { 144,144,144,144, 144,144,144,144 };
@@ -411,16 +411,22 @@ void DrawLevel()
     struct Vector3 horizonPos = V3Mul(V3Normalize(V3FromFixed(eye.x, FromInt(0), eye.z)), FromInt(-100));
     struct Vector2 horizonPosScreen = TransformV3V3(&vp, horizonPos);
     int groundHeight = horizonPosScreen.y.integer;
+    if (groundHeight < 0) {
+        groundHeight = 0;
+    } else if (groundHeight < 200) {
+        groundHeight = 200;
+    }
+
 
     // clear
     
     uint8_t* backBufferPtr = buffer;
-    /*
+    
     memset(backBufferPtr, 17, SCREEN_WIDTH * groundHeight);
     backBufferPtr += SCREEN_WIDTH * groundHeight;
-    memset(backBufferPtr, 18, SCREEN_WIDTH * (SCREEN_HEIGHT - groundHeight));
-    */
-    memset(backBufferPtr, 0, SCREEN_WIDTH * 200);
+    memset(backBufferPtr, 255, SCREEN_WIDTH * (SCREEN_HEIGHT - groundHeight));
+    
+    //memset(backBufferPtr, 0, SCREEN_WIDTH * 200);
 
     DrawQuadMesh(&vp, ribbon);
     //DrawQuadMesh(&vp, pico);
