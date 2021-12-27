@@ -28,6 +28,7 @@ std::vector< GLTFFrame> gltfFrames;
 
 void ImportGLTF(const char* szFilename)
 {
+    gltfFrames.clear();
     cgltf_options options = { 0 };
     cgltf_data* data = NULL;
     cgltf_result result = cgltf_parse_file(&options, szFilename, &data);

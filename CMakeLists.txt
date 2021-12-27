@@ -1,7 +1,5 @@
 cmake_minimum_required (VERSION 3.6)
 project (Shmup)
-#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/.)
-#message(${CMAKE_MODULE_PATH})
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON) 
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "Configuration types" FORCE)
@@ -11,14 +9,12 @@ file(GLOB SRC_FILES
     ${CMAKE_SOURCE_DIR}/src/*.c
 )
 
-
 file(GLOB TOOL_FILES
     ${CMAKE_SOURCE_DIR}/tool/*.h
     ${CMAKE_SOURCE_DIR}/tool/*.cpp
 )
 
 set(SDL2_LIBRARIES "SDL2" "SDL2main")
-#find_package(SDL2 REQUIRED)
 set(SDL2_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/dep/SDL2-2.0.12/include)
 set(SDL2_LIBDIR ${CMAKE_CURRENT_SOURCE_DIR}/dep/SDL2-2.0.12/lib/x86)
 

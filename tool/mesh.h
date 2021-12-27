@@ -91,8 +91,6 @@ public:
 	{
 		uint16_t a, b, c;
 		Color mColor;
-		float minz;
-		float maxz;
 		bool visible;
 		bool rendered;
 	};
@@ -362,9 +360,6 @@ public:
 		{
 			mTransformedPositions[positionIndex].TransformPoint(mPositions[positionIndex], matrix);
 			mTransformedPositions[positionIndex] *= 1.f / mTransformedPositions[positionIndex].w;
-			//mTransformedPositions[positionIndex].z = Distance(mPositions[positionIndex], view.position);
-			//mTransformedPositions[i].x *= 1.f / mTransformedPositions[i].w;
-			//mTransformedPositions[i].y *= 1.f / mTransformedPositions[i].w;
 		}
 		// depth
 		auto mSortedFaces = mClippedFaces;
@@ -373,8 +368,6 @@ public:
 		{
 			auto& face = mSortedFaces[faceIndex];
 			face.visible = false;
-			face.minz = FLT_MAX;
-			face.maxz = -FLT_MAX;
 			face.rendered = false;
 		}
 
@@ -401,8 +394,7 @@ public:
 
 			DrawTriangleDepthTested(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex));
 		}
-
-		
+	
 		mDepthTestedColor.resize(320*200);
 		for (size_t texelIndex = 0; texelIndex < drawBuffer.size(); texelIndex++)
 		{
@@ -432,9 +424,6 @@ public:
 				effectiveVisibleFaceCount++;
 			}
 			face.visible = true;
-			float depth = zbuffer[index];
-			face.minz = min(face.minz, depth);
-			face.maxz = max(face.maxz, depth);
 			face.rendered = false;
 		}
 
@@ -530,6 +519,7 @@ public:
 
 				// append used color
 				auto faceColor = mSortedFaces[i].mColor.Get32();
+				faceColor &= 0xFCFCFC;
 
 				auto iter = faceColorToColorIndex.find(faceColor);
 				if (iter != faceColorToColorIndex.end())

@@ -1,10 +1,7 @@
 #include "imgui.h"
 #define IMAPP_IMPL
 #include "ImApp.h"
-
-#include "camera.h"
-#include "Animation.h"
-
+#include <io.h>
 #include <math.h>
 #include <vector>
 #include <algorithm>
@@ -12,6 +9,70 @@
 #include "mesh.h"
 #include "moviePlayback.h"
 #include "gltfImport.h"
+#include <string>
+
+void GetFilesList(std::vector<std::string>& aList, const char* szPath, const char* szWild, bool bRecurs, bool bDirectoriesInsteadOfFiles, bool bCompletePath)
+{
+    _finddata_t fileinfo;
+    std::string path = szPath;
+    std::string wildc = "*";
+
+    long fret;
+    std::string findDir = path + wildc;
+    intptr_t fndhand = _findfirst(findDir.c_str(), &fileinfo);
+    if (fndhand != -1)
+    {
+        do
+        {
+            if (strcmp(fileinfo.name, ".") && strcmp(fileinfo.name, ".."))
+            {
+                std::string wildc2;
+                wildc2 = szPath;
+                wildc2 += fileinfo.name;
+                if (!(fileinfo.attrib & _A_HIDDEN))
+                {
+                    if (fileinfo.attrib & _A_SUBDIR)
+                    {
+                        if (bDirectoriesInsteadOfFiles)
+                        {
+                            if (bCompletePath)
+                            {
+                                aList.push_back(wildc2);
+                            }
+                            else
+                            {
+                                aList.push_back(fileinfo.name);
+                            }
+                        }
+
+                        wildc2 += "/";
+                        if (bRecurs)
+                            GetFilesList(aList, wildc2.c_str(), szWild, bRecurs, bDirectoriesInsteadOfFiles, bCompletePath);
+                    }
+                    else
+                    {
+                        if (!bDirectoriesInsteadOfFiles)
+                        {
+                            if (strstr(wildc2.c_str(), szWild))
+                            {
+                                if (bCompletePath)
+                                {
+                                    aList.push_back(wildc2);
+                                }
+                                else
+                                {
+                                    aList.push_back(fileinfo.name);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            fret = _findnext(fndhand, &fileinfo);
+        } 		while (fret != -1);
+    }
+    _findclose(fndhand);
+}
 
 ImDrawList* BeginFrame()
 {
@@ -84,6 +145,17 @@ void ConvertGLTFToMesh(const GLTFFrame& frame, Mesh& mesh, matrix_t& view, matri
     memcpy(&view, frame.view.m, sizeof(float) * 16);
     memcpy(&projection, frame.projection.m, sizeof(float) * 16);
 }
+/*
+(void* data, int idx, const char** out_text) {
+    *out_text = "hoho";
+}*/
+
+bool fileList_getter(void* data, int idx, const char** out_text)
+{
+    std::vector<std::string>* list = (std::vector<std::string>*)data;
+    *out_text = (*list)[idx].c_str();
+    return true;
+}
 
 int main(int, char**)
 {
@@ -92,45 +164,35 @@ int main(int, char**)
    ImApp::Config config;
    config.mWidth = 1280;
    config.mHeight = 720;
-   //config.mFullscreen = true;
    imApp.Init(config);
 
-   //InitFBX("e:/factory_pipe_cam.fbx");
-   ImportGLTF("e:/factory_pipe.glb");
-   //ImportGLTF("e:/factory_pipe_ground.glb");
-   //ImportGLTF("e:/clipit.glb");
 
    Mesh mesh;
-   
 
    matrix_t view, proj;
 
    ImGuiIO& io = ImGui::GetIO();
 
    float znear;
-   //float fov = 27.f;
-   //proj.glhPerspectivef2(fov, io.DisplaySize.x / io.DisplaySize.y, 0.1f, 1000.f);
-   //view.LookAt(vec_t(0.f, 0.f, 3.0f), vec_t(0.f, 0.f, 0.f), vec_t(0.f, 1.f, 0.f));
-
-   Camera camera;
-   Animation animation;
    int firstFrame = 0;
    bool expanded = true;
    int selectedEntry = -1;
-   int currentFrame = 0;//703; // 24
+   int currentFrame = 0;
    bool playing = false;
    float time = 0.f;
+   int currentLevel = 0;
+
+   std::vector<std::string> fileList;
+   GetFilesList(fileList, "Levels/", ".glb", false, false, false);
+
+   ImportGLTF(("Levels/"+ fileList[currentLevel]).c_str());
    // Main loop
    while (!imApp.Done())
    {
       imApp.NewFrame();
 
-      
-      //matrix_t viewProj = view * proj;
-
       currentFrame = min(currentFrame, int(gltfFrames.size() - 1));
       ConvertGLTFToMesh(gltfFrames[currentFrame], mesh, view, proj, znear);
-      //mesh.ApplyDirectional();
 
       static const float sequencerHeight = 200;
       static const float toolWidth = 680;
@@ -154,7 +216,8 @@ int main(int, char**)
       ImGui::SetNextWindowSize(ImVec2(toolWidth,io.DisplaySize.y - sequencerHeight));
       ImGui::SetNextWindowPos(ImVec2(0, 0));
       ImGui::Begin("Tool", nullptr, defaultWindowOptions);
-      ImGui::Text(" %d Faces // %d rasterized Faces", int(mesh.GetFaceCount()), int(mesh.GetRasterizedFaceCount()));
+      ImGui::Text(" %d Faces // %d rasterized Faces // %d colors // %d vertices", int(mesh.GetFaceCount()), int(mesh.GetRasterizedFaceCount()),
+          int(mesh.frames[0].colors.size()), int(mesh.frames[0].vertices.size()));
       
       std::vector<uint32_t> debugDrawBuffer(320 * 200, 0xFFFF00FF);
       mesh.DebugDrawFrame(&mesh.frames[0], debugDrawBuffer.data());
@@ -166,28 +229,47 @@ int main(int, char**)
       ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - sequencerHeight));
       ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, sequencerHeight));
       ImGui::Begin("Sequencer", nullptr, defaultWindowOptions);
+      ImGui::PushItemWidth(300);
+      if (ImGui::ListBox("Level", &currentLevel, fileList_getter, &fileList, fileList.size()))
+      {
+          ImportGLTF(("Levels/" + fileList[currentLevel]).c_str());
+          currentFrame = 0;
+      }
+      ImGui::PopItemWidth();
+      ImGui::SameLine();
+      ImGui::BeginChildFrame(1337, ImVec2(-1,-1));
       ImGui::SliderInt("Frame", &currentFrame, 0, gltfFrames.size() - 1);
+      ImGui::SameLine();
+      if (ImGui::Button("|<<"))
+      {
+          currentFrame = 0;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button(playing ? "Stop" : "Play"))
+      {
+          playing = !playing;
+      }
+
       if (ImGui::Button("Make Movie"))
       {
           std::vector<uint8_t> dump;
-          for (int i = animation.mStartFrame; i < animation.mEndFrame; i++)
+          for (int i = 0; i < gltfFrames.size(); i++)
           {
               ConvertGLTFToMesh(gltfFrames[i], mesh, view, proj, znear);
               mesh.Transform(view, proj, znear);
               auto bytes = mesh.frames[0].GetBytes();
               dump.insert(dump.end(), bytes.begin(), bytes.end());
           }
-          WriteFile("D:/Dev/shmup/output.mv", dump);
+
+          std::string outputName = fileList[currentLevel];
+          auto index = outputName.find("glb");
+          if (index != std::string::npos)
+          {
+              outputName.replace(index, 3, "mv");
+              WriteFile(("Levels/" + outputName).c_str(), dump);
+          }
       }
-      ImGui::SameLine();
-      if (ImGui::Button("|<<"))
-      {
-          currentFrame = 0;
-      }
-      if (ImGui::Button(playing ? "Stop" : "Play"))
-      {
-          playing = !playing;
-      }
+      ImGui::EndChildFrame();
       ImGui::End();
 
       if (playing)
