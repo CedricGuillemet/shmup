@@ -1,6 +1,4 @@
 
-
-
 void ComputeMatrices()
 {
     //SetFixed(&fovy, 60622);
@@ -29,6 +27,9 @@ void ComputeMatrices()
     gameVP = MulMatrix(gameView, perspectiveScreen);
 }
 
+
+
+#if 0
 struct QuadMesh
 {
     struct Vector3* positions;
@@ -527,3 +528,5 @@ for (int y = 0;y<3;y++)
 
         mvp = MulMatrix(model, vp);
         */
+
+#endif

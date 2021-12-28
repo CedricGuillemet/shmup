@@ -1,26 +1,23 @@
+#pragma once
 
-
-unsigned char* movieData = NULL;
-unsigned char* movieFrame = NULL;
-bool ReadMovie(const char* szPath)
+struct FrameInfos
 {
-	if (movieData)
-	{
-		free(movieData);
-		movieData = NULL;
-		movieFrame = NULL;
-	}
-	FILE* fp = fopen(szPath, "rb");
-	if (fp)
-	{
-		fseek(fp, 0, SEEK_END);
-		int size = ftell(fp);
-		movieData = (unsigned char*)malloc(size);
-		movieFrame = movieData;
-		fseek(fp, 0, SEEK_SET);
-		fread(movieData, size, 1, fp);
-		fclose(fp);
-		return true;
-	}
-	return false;
-}
+	uint16_t faceCount;
+	uint8_t vertexCount;
+	uint8_t colorCount;
+};
+struct FrameVertex
+{
+	int16_t x, y;
+};
+struct FrameFace
+{
+	uint8_t a, b, c, colorIndex;
+};
+struct FrameColor
+{
+	uint8_t index, r, g, b;
+};
+
+extern int ReadMovie(const char* szPath);
+extern int RenderMovieFrame();

@@ -481,28 +481,3 @@ struct Rectangle GetRectangle(struct Vector2 position, int halfExtend)
     res.bottom = res.top + halfExtend * 2;
     return res;
 }
-
-
-/*
-vec_t vec_t::interpolateHermite(const vec_t& nextKey, const vec_t& nextKeyP1, const vec_t& prevKey, float ratio) const
-{
-    //((tvec_t3*)res)->Lerp(m_Value, nextKey.m_Value, ratio );
-    //return *((tvec_t3*)res);
-    float t = ratio;
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float h1 = 2.f * t3 - 3.f * t2 + 1.0f;
-    float h2 = -2.f * t3 + 3.f * t2;
-    float h3 = (t3 - 2.f * t2 + t) * .5f;
-    float h4 = (t3 - t2) * .5f;
-
-    vec_t res;
-    res = (*this) * h1;
-    res += nextKey * h2;
-    res += (nextKey - prevKey) * h3;
-    res += (nextKeyP1 - (*this)) * h4;
-    res.w = 0.f;
-    return  res;
-}
-*/
-

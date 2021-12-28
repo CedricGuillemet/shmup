@@ -1,6 +1,11 @@
 
 uint8_t buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
+void ClearBuffer()
+{
+    memset(buffer, 0, SCREEN_WIDTH * SCREEN_HEIGHT);
+}
+
 void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t color)
 {
     int width = halfExtend.x.integer * 2;
@@ -127,6 +132,16 @@ void DrawTriangle(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsig
             }
         }
     }
+}
+
+
+void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex)
+{
+    struct Vector2 va = V2FromInt(ax, ay);
+    struct Vector2 vb = V2FromInt(bx, by);
+    struct Vector2 vc = V2FromInt(cx, cy);
+
+    DrawTriangle(va, vb, vc, colorIndex);
 }
 
 void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned char color)

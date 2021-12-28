@@ -9,8 +9,8 @@ struct Input_t
     bool discharge;
 };
 
-int warping = 1;
-
+int warping = 0;
+int levelLoaded = -1;
 void GameWarping()
 {
     DrawSpeed();
@@ -66,7 +66,8 @@ void GamePlay(struct Input_t Input)
         TickBulletsDamagingEnemies();
         TickBulletsDamagingShip();
 
-        DrawLevel();
+        ClearBuffer();
+        RenderMovieFrame();
         DrawBullets(0);
 
         //DrawSprite(V2FromInt(100,100), remappedShoot, 32, 64, false);
@@ -83,6 +84,11 @@ void GameLoop(struct Input_t Input)
 {
     ComputeMatrices();
     FadePalette(paletteFade);
+    if (levelLoaded == -1)
+    {
+        ReadMovie("Levels/level0-0.mv");
+        levelLoaded = 0;
+    }
     if (warping)
     {
         GameWarping();

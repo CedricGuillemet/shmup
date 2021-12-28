@@ -7,6 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "maths.h"
+#include "moviePlayback.h"
 
 inline std::vector<uint8_t> ReadFile(const std::string& filePathName)
 {
@@ -634,19 +635,6 @@ public:
 	
 	std::vector<Face> mRasterizedFaces;
 
-	struct FrameVertex
-	{
-		int16_t x,y;
-	};
-	struct FrameFace
-	{
-		uint8_t a,b,c, colorIndex;
-	};
-	struct FrameColor
-	{
-		uint8_t index, r, g, b;
-	};
-
 	struct Frame
 	{
 		std::vector<FrameVertex> vertices;
@@ -659,12 +647,29 @@ public:
 			size_t szVertices = vertices.size() * sizeof(FrameVertex);
 			size_t szFaces = faces.size() * sizeof(FrameFace);
 			size_t szColors = colors.size() * sizeof(FrameColor);
-			bytes.resize(szVertices + szFaces + szColors);
+			bytes.resize(szVertices + szFaces + szColors + sizeof(FrameInfos));
 			uint8_t *ptr = bytes.data();
+
+			// infos
+			assert(vertices.size() < 256);
+			assert(colors.size() < 200);
+
+			FrameInfos infos;
+			infos.vertexCount = static_cast<uint8_t>(vertices.size());
+			infos.colorCount = static_cast<uint8_t>(colors.size());
+			infos.faceCount = static_cast<uint16_t>(faces.size());
+			memcpy(ptr, &infos, sizeof(FrameInfos));
+			ptr += sizeof(FrameInfos);
+
+			// vertices
 			memcpy(ptr, vertices.data(), szVertices);
 			ptr += szVertices;
+
+			// faces
 			memcpy(ptr, faces.data(), szFaces);
 			ptr += szFaces;
+
+			// colors
 			memcpy(ptr, colors.data(), szColors);
 			return bytes;
 		}

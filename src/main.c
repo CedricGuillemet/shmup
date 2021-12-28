@@ -27,6 +27,7 @@
 
 #include "triggers.h"
 #include "level.h"
+#include "moviePlayback.h"
 #include "states.h"
 #include "record.h"
 
@@ -183,7 +184,7 @@ int main(int argc, char** argv)
 {
     if (!init()) return 1;
     
-    _sleep(10000);
+    //_sleep(10000);
 
     struct gl_texture_t* paletteFile = ReadTGAFile("palette.tga");
     memcpy(palette, paletteFile->texels, 256 * 4);
@@ -239,7 +240,6 @@ int main(int argc, char** argv)
 
     PrecomputePaths();
     PrecomputeSpawns();
-    InitLevels();
 
     SpawnShip();
     /*
