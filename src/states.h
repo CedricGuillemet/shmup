@@ -70,8 +70,6 @@ void GamePlay(struct Input_t Input)
         RenderMovieFrame();
         DrawBullets(0);
 
-        //DrawSprite(V2FromInt(100,100), remappedShoot, 32, 64, false);
-
         DrawEnemies();
         DrawBullets(1);
         DrawShip(0);

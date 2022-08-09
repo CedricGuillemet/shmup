@@ -247,111 +247,104 @@ public:
 		}
 	}
 
+	std::vector<Face> ClipFaces(const std::vector<Face>& faces, std::vector<vec_t>& positions, const vec_t& plan) const
+	{
+		std::vector<Face> res;
+
+		for (size_t i = 0; i < faces.size(); i++)
+		{
+			const auto& face = faces[i];
+			vec_t p[3];
+			p[0] = positions[face.a];
+			p[1] = positions[face.b];
+			p[2] = positions[face.c];
+
+			float distancesToPlan[3] = { FLT_MAX, FLT_MAX, FLT_MAX };
+			int indexBehindPlan[3] = { -1, -1, -1 };
+			int indexBehindPlanCount = 0;
+			int indexFrontPlan[3] = { -1, -1, -1 };
+			int indexFrontPlanCount = 0;
+			int indices[3] = { face.a, face.b, face.c };
+			// near clip
+			for (int j = 0; j < 3; j++)
+			{
+				const auto vt = p[j];
+				float distanceToPlan = plan.signedDistanceTo(vt);
+				distancesToPlan[j] = distanceToPlan;
+				if (distanceToPlan > 0.f) {
+					indexFrontPlan[indexFrontPlanCount++] = j;
+				}
+				else {
+					indexBehindPlan[indexBehindPlanCount++] = j;
+				}
+			}
+			if (indexFrontPlanCount == 3)
+			{
+				res.push_back(face);
+			}
+			else if (indexFrontPlanCount == 1)
+			{
+				// degenerate 1  triangle
+				int frontIndex = indexFrontPlan[0];
+				int b[2] = { indexBehindPlan[0], indexBehindPlan[1] };
+				if (abs(b[0] - b[1]) == 2) {
+					std::swap(b[0], b[1]);
+				}
+				float d0 = distancesToPlan[frontIndex];
+				float da = -distancesToPlan[b[0]];
+				float db = -distancesToPlan[b[1]];
+				float ta = d0 / (d0 + da);
+				float tb = d0 / (d0 + db);
+				vec_t newA = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[0]]], ta);
+				vec_t newB = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[1]]], tb);
+				auto baseIndex = static_cast<uint16_t>(mPositions.size());
+				positions.push_back(newA);
+				positions.push_back(newB);
+				res.push_back({ static_cast<uint16_t>(baseIndex + 1), static_cast<uint16_t>(indices[frontIndex]), static_cast<uint16_t>(baseIndex), face.mColor });
+			}
+			else if (indexFrontPlanCount == 2)
+			{
+				int behindIndex = indexBehindPlan[0];
+				int b[2] = { indexFrontPlan[0], indexFrontPlan[1] };
+				if (abs(b[0] - b[1]) == 2) {
+					std::swap(b[0], b[1]);
+				}
+				float d0 = -distancesToPlan[behindIndex];
+				float da = distancesToPlan[b[0]];
+				float db = distancesToPlan[b[1]];
+				float ta = da / (d0 + da);
+				float tb = db / (d0 + db);
+				vec_t newA = LERP(mPositions[indices[b[0]]], mPositions[indices[behindIndex]], ta);
+				vec_t newB = LERP(mPositions[indices[b[1]]], mPositions[indices[behindIndex]], tb);
+				auto baseIndex = static_cast<uint16_t>(mPositions.size());
+				positions.push_back(newA);
+				positions.push_back(newB);
+				res.push_back({ baseIndex, static_cast<uint16_t>(indices[b[0]]), static_cast<uint16_t>(indices[b[1]]), face.mColor });
+				res.push_back({ baseIndex, static_cast<uint16_t>(indices[b[1]]), static_cast<uint16_t>(baseIndex + 1), face.mColor });
+			}
+		}
+
+		return res;
+	}
 
 	void Transform(const matrix_t& view, const matrix_t proj, float znear)
 	{
 		matrix_t invView;
 		invView.inverse(view);
+
 		//invView.lookAtLH(view.position, view.position+view.dir, view.up);
 		matrix_t matrix = invView * proj;
-
-		auto nearPlane = buildPlan(view.position - view.dir * znear, -view.dir);
+		
 		// reject faces not in frustum, clip with near plane all others
-		std::vector<Face> mClippedFaces;
+		std::vector<Face> mClippedFaces = mFaces;
 
 		ZFrustum frustum;
 		frustum.Update(invView, proj);
-		const auto faceCount = mFaces.size();
 
-		for (size_t i = 0; i < faceCount; i++)
+		for (int planIndex = 0; planIndex < 6; planIndex++)
 		{
-			const auto& face = mFaces[i];
-			vec_t p[3];
-			p[0] = mPositions[face.a];
-			p[1] = mPositions[face.b];
-			p[2] = mPositions[face.c];
-
-			// clipping
-			int count = 0;
-			
-			for (int j = 0;j<3;j++)
-			{
-				if (frustum.PointInFrustum(p[j]))
-				{
-					count ++;
-				}
-			}
-
-			if (count == 3) 
-			{
-				mClippedFaces.push_back(face);
-			}
-			else
-			{
-				float distancesToPlan[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
-				int indexBehindPlan[3] = {-1, -1, -1};
-				int indexBehindPlanCount = 0;
-				int indexFrontPlan[3] = {-1, -1, -1};
-				int indexFrontPlanCount = 0;
-				int indices[3] = {face.a, face.b, face.c};
-				// near clip
-				for (int j = 0; j < 3; j++)
-				{
-					const auto vt = p[j];
-					float distanceToPlan = nearPlane.signedDistanceTo(vt);
-					distancesToPlan[j] = distanceToPlan;
-					if (distanceToPlan > 0.f) {
-						indexFrontPlan[indexFrontPlanCount++] = j;
-					} else {
-						indexBehindPlan[indexBehindPlanCount++] = j;
-					}
-				}
-				if (indexFrontPlanCount == 3)
-				{
-					mClippedFaces.push_back(face);
-				} 
-				else if (indexFrontPlanCount == 1)
-				{
-					
-					// degenerate 1  triangle
-					int frontIndex = indexFrontPlan[0];
-					int b[2] = { indexBehindPlan[0], indexBehindPlan[1] };
-					if (abs(b[0] - b[1]) == 2) {
-						std::swap(b[0], b[1]);
-					}
-					float d0 = distancesToPlan[frontIndex];
-					float da = -distancesToPlan[b[0]];
-					float db = -distancesToPlan[b[1]];
-					float ta = d0 / (d0 + da);
-					float tb = d0 / (d0 + db);
-					vec_t newA = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[0]]], ta);
-					vec_t newB = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[1]]], tb);
-					auto baseIndex = static_cast<uint16_t>(mPositions.size());
-					mPositions.push_back(newA);
-					mPositions.push_back(newB);
-					mClippedFaces.push_back({ static_cast<uint16_t>(baseIndex+1), static_cast<uint16_t>(indices[frontIndex]), static_cast<uint16_t>(baseIndex), face.mColor });
-				}
-				else if (indexFrontPlanCount == 2)
-				{
-					int behindIndex = indexBehindPlan[0];
-					int b[2] = { indexFrontPlan[0], indexFrontPlan[1] };
-					if (abs(b[0] - b[1]) == 2) {
-						std::swap(b[0], b[1]);
-					}
-					float d0 = -distancesToPlan[behindIndex];
-					float da = distancesToPlan[b[0]];
-					float db = distancesToPlan[b[1]];
-					float ta = da / (d0 + da);
-					float tb = db / (d0 + db);
-					vec_t newA = LERP(mPositions[indices[b[0]]], mPositions[indices[behindIndex]], ta);
-					vec_t newB = LERP(mPositions[indices[b[1]]], mPositions[indices[behindIndex]], tb);
-					auto baseIndex = static_cast<uint16_t>(mPositions.size());
-					mPositions.push_back(newA);
-					mPositions.push_back(newB);
-					mClippedFaces.push_back({ baseIndex, static_cast<uint16_t>(indices[b[0]]), static_cast<uint16_t>(indices[b[1]]), face.mColor });
-					mClippedFaces.push_back({ baseIndex, static_cast<uint16_t>(indices[b[1]]), static_cast<uint16_t>(baseIndex + 1), face.mColor });
-				}
-			}
+			float d = frustum.m_Frustum[planIndex][3];
+			mClippedFaces = ClipFaces(mClippedFaces, mPositions, vec_t{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
 		}
 
 		// transform to clip space
@@ -362,6 +355,7 @@ public:
 			mTransformedPositions[positionIndex].TransformPoint(mPositions[positionIndex], matrix);
 			mTransformedPositions[positionIndex] *= 1.f / mTransformedPositions[positionIndex].w;
 		}
+
 		// depth
 		auto mSortedFaces = mClippedFaces;
 
@@ -505,10 +499,11 @@ public:
 		/// <summary>
 		std::map<uint32_t, uint8_t> faceColorToColorIndex;
 		std::map<uint16_t, uint16_t> oldToNewVertexIndex;
-		frames.resize(1);
-		frames[0].faces.clear();
-		frames[0].colors.clear();
-		frames[0].vertices.clear();
+		frames.push_back({});
+		Frame& currentFrame = frames.back();
+		currentFrame.faces.clear();
+		currentFrame.colors.clear();
+		currentFrame.vertices.clear();
 		for (size_t i = 0; i < mSortedFaces.size(); i++)
 		{
 			Face transient = mSortedFaces[i];
@@ -547,12 +542,12 @@ public:
 					{
 
 						vec_t trPos = mTransformedPositions[index];
-						FrameVertex frameVertex{int16_t((trPos.x * 320 / 2 + 320 / 2)), 200 - int16_t((trPos.y * 200 / 2 + 200 / 2))};
+						FrameVertex frameVertex{int8_t((trPos.x * 127 + 128)), 200 - int8_t((trPos.y * 100 + 100))};
 
 						int foundSameVertex = -1;
-						for (size_t k = 0;k< frames[0].vertices.size(); k++)
+						for (size_t k = 0;k< currentFrame.vertices.size(); k++)
 						{
-							auto& frmp = frames[0].vertices[k];
+							auto& frmp = currentFrame.vertices[k];
 							if (frmp.x == frameVertex.x && frmp.y == frameVertex.y)
 							{
 								foundSameVertex = (int)k;
@@ -562,8 +557,8 @@ public:
 
 						if (foundSameVertex == -1)
 						{
-							oldToNewVertexIndex[index] = (uint16_t)frames[0].vertices.size();
-							frames[0].vertices.push_back(frameVertex);
+							oldToNewVertexIndex[index] = (uint16_t)currentFrame.vertices.size();
+							currentFrame.vertices.push_back(frameVertex);
 							newIndices[j] = oldToNewVertexIndex[index];
 						}
 						else
@@ -579,15 +574,15 @@ public:
 				frameFace.c = (uint8_t)newIndices[2];
 
 				// append face
-				frames[0].faces.push_back(frameFace);
+				currentFrame.faces.push_back(frameFace);
 			}
 		}
 
 		// generate frame colors
-		frames[0].colors.resize(faceColorToColorIndex.size());
+		currentFrame.colors.resize(faceColorToColorIndex.size());
 		for (auto& faceColor : faceColorToColorIndex)
 		{
-			auto& color = frames[0].colors[faceColor.second];
+			auto& color = currentFrame.colors[faceColor.second];
 			color.index = faceColor.second;
 			Color col;
 			col.Set32(faceColor.first);
@@ -595,8 +590,155 @@ public:
 			color.g = col.g;
 			color.b = col.b;
 		}
+	}
 
-		
+	void ReorderPositions()
+	{
+		struct Position
+		{
+			uint16_t value;
+			int previousIndex;
+		};
+
+		for (size_t i = 1; i < frames.size(); i++)
+		{
+			std::vector<Position> positions;
+			for (int v = 0; v < frames[i].vertices.size(); v++)
+			{
+				auto p = frames[i].vertices[v];
+				positions.push_back({uint16_t((p.y << 8) + p.x), v});
+				std::qsort(positions.data(), positions.size(), sizeof(Position), [](const void* A, const void* B) {
+					const Position* pa = (const Position*)A;
+					const Position* pb = (const Position*)B;
+					if (pa->value < pb->value)
+					{
+						return 1;
+					}
+					if (pa->value > pb->value)
+					{
+						return -1;
+					}
+					return 0;
+				});
+			}
+			int oldToNew[256];
+			for (int v = 0; v< positions.size();v++)
+			{
+				oldToNew[positions[v].previousIndex] = v;
+			}
+			for (int f = 0; f< frames[i].faces.size(); f++)
+			{
+				auto& face = frames[i].faces[f];
+				face.a = oldToNew[face.a];
+				face.b = oldToNew[face.b];
+				face.c = oldToNew[face.c];
+			}
+
+			// delta positions
+			for (int v = positions.size() - 1; v > 0; v--)
+			{
+				positions[v].value -= positions[v-1].value;
+			}
+
+			// reset positions
+
+			for (int v = positions.size() - 1; v > 0; v--)
+			{
+				frames[i].vertices[v].y = (positions[v].value >> 8);
+				frames[i].vertices[v].x = (positions[v].value & 0xFF);
+			}
+			// test indexed/non-indexed mode
+
+			int usedVts[256];
+			memset(usedVts, 0, sizeof(int) * 256);
+
+			for (int f = 0; f < frames[i].faces.size(); f++)
+			{
+				const auto& face = frames[i].faces[f];
+				usedVts[face.a] ++;
+				usedVts[face.b] ++;
+				usedVts[face.c] ++;
+			}
+			int count[256];
+			memset(count, 0, sizeof(int) * 256);
+			for (int u = 0;u<positions.size();u++)
+			{
+				count[usedVts[u]] ++;
+			}
+
+			for (int p = 0;p<256;p++)
+			{
+				if (count[p])
+				{
+					printf("A vertex used %d times is found %d times\n", p, count[p]);
+				}
+			}
+		}
+	}
+
+	void CompressColors()
+	{
+		std::map<uint32_t, int> colorMap;
+		for (size_t i = 0; i < frames[0].colors.size(); i++)
+		{
+			uint32_t col32 = FrameColor32(frames[0].colors[i]);
+			colorMap[col32] = i;
+		}
+		for (size_t i = 1; i < frames.size(); i ++)
+		{
+			std::map<uint32_t, int> frameNewColors;
+			std::map<int, int> previousToCurrentFrameColorIndex;
+			bool previousFrameColorUsed[256];
+			memset(previousFrameColorUsed, 0, sizeof(bool) * 256);
+			for (size_t j = 0; j < frames[i].colors.size(); j++)
+			{
+				uint32_t col32 = FrameColor32(frames[i].colors[j]);
+				int newColorIndex = -1;
+				auto iter = colorMap.find(col32);
+				if (iter == colorMap.end())
+				{
+					// color not found in previous frame
+					frameNewColors[col32] = j;
+				} else {
+					// color found in previous frame
+					previousToCurrentFrameColorIndex[j] = iter->second;
+					previousFrameColorUsed[iter->second] = true;
+				}
+			}
+			// happen newly created colors
+			for(const auto& newColor : frameNewColors)
+			{
+				for (int freeColorIndex = 0; freeColorIndex < 256; freeColorIndex++)
+				{
+					if (!previousFrameColorUsed[freeColorIndex])
+					{
+						colorMap[newColor.first] = freeColorIndex;
+						previousToCurrentFrameColorIndex[newColor.second] = freeColorIndex;
+						previousFrameColorUsed[freeColorIndex] = true;
+						break;
+					}
+				}
+			}
+			// reindex face colors
+			for (size_t j = 0; j < frames[i].faces.size(); j++)
+			{
+				auto& face = frames[i].faces[j];
+				auto iter = previousToCurrentFrameColorIndex.find(face.colorIndex);
+				assert(iter != previousToCurrentFrameColorIndex.end());
+				face.colorIndex = iter->second;
+			}
+
+			// recreate color array for the frame
+			frames[i].colors.clear();
+			for (const auto& newColor : frameNewColors)
+			{
+				uint32_t color = newColor.first;
+				int index = previousToCurrentFrameColorIndex[newColor.second];
+				FrameColor frameColor = Color32Frame(color);
+				frameColor.index = index;
+				frames[i].colors.push_back(frameColor);
+			}
+		}
 	}
 
 	void DebugDraw(ImDrawList& list, ImVec2 displaySize, ImVec2 displayOffset)

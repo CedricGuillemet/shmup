@@ -166,6 +166,7 @@ int main(int, char**)
    config.mHeight = 720;
    imApp.Init(config);
 
+   printf("Started ...\n");
 
    Mesh mesh;
 
@@ -253,13 +254,46 @@ int main(int, char**)
       if (ImGui::Button("Make Movie"))
       {
           std::vector<uint8_t> dump;
+          int colorCount = 0;
+          int faceCount = 0;
+          int vertexCount = 0;
+          int16_t minx = 32000;
+          int16_t maxx = -32000;
+          int16_t miny = 32000;
+          int16_t maxy = -32000;
+          mesh.frames.clear();
           for (int i = 0; i < gltfFrames.size(); i++)
           {
               ConvertGLTFToMesh(gltfFrames[i], mesh, view, proj, znear);
               mesh.Transform(view, proj, znear);
-              auto bytes = mesh.frames[0].GetBytes();
+          }
+          mesh.CompressColors();
+          mesh.ReorderPositions();
+          for (int i = 0; i < gltfFrames.size(); i++)
+          {
+              const auto& currentFrame = mesh.frames[i];
+              auto bytes = currentFrame.GetBytes();
+              colorCount += currentFrame.colors.size();
+              faceCount += currentFrame.faces.size();
+              vertexCount += currentFrame.vertices.size();
+
+              for (auto& vt : currentFrame.vertices)
+              {
+                  minx = min(minx, vt.x);
+                  maxx = max(maxx, vt.x);
+
+                  miny = min(miny, vt.y);
+                  maxy = max(maxy, vt.y);
+              }
               dump.insert(dump.end(), bytes.begin(), bytes.end());
           }
+
+          printf("%d (%d bytes) colors, %d (%d bytes) vertices, %d (%d bytes) faces.\n",
+              colorCount, colorCount * sizeof(FrameColor),
+              vertexCount, vertexCount * sizeof(FrameVertex),
+              faceCount, faceCount * sizeof(FrameFace));
+
+          printf("VP : %d, %d - %d, %d\n", int(minx), int(miny), int(maxx), int(maxy));
 
           std::string outputName = fileList[currentLevel];
           auto index = outputName.find("glb");
