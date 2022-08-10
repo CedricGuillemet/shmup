@@ -1,28 +1,18 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  
-//      __   __                              __    
-//     |  |_|  |--.-----. .----.--.--.-----.|  |--.
-//   __|   _|     |  -__| |   _|  |  |__ --||     |
-//  |__|____|__|__|_____| |__| |_____|_____||__|__|
-//                                                 
-//  Copyright (C) 2007-2013 Cedric Guillemet
+//  Copyright (C) 2007-2022 Cedric Guillemet
 //
-// This file is part of .the rush//.
-//
-//    .the rush// is free software: you can redistribute it and/or modify
+//    Immath is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//    .the rush// is distributed in the hope that it will be useful,
+//    Immath is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with .the rush//.  If not, see <http://www.gnu.org/licenses/>
-//
-//
+//    along with Immath.  If not, see <http://www.gnu.org/licenses/>
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -32,9 +22,11 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <float.h>
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct matrix_t;
+namespace Imm
+{
+
+struct matrix;
 
 inline void FPU_MatrixF_x_MatrixF(const float *a, const float *b, float *r)
 {
@@ -59,94 +51,52 @@ inline void FPU_MatrixF_x_MatrixF(const float *a, const float *b, float *r)
 	r[15]= a[12]*b[3]+ a[13]*b[7]+ a[14]*b[11]+ a[15]*b[15];
 }
 
-const float ZPI    =  3.14159265358979323846f;
+const float PI    =  3.14159265358979323846f;
+const float RAD2DEG = (180.f / PI);
+const float DEG2RAD = (PI / 180.f);
 
-const float PI_MUL_2 =  6.28318530717958647692f;
-const float PI_DIV_2 =  1.57079632679489655800f;
-const float PI_DIV_4 =  0.78539816339744827900f;
-const float INV_PI   =  0.31830988618379069122f;
-const float DEGTORAD =  0.01745329251994329547f;
-const float RADTODEG = 57.29577951308232286465f;
-const float SQRT2    =  1.41421356237309504880f;
-const float SQRT3    =  1.73205080756887729352f;
-#define    FLOAT_EPSILON    float(1.192092896e-07)
+template<typename T> T Clamp(T v, T l, T h)
+{
+    return (v < l) ? l : ((v > h) ? h : v);
+}
 
-#define LERP(x,y,z) (x+(y-x)*z)
-#define zmax(x,y) ((x>y)?x:y)
-#define zmin(x,y) ((x<y)?x:y)
-#define Clamp(val,minimum,maximum) ( (val<minimum)?minimum:((val>maximum)?maximum:val) )
-#define DegreeToRadian(fDegrees) ((3.14159265f/180.0f)*fDegrees)
-#define FREQ30Hz (1.f/30.f)
-#define FREQ60Hz (1.f/60.f)
-#define FREQ100Hz (1.f/100.f)
-#define FREQ120Hz (1.f/120.f)
-#define FREQ240Hz (1.f/240.f)
-#define FREQ480Hz (1.f/480.f)
-#define UNUSED_PARAMETER(x)         ((void)(x))
-
-#ifdef WIN32
-typedef __int32 int32;
-typedef unsigned __int32 uint32;
-
-#else
-    #ifdef LINUX
-    #include <stdint.h>
-    typedef int32_t int32;
-    typedef uint32_t uint32;
-    #else
-    #ifdef NACL
-    #include <stdint.h>
-    typedef int32_t int32;
-    typedef uint32_t uint32;
-#else
-        #ifdef MACOSX
-        #include <sys/types.h>
-        typedef int32_t int32;
-        typedef u_int32_t uint32;
-        #endif
-#endif
-    #endif
-#endif
-
-typedef unsigned char u8;
-typedef unsigned char uint8;
-typedef unsigned short u16;
-typedef unsigned short uint16;
-typedef uint32_t u32;
-typedef unsigned int uint;
+template<typename T> T Lerp(T a, T b, float t)
+{
+    return a + (b - a) * t;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct vec_t
+struct vec4
 {
 public:
-	vec_t(const vec_t& other) : x(other.x), y(other.y), z(other.z), w(other.w) {}
-	vec_t() {}
-	vec_t(float _x, float _y, float _z = 0.f, float _w = 0.f) : x(_x), y(_y), z(_z), w(_w)
+	vec4(const vec4& other) : x(other.x), y(other.y), z(other.z), w(other.w) {}
+	vec4() {}
+	vec4(float _x, float _y, float _z = 0.f, float _w = 0.f) : x(_x), y(_y), z(_z), w(_w)
 	{
 	}
-	vec_t(int _x, int _y, int _z = 0, int _w = 0) : x((float)_x), y((float)_y), z((float)_z), w((float)_w)
+	vec4(int _x, int _y, int _z = 0, int _w = 0) : x((float)_x), y((float)_y), z((float)_z), w((float)_w)
 	{
 	}
 	
-	vec_t ( u32 col ) { fromUInt32(col); }
-	vec_t (float v ) : x(v), y(v), z(v), w(v) {}
+	vec4 (uint32_t col) { fromUInt32(col); }
+	vec4 (float v ) : x(v), y(v), z(v), w(v) {}
 
 	float x,y,z,w;
 
-	void Lerp(const vec_t& v, float t)
+	void Lerp(const vec4& v, float t)
 	{
 		x += (v.x-x) * t;
 		y += (v.y-y) * t;
 		z += (v.z-z) * t;
 		w += (v.w-w) * t;
 	}
-	void LerpColor(const vec_t& v, float t)
+	void LerpColor(const vec4& v, float t)
 	{
 		for (int i = 0; i < 4;i++)
 			(*this)[i] = sqrtf(((*this)[i] * (*this)[i]) * (1.f - t) + (v[i] * v[i]) * (t));
 	}
-    void Lerp(const vec_t& v, const vec_t& v2,float t)
+    void Lerp(const vec4& v, const vec4& v2,float t)
 	{
         *this = v;
         Lerp(v2, t);
@@ -155,22 +105,22 @@ public:
 	inline void set(float v) { x = y = z = w = v; }
 	inline void set(float _x, float _y, float _z = 0.f, float _w = 0.f)	{ x = _x; y = _y; z = _z; w = _w; }
 
-	inline vec_t& operator -= ( const vec_t& v ) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
-	inline vec_t& operator += ( const vec_t& v ) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
-	inline vec_t& operator *= ( const vec_t& v ) { x *= v.x; y *= v.y; z *= v.z; w *= v.w; return *this; }
-	inline vec_t& operator *= ( float v ) { x *= v;	y *= v;	z *= v;	w *= v;	return *this; }
+	inline vec4& operator -= ( const vec4& v ) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
+	inline vec4& operator += ( const vec4& v ) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
+	inline vec4& operator *= ( const vec4& v ) { x *= v.x; y *= v.y; z *= v.z; w *= v.w; return *this; }
+	inline vec4& operator *= ( float v ) { x *= v;	y *= v;	z *= v;	w *= v;	return *this; }
 
-	inline vec_t operator * ( float f ) const;
-	inline vec_t operator - () const;
-	inline vec_t operator - ( const vec_t& v ) const;
-	inline vec_t operator + ( const vec_t& v ) const;
-	inline vec_t operator * ( const vec_t& v ) const;
+	inline vec4 operator * ( float f ) const;
+	inline vec4 operator - () const;
+	inline vec4 operator - ( const vec4& v ) const;
+	inline vec4 operator + ( const vec4& v ) const;
+	inline vec4 operator * ( const vec4& v ) const;
 	
-	inline const vec_t& operator + () const { return (*this); }
+	inline const vec4& operator + () const { return (*this); }
 	inline float length() const { return sqrtf(x*x +y*y +z*z ); };
 	inline float lengthSq() const { return (x*x +y*y +z*z ); };
-	inline vec_t normalize() { (*this) *= (1.f/length()+FLT_EPSILON); return (*this); }
-	inline vec_t normalize(const vec_t& v) { this->set(v.x, v.y, v.z, v.w); this->normalize(); return (*this); }
+	inline vec4 normalize() { (*this) *= (1.f/length()+FLT_EPSILON); return (*this); }
+	inline vec4 normalize(const vec4& v) { this->set(v.x, v.y, v.z, v.w); this->normalize(); return (*this); }
 	inline int LongestAxis() const 
 	{
 		int res = 0; 
@@ -178,9 +128,9 @@ public:
 		res = (fabsf((*this)[2]) > fabsf((*this)[res])) ? 2 : res;
 		return res;
 	}
-	inline void cross(const vec_t& v)
+	inline void cross(const vec4& v)
 	{
-		vec_t res;
+		vec4 res;
 		res.x = y * v.z - z * v.y;
 		res.y = z * v.x - x * v.z;
 		res.z = x * v.y - y * v.x;
@@ -190,26 +140,26 @@ public:
 		z = res.z;
 		w = 0.f;
 	}
-	inline void cross(const vec_t& v1, const vec_t& v2)
+	inline void cross(const vec4& v1, const vec4& v2)
 	{
 		x = v1.y * v2.z - v1.z * v2.y;
 		y = v1.z * v2.x - v1.x * v2.z;
 		z = v1.x * v2.y - v1.y * v2.x;
 		w = 0.f;
 	}
-	inline float dot( const vec_t &v) const
+	inline float dot( const vec4 &v) const
 	{
 		return (x * v.x) + (y * v.y) + (z * v.z) + (w * v.w);
 	}
 
-	void isMaxOf(const vec_t& v)
+	void isMaxOf(const vec4& v)
 	{
 		x = (v.x>x)?v.x:x;
 		y = (v.y>y)?v.y:y;
 		z = (v.z>z)?v.z:z;
 		w = (v.w>w)?v.z:w;
 	}
-	void isMinOf(const vec_t& v)
+	void isMinOf(const vec4& v)
 	{
 		x = (v.x>x)?x:v.x;
 		y = (v.y>y)?y:v.y;
@@ -217,7 +167,7 @@ public:
 		w = (v.w>w)?z:v.w;
 	}
 
-	bool isInside( const vec_t& min, const vec_t& max ) const
+	bool isInside( const vec4& min, const vec4& max ) const
 	{
 		if ( min.x > x || max.x < x ||
 			min.y > y || max.y < y ||
@@ -226,34 +176,34 @@ public:
 		return true;
 	}
     
-    vec_t symetrical(const vec_t& v) const 
+    vec4 symetrical(const vec4& v) const
     {
-        vec_t res;
+        vec4 res;
         float dist = signedDistanceTo(v);
         res = v;
         res -= (*this)*dist*2.f;
         
         return res;
     }
-	void transform(const matrix_t& matrix );
-	void transform(const vec_t & s, const matrix_t& matrix );
+	void transform(const matrix& matrix );
+	void transform(const vec4 & s, const matrix& matrix );
 
-	void TransformVector(const matrix_t& matrix );
-	void TransformPoint(const matrix_t& matrix );
-	void TransformVector(const vec_t& v, const matrix_t& matrix ) { (*this) = v; this->TransformVector(matrix); }
-	void TransformPoint(const vec_t& v, const matrix_t& matrix ) { (*this) = v; this->TransformPoint(matrix); }
+	void TransformVector(const matrix& matrix );
+	void TransformPoint(const matrix& matrix );
+	void TransformVector(const vec4& v, const matrix& matrix ) { (*this) = v; this->TransformVector(matrix); }
+	void TransformPoint(const vec4& v, const matrix& matrix ) { (*this) = v; this->TransformPoint(matrix); }
 
     // quaternion slerp
-    //void slerp(const vec_t &q1, const vec_t &q2, float t );
+    //void slerp(const vec4 &q1, const vec4 &q2, float t );
 
-	inline float signedDistanceTo(const vec_t& point) const;
-	vec_t interpolateHermite(const vec_t &nextKey, const vec_t &nextKeyP1, const vec_t &prevKey, float ratio) const;
-    static float d(const vec_t& v1, const vec_t& v2) { return (v1-v2).length(); }
-    static float d2(const vec_t& v1, const vec_t& v2) { return (v1-v2).lengthSq(); }
+	inline float signedDistanceTo(const vec4& point) const;
+	vec4 interpolateHermite(const vec4 &nextKey, const vec4 &nextKeyP1, const vec4 &prevKey, float ratio) const;
+    static float d(const vec4& v1, const vec4& v2) { return (v1-v2).length(); }
+    static float d2(const vec4& v1, const vec4& v2) { return (v1-v2).lengthSq(); }
     
-	static vec_t zero;
+	static vec4 zero;
 
-    uint16 toUInt5551() const { return (uint16_t)(((int)(w*1.f)<< 15) + ((int)(z*31.f)<< 10) + ((int)(y*31.f)<< 5) + ((int)(x*31.f))); }
+    uint16_t toUInt5551() const { return (uint16_t)(((int)(w*1.f)<< 15) + ((int)(z*31.f)<< 10) + ((int)(y*31.f)<< 5) + ((int)(x*31.f))); }
     void fromUInt5551(unsigned short v) { w = (float)( (v&0x8000) >> 15) ; z = (float)( (v&0x7C00) >> 10) * (1.f/31.f); 
 	y = (float)( (v&0x3E0) >> 5) * (1.f/31.f); x = (float)( (v&0x1F)) * (1.f/31.f); } 
 
@@ -261,22 +211,22 @@ public:
 	void fromUInt32(uint32_t v) { w = (float)( (v&0xFF000000) >> 24) * (1.f/255.f); z = (float)( (v&0xFF0000) >> 16) * (1.f/255.f);
 	y = (float)( (v&0xFF00) >> 8) * (1.f/255.f); x = (float)( (v&0xFF)) * (1.f/255.f); } 
 
-    vec_t swapedRB() const;
+    vec4 swapedRB() const;
 	float& operator [] (size_t index) { return ((float*)&x)[index]; }
 	const float& operator [] (size_t index) const { return ((float*)&x)[index]; }
 };
 
-inline vec_t vec_t::operator * ( float f ) const { return vec_t(x * f, y * f, z * f, w *f); }
-inline vec_t vec_t::operator - () const { return vec_t(-x, -y, -z, -w); }
-inline vec_t vec_t::operator - ( const vec_t& v ) const { return vec_t(x - v.x, y - v.y, z - v.z, w - v.w); }
-inline vec_t vec_t::operator + ( const vec_t& v ) const { return vec_t(x + v.x, y + v.y, z + v.z, w + v.w); }
-inline vec_t vec_t::operator * ( const vec_t& v ) const { return vec_t(x * v.x, y * v.y, z * v.z, w * v.w); }
-inline float vec_t::signedDistanceTo(const vec_t& point) const	{ return (point.dot(vec_t(x,y,z))) - w; }
+inline vec4 vec4::operator * ( float f ) const { return vec4(x * f, y * f, z * f, w *f); }
+inline vec4 vec4::operator - () const { return vec4(-x, -y, -z, -w); }
+inline vec4 vec4::operator - ( const vec4& v ) const { return vec4(x - v.x, y - v.y, z - v.z, w - v.w); }
+inline vec4 vec4::operator + ( const vec4& v ) const { return vec4(x + v.x, y + v.y, z + v.z, w + v.w); }
+inline vec4 vec4::operator * ( const vec4& v ) const { return vec4(x * v.x, y * v.y, z * v.z, w * v.w); }
+inline float vec4::signedDistanceTo(const vec4& point) const	{ return (point.dot(vec4(x,y,z))) - w; }
 
-inline vec_t normalized(const vec_t& v) { vec_t res; res = v; res.normalize(); return res; }
-inline vec_t cross(const vec_t& v1, const vec_t& v2)
+inline vec4 normalized(const vec4& v) { vec4 res; res = v; res.normalize(); return res; }
+inline vec4 cross(const vec4& v1, const vec4& v2)
 {
-    vec_t res;
+    vec4 res;
     res.x = v1.y * v2.z - v1.z * v2.y;
     res.y = v1.z * v2.x - v1.x * v2.z;
     res.z = v1.x * v2.y - v1.y * v2.x;
@@ -284,25 +234,25 @@ inline vec_t cross(const vec_t& v1, const vec_t& v2)
     return res;
 }
 
-inline float Dot( const vec_t &v1, const vec_t &v2) 
+inline float Dot( const vec4 &v1, const vec4 &v2)
 {
 	return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
 }
 
-inline float Distance(const vec_t& v1, const vec_t& v2) { return vec_t::d(v1, v2); }
-inline float DistanceXY(const vec_t& v1, const vec_t& v2) { return vec_t::d(vec_t(v1.x, v1.y), vec_t(v2.x, v2.y)); }
-inline float DistanceSq(const vec_t& v1, const vec_t& v2) { return vec_t::d2(v1, v2); }
+inline float Distance(const vec4& v1, const vec4& v2) { return vec4::d(v1, v2); }
+inline float DistanceXY(const vec4& v1, const vec4& v2) { return vec4::d(vec4(v1.x, v1.y), vec4(v2.x, v2.y)); }
+inline float DistanceSq(const vec4& v1, const vec4& v2) { return vec4::d2(v1, v2); }
 
-inline vec_t MakeNormal(const vec_t & point1, const vec_t & point2, const vec_t & point3)
+inline vec4 MakeNormal(const vec4 & point1, const vec4 & point2, const vec4 & point3)
 {
-	vec_t nrm;
-	vec_t tmp1 = point1 - point3;
-	vec_t tmp2 = point2 - point3;
+	vec4 nrm;
+	vec4 tmp1 = point1 - point3;
+	vec4 tmp2 = point2 - point3;
 	nrm.cross(tmp1, tmp2);
 	return nrm;
 }
 
-inline float vecByIndex(const vec_t& v, int idx)
+inline float vecByIndex(const vec4& v, int idx)
 {
 	switch( idx)
 	{
@@ -313,38 +263,38 @@ inline float vecByIndex(const vec_t& v, int idx)
 	}
 }
 
-inline vec_t vecMul(const vec_t& v1, const vec_t& v2)
+inline vec4 vecMul(const vec4& v1, const vec4& v2)
 {
-	return vec_t(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z , v1.w * v2.w);
+	return vec4(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z , v1.w * v2.w);
 }
 
-inline vec_t vecMin(const vec_t& v1, const vec_t& v2)
+inline vec4 vecMin(const vec4& v1, const vec4& v2)
 {
-	vec_t res = v1;
+	vec4 res = v1;
 	res.isMinOf(v2);
 
 	return res;
 }
-inline vec_t vecMax(const vec_t& v1, const vec_t& v2)
+inline vec4 vecMax(const vec4& v1, const vec4& v2)
 {
-	vec_t res = v1;
+	vec4 res = v1;
 	res.isMaxOf(v2);
 	return res;
 }
 
-inline vec_t vecFloor(const vec_t& v)
+inline vec4 vecFloor(const vec4& v)
 {
-	return vec_t(floorf(v.x), floorf(v.y), floorf(v.z), floorf(v.w) );
+	return vec4(floorf(v.x), floorf(v.y), floorf(v.z), floorf(v.w) );
 }
 
-inline vec_t splatZ(const vec_t& v) { return vec_t(v.z); }
-inline vec_t splatW(const vec_t& v) { return vec_t(v.w); }
+inline vec4 splatZ(const vec4& v) { return vec4(v.z); }
+inline vec4 splatW(const vec4& v) { return vec4(v.w); }
 
-inline vec_t vecReciprocal(const vec_t& v) { return vec_t(1.f/v.x, 1.f/v.y, 1.f/v.z, 1.f/v.w); }
+inline vec4 vecReciprocal(const vec4& v) { return vec4(1.f/v.x, 1.f/v.y, 1.f/v.z, 1.f/v.w); }
 
-inline vec_t buildPlan(const vec_t & p_point1, const vec_t & p_normal)
+inline vec4 buildPlan(const vec4 & p_point1, const vec4 & p_normal)
 {
-	vec_t normal, res;
+	vec4 normal, res;
 	normal.normalize(p_normal);
 	res.w = normal.dot(p_point1);
 	res.x = normal.x;
@@ -353,17 +303,17 @@ inline vec_t buildPlan(const vec_t & p_point1, const vec_t & p_normal)
 	
 	return res;
 }
-inline vec_t vec_t::swapedRB() const { return vec_t(z,y,x,w); }
+inline vec4 vec4::swapedRB() const { return vec4(z,y,x,w); }
 
 inline float smootherstep(float edge0, float edge1, float x)
 {
     // Scale, and clamp x to 0..1 range
-    x = Clamp((x - edge0)/(edge1 - edge0), 0, 1);
+    x = Clamp((x - edge0)/(edge1 - edge0), 0.f, 1.f);
     // Evaluate polynomial
     return x*x*x*(x*(x*6 - 15) + 10);
 }
 
-inline vec_t *slerp(vec_t *pout, const vec_t* pq1, const vec_t* pq2, float t)
+inline vec4* slerp(vec4 *pout, const vec4* pq1, const vec4* pq2, float t)
 {
     float dot, epsilon;
 
@@ -377,29 +327,23 @@ inline vec_t *slerp(vec_t *pout, const vec_t* pq1, const vec_t* pq2, float t)
     return pout;
 }
 
-inline vec_t TransformPoint(const vec_t& v, const matrix_t& matrix) { vec_t p(v); p.TransformPoint(matrix); return p; }
-inline vec_t TransformVector(const vec_t& v, const matrix_t& matrix) { vec_t p(v); p.TransformVector(matrix); return p; }
+inline vec4 TransformPoint(const vec4& v, const matrix& matrix) { vec4 p(v); p.TransformPoint(matrix); return p; }
+inline vec4 TransformVector(const vec4& v, const matrix& matrix) { vec4 p(v); p.TransformVector(matrix); return p; }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct vec3
 {
     float x,y,z;
-    void set( float v)
-    {
-        x = y = z = v;
-    }
-    float length() const 
-    {
-        return sqrtf( x * x + y * y + z * z );
-    }
+    void set(float v) { x = y = z = v; }
+    float length() const { return sqrtf( x * x + y * y + z * z ); }
     void lerp( float v, float t)
     {
-        x = LERP( x, v, t);
-        y = LERP( y, v, t);
-        z = LERP( z, v, t);        
+        x = Lerp( x, v, t);
+        y = Lerp( y, v, t);
+        z = Lerp( z, v, t);
     }
-    vec3& operator = (const vec_t& v)
+    vec3& operator = (const vec4& v)
     {
         x = v.x;
         y = v.y;
@@ -414,8 +358,7 @@ typedef struct vec3
         ret.z = z * v;
         return *this;
     }
-    
-    vec3& operator += (const vec_t& v)
+    vec3& operator += (const vec4& v)
     {
         x += v.x;
         y += v.y;
@@ -437,15 +380,15 @@ typedef struct vec3
         return *this;
     }
     
-    vec_t getVec() const
+    vec4 getVec4() const
     {
-        return vec_t( x, y, z, 0.f );
+        return vec4( x, y, z, 0.f );
     }
 } vec3;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct matrix_t
+struct matrix
 {
 public:
 	union
@@ -454,11 +397,11 @@ public:
 		float m16[16];
 		struct 
 		{
-			vec_t right, up, dir, position;
-		} ;
+            vec4 right, up, dir, position;
+		};
 	};
 
-	matrix_t(float v1, float v2, float v3, float v4, float v5, float v6, float v7, float v8, float v9, float v10, float v11, float v12, float v13, float v14, float v15, float v16)
+	matrix(float v1, float v2, float v3, float v4, float v5, float v6, float v7, float v8, float v9, float v10, float v11, float v12, float v13, float v14, float v15, float v16)
     {
 		m16[0] = v1;
 		m16[1] = v2;
@@ -477,10 +420,10 @@ public:
 		m16[14] = v15;
 		m16[15] = v16;
     }
-	matrix_t(const matrix_t& other) { memcpy(&m16[0], &other.m16[0], sizeof(float) * 16); }
-	matrix_t(const vec_t & r, const vec_t &u, const vec_t& d, const vec_t& p) { set(r, u, d, p); }
-    matrix_t() {}
-	void set(const vec_t & r, const vec_t &u, const vec_t& d, const vec_t& p) { right=r; up=u; dir=d; position=p; }
+	matrix(const matrix& other) { memcpy(&m16[0], &other.m16[0], sizeof(float) * 16); }
+	matrix(const vec4 & r, const vec4 &u, const vec4& d, const vec4& p) { set(r, u, d, p); }
+    matrix() {}
+	void set(const vec4 & r, const vec4 &u, const vec4& d, const vec4& p) { right=r; up=u; dir=d; position=p; }
 	void set(float v1, float v2, float v3, float v4, float v5, float v6, float v7, float v8, float v9, float v10, float v11, float v12, float v13, float v14, float v15, float v16)
 	{
 		m16[0] = v1;
@@ -500,23 +443,23 @@ public:
 		m16[14] = v15;
 		m16[15] = v16;
 	}
-	static matrix_t GetIdentity() { return matrix_t(1.f, 0.f, 0.f, 0.f,
+	static matrix GetIdentity() { return matrix(1.f, 0.f, 0.f, 0.f,
 		0.f, 1.f, 0.f, 0.f,
 		0.f, 0.f, 1.f, 0.f,
 		0.f, 0.f, 0.f, 1.f);
 	}
 	operator float * () { return m16; }
 	operator const float* () const { return m16; }
-	void translation(float _x, float _y, float _z) { this->translation( vec_t(_x, _y, _z) ); }
+	void translation(float _x, float _y, float _z) { this->translation( vec4(_x, _y, _z) ); }
 	
-	void translation(const vec_t& vt)
+	void translation(const vec4& vt)
 	{ 
 		right.set(1.f, 0.f, 0.f, 0.f); 
 		up.set(0.f, 1.f, 0.f, 0.f); 
 		dir.set(0.f, 0.f, 1.f, 0.f); 
 		position.set(vt.x, vt.y, vt.z, 1.f); 
 	}
-	void translationScale(const vec_t& vt, const vec_t& scale)
+	void translationScale(const vec4& vt, const vec4& scale)
 	{
 		right.set(scale.x, 0.f, 0.f, 0.f);
 		up.set(0.f, scale.y, 0.f, 0.f);
@@ -570,46 +513,46 @@ public:
 		dir.set(0.f, 0.f, _z, 0.f); 
 		position.set(0.f, 0.f, 0.f, 1.f); 
 	}
-	inline void scale(const vec_t& s) { scale(s.x, s.y, s.z); }
+	inline void scale(const vec4& s) { scale(s.x, s.y, s.z); }
 
-	inline matrix_t& operator *= ( const matrix_t& mat )
+	inline matrix& operator *= ( const matrix& mat )
 	{
-		matrix_t tmpMat;
+		matrix tmpMat;
 		tmpMat = *this;
 		tmpMat.Multiply(mat);
 		*this = tmpMat;
 		return *this;
 	}
-	inline matrix_t operator * ( const matrix_t& mat ) const
+	inline matrix operator * (const matrix& mat) const
 	{
-		matrix_t matT;
+		matrix matT;
 		matT.Multiply(*this, mat);
 		return matT;
 	}
 
-	inline void Multiply( const matrix_t &matrix)
+	inline void Multiply( const matrix& mat)
 	{
-		matrix_t tmp;
+		matrix tmp;
 		tmp = *this;
 
-		FPU_MatrixF_x_MatrixF( (float*)&tmp, (float*)&matrix, (float*)this);
+		FPU_MatrixF_x_MatrixF( (float*)&tmp, (float*)&mat, (float*)this);
 	}
 
-	inline void Multiply( const matrix_t &m1, const matrix_t &m2 )
+	inline void Multiply( const matrix &m1, const matrix &m2 )
 	{
 		FPU_MatrixF_x_MatrixF( (float*)&m1, (float*)&m2, (float*)this);
 	}
 
-	void glhPerspectivef2(float fovyInDegrees, float aspectRatio, float znear, float zfar);
-	void glhPerspectivef2Rad(float fovyRad, float aspectRatio, float znear, float zfar);
+	void glhPerspectivef2(float fovyInDegrees, float aspectRatio, float znear, float zfar, bool homogeneousNdc, bool rightHand = false);
+	void glhPerspectivef2Rad(float fovyRad, float aspectRatio, float znear, float zfar, bool homogeneousNdc, bool rightHand = false);
 	
-	void glhFrustumf2(float left, float right, float bottom, float top,	float znear, float zfar);
+	void glhFrustumf2(float x, float y, float width, float height,	float znear, float zfar, bool homogeneousNdc, bool rightHand = false);
 	void PerspectiveFovLH2(const float fovy, const float aspect, const float zn, const float zf );
 	void OrthoOffCenterLH(const float l, float r, float b, const float t, float zn, const float zf );
-	void lookAtRH(const vec_t &eye, const vec_t &at, const vec_t &up );
-	void lookAtLH(const vec_t &eye, const vec_t &at, const vec_t &up );
-	void LookAt(const vec_t &eye, const vec_t &at, const vec_t &up );
-    void rotationQuaternion( const vec_t &q );
+	void lookAtRH(const vec4 &eye, const vec4 &at, const vec4 &up );
+	void lookAtLH(const vec4 &eye, const vec4 &at, const vec4 &up );
+	void LookAt(const vec4 &eye, const vec4 &at, const vec4 &up );
+    void rotationQuaternion( const vec4 &q );
 
 	inline float GetDeterminant() const
 	{
@@ -617,7 +560,7 @@ public:
 			m[0][2] * m[1][1] * m[2][0] - m[0][1] * m[1][0] * m[2][2] -    m[0][0] * m[1][2] * m[2][1];
 	}
 
-	float inverse(const matrix_t &srcMatrix, bool affine = false );
+	float inverse(const matrix &srcMatrix, bool affine = false );
 	float inverse(bool affine=false);
 	void identity() { 		
 		right.set(1.f, 0.f, 0.f, 0.f); 
@@ -627,7 +570,7 @@ public:
 	}
 	inline void transpose()
 	{
-		matrix_t tmpm;
+		matrix tmpm;
 		for (int l = 0; l < 4; l++)
 		{
 			for (int c = 0; c < 4; c++)
@@ -637,13 +580,13 @@ public:
 		}
 		(*this) = tmpm;
 	}
-	void rotationAxis(const vec_t & axis, float angle );
-	void lerp(const matrix_t& r, const matrix_t& t, float s) 
+	void rotationAxis(const vec4 & axis, float angle );
+	void lerp(const matrix& r, const matrix& t, float s)
 	{ 
-		right = LERP(r.right, t.right, s);
-		up = LERP(r.up, t.up, s);
-		dir = LERP(r.dir, t.dir, s);
-		position = LERP(r.position, t.position, s);
+		right = Lerp(r.right, t.right, s);
+		up = Lerp(r.up, t.up, s);
+		dir = Lerp(r.dir, t.dir, s);
+		position = Lerp(r.position, t.position, s);
 	}
 	void rotationYawPitchRoll(const float yaw, const float pitch, const float roll );
 
@@ -654,7 +597,7 @@ public:
 		dir.normalize();
 	}
 
-    static matrix_t Identity;
+    static matrix Identity;
 
 
 };
@@ -685,11 +628,11 @@ inline float r01()
 
 
 
-inline bool CollisionClosestPointOnSegment( const vec_t & point, const vec_t & vertPos1, const vec_t & vertPos2, vec_t& res )
+inline bool CollisionClosestPointOnSegment( const vec4 & point, const vec4 & vertPos1, const vec4 & vertPos2, vec4& res )
 {
     
-    vec_t c = point - vertPos1;
-    vec_t V;
+    vec4 c = point - vertPos1;
+    vec4 V;
     
     V.normalize(vertPos2 - vertPos1);
     float d = (vertPos2 - vertPos1).length();
@@ -709,11 +652,11 @@ inline bool CollisionClosestPointOnSegment( const vec_t & point, const vec_t & v
     return true;
 }
 
-inline vec_t CollisionClosestPointOnSegment( const vec_t & point, const vec_t & vertPos1, const vec_t & vertPos2 )
+inline vec4 CollisionClosestPointOnSegment( const vec4 & point, const vec4 & vertPos1, const vec4 & vertPos2 )
 {
     
-    vec_t c = point - vertPos1;
-    vec_t V;
+    vec4 c = point - vertPos1;
+    vec4 V;
     
     V.normalize(vertPos2 - vertPos1);
     float d = (vertPos2 - vertPos1).length();
@@ -732,12 +675,10 @@ inline vec_t CollisionClosestPointOnSegment( const vec_t & point, const vec_t & 
     return vertPos1 + V * t;
 }
 
-
-
-inline float DistanceCollisionClosestPointOnSegment( const vec_t & point, const vec_t & vertPos1, const vec_t & vertPos2 )
+inline float DistanceCollisionClosestPointOnSegment( const vec4 & point, const vec4 & vertPos1, const vec4 & vertPos2 )
 {
-    vec_t c = point - vertPos1;
-    vec_t V;
+    vec4 c = point - vertPos1;
+    vec4 V;
     
 	if ((vertPos2 - vertPos1).lengthSq() < 0.001f)
 		return Distance(point, vertPos1);
@@ -756,7 +697,7 @@ inline float DistanceCollisionClosestPointOnSegment( const vec_t & point, const 
         return (vertPos2-point).length();
     }
     
-    vec_t r = vertPos1 + V * t;
+    vec4 r = vertPos1 + V * t;
     return ( r - point ).length();
 }
 
@@ -833,17 +774,15 @@ struct fixed816_t
 
 #pragma pack(pop)
 
-
-
 struct ZFrustum  
 {
 	ZFrustum()
 	{
 	}
 	
-    void    Update(const matrix_t &view, const matrix_t& projection);
+    void    Update(const matrix &view, const matrix& projection);
 	void	Update(const float* clip);
-    bool    PointInFrustum( const vec_t & vt ) const
+    bool    PointInFrustum( const vec4 & vt ) const
     {
         // If you remember the plane equation (A*x + B*y + C*z + D = 0), then the rest
         // of this code should be quite obvious and easy to figure out yourself.
@@ -876,7 +815,7 @@ struct ZFrustum
         return true;
     }
     
-    bool    SphereInFrustum( const vec_t & vt) const
+    bool    SphereInFrustum( const vec4 & vt) const
     {
         for(int i = 0; i < 6; i++ )    
         {
@@ -892,7 +831,7 @@ struct ZFrustum
         return true;
     }
 
-	int SphereInFrustumVis(const vec_t& v) const
+	int SphereInFrustumVis(const vec4& v) const
 	{
 
 		float Distance;
@@ -908,7 +847,7 @@ struct ZFrustum
 		return(result);
 	}
 
-    bool    BoxInFrustum( const vec_t & vt, const vec_t & size ) const
+    bool    BoxInFrustum( const vec4 & vt, const vec4 & size ) const
     {
         for(int i = 0; i < 6; i++ )
         {
@@ -932,12 +871,11 @@ struct ZFrustum
             // If we get here, it isn't in the frustum
             return false;
         }
-
         return true;
     }
 
 	// matrix is an orthonormalized matrix. only orientation is used.
-	bool OBBInFrustum( const matrix_t &mt, const vec_t &pos, const vec_t& size) const;
+	bool OBBInFrustum( const matrix &mt, const vec4 &pos, const vec4& size) const;
 
 public:
 
@@ -963,8 +901,6 @@ public:
         C = 2,                // The Z value of the plane's normal
         D = 3                // The Distance the plane is from the origin
     };
-    
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1008,30 +944,27 @@ inline int NumberOfSetBits(unsigned char i)
     return (i + (i >> 4)) & 0x0F;
 }
 
-
-
-
 struct Segment
 {
 	Segment() {}
-	Segment(vec_t p0, vec_t p1) : P0(p0), P1(p1)
+	Segment(vec4 p0, vec4 p1) : P0(p0), P1(p1)
 	{
 	}
 
-	vec_t P0,P1;
+	vec4 P0,P1;
 };
 struct CapsuleHitHandler;
 struct Capsule : public Segment
 {
 	Capsule() :mask(0),mWeaponIndex(0),mHitStrength(0),mHandle(NULL) {}
-	Capsule( vec_t p0, vec_t p1, float rad, CapsuleHitHandler *handle ) : Segment(p0, p1), radius( rad ), mask(0), mHandle(handle),mWeaponIndex(0),mHitStrength(0)
+	Capsule( vec4 p0, vec4 p1, float rad, CapsuleHitHandler *handle ) : Segment(p0, p1), radius( rad ), mask(0), mHandle(handle),mWeaponIndex(0),mHitStrength(0)
 	{
 		previousP0 = p0;
 		previousP1 = p1;
 	}
 	float radius;
-	vec_t previousP0;
-	vec_t previousP1;
+	vec4 previousP0;
+	vec4 previousP1;
 	CapsuleHitHandler *mHandle;
 	unsigned char mWeaponIndex;
 	unsigned char mHitStrength;
@@ -1047,18 +980,15 @@ struct Capsule : public Segment
 		};
 	};
 };
-//===================================================================
-
 
 // dist3D_Segment_to_Segment(): get the 3D minimum Distance between 2 segments
 //    Input:  two 3D line segments S1 and S2
 //    Return: the shortest Distance between S1 and S2
-inline float
-dist3D_Segment_to_Segment( Segment S1, Segment S2)
+inline float dist3D_Segment_to_Segment(Segment S1, Segment S2)
 {
-    vec_t   u = S1.P1 - S1.P0;
-    vec_t   v = S2.P1 - S2.P0;
-    vec_t   w = S1.P0 - S2.P0;
+    vec4   u = S1.P1 - S1.P0;
+    vec4   v = S2.P1 - S2.P0;
+    vec4   w = S1.P0 - S2.P0;
     float    a = Dot(u,u);         // always >= 0
     float    b = Dot(u,v);
     float    c = Dot(v,v);         // always >= 0
@@ -1069,7 +999,7 @@ dist3D_Segment_to_Segment( Segment S1, Segment S2)
     float    tc, tN, tD = D;       // tc = tN / tD, default tD = D >= 0
 
     // compute the line parameters of the two closest points
-    if (D < FLOAT_EPSILON) { // the lines are almost parallel
+    if (D < FLT_EPSILON) { // the lines are almost parallel
         sN = 0.0;         // force using point P0 on segment S1
         sD = 1.0;         // to prevent possible division by 0.0 later
         tN = e;
@@ -1115,11 +1045,11 @@ dist3D_Segment_to_Segment( Segment S1, Segment S2)
         }
     }
     // finally do the division to get sc and tc
-    sc = (fabsf(sN) < FLOAT_EPSILON ? 0.0f : sN / sD);
-    tc = (fabsf(tN) < FLOAT_EPSILON ? 0.0f : tN / tD);
+    sc = (fabsf(sN) < FLT_EPSILON ? 0.0f : sN / sD);
+    tc = (fabsf(tN) < FLT_EPSILON ? 0.0f : tN / tD);
 
     // get the difference of the two closest points
-    vec_t   dP = w + (u * sc) - (v * tc);  // =  S1(sc) - S2(tc)
+    vec4   dP = w + (u * sc) - (v * tc);  // =  S1(sc) - S2(tc)
 
 	return dP.length();   // return the closest Distance
 }
@@ -1131,10 +1061,10 @@ float DENSITY_OFFSET                       = 100.f;
 float GAS_K                                = 0.1f;
 float VISC0SITY                            = 0.005f;
 */
-inline void SolveVerletRope(vec_t& position, vec_t& positionOld, vec_t& velocity, vec_t acceleration, float timeStep)
+inline void SolveVerletRope(vec4& position, vec4& positionOld, vec4& velocity, vec4 acceleration, float timeStep)
 {
-	vec_t t;
-	vec_t oldPos = position;
+	vec4 t;
+	vec4 oldPos = position;
 	acceleration *= timeStep*timeStep;
 	t = position - positionOld;
 	t *= 1.f-RopeDamping;
@@ -1148,11 +1078,10 @@ inline void SolveVerletRope(vec_t& position, vec_t& positionOld, vec_t& velocity
 	velocity = t*(1.f/timeStep);
 }
 
-
-inline void SolveVerletRope(vec_t& position, vec_t& positionOld, vec_t& velocity, vec_t acceleration, float damping, float timeStep)
+inline void SolveVerletRope(vec4& position, vec4& positionOld, vec4& velocity, vec4 acceleration, float damping, float timeStep)
 {
-	vec_t t;
-	vec_t oldPos = position;
+	vec4 t;
+	vec4 oldPos = position;
 	acceleration *= timeStep*timeStep;
 	t = position - positionOld;
 	t *= 1.f-damping;
@@ -1168,35 +1097,34 @@ inline void SolveVerletRope(vec_t& position, vec_t& positionOld, vec_t& velocity
 
 inline int SIGNBIT(float v) { return (v<0.f)?1:0; }
 
-inline vec_t perpStark(vec_t u)
+inline vec4 perpStark(vec4 u)
 {
-    vec_t a = vec_t( fabsf(u.x), fabsf(u.y), fabsf(u.z), 0.f );
-    uint uyx = SIGNBIT(a.x - a.y);
-    uint uzx = SIGNBIT(a.x - a.z);
-    uint uzy = SIGNBIT(a.y - a.z);
+    vec4 a = vec4( fabsf(u.x), fabsf(u.y), fabsf(u.z), 0.f );
+    unsigned int uyx = SIGNBIT(a.x - a.y);
+    unsigned int uzx = SIGNBIT(a.x - a.z);
+    unsigned int uzy = SIGNBIT(a.y - a.z);
 
-    uint xm = uyx & uzx;
-    uint ym = (1^xm) & uzy;
-    uint zm = 1^(xm & ym);
+    unsigned int xm = uyx & uzx;
+    unsigned int ym = (1^xm) & uzy;
+    unsigned int zm = 1^(xm & ym);
 
-    vec_t v = cross( u, vec_t( (float)xm, (float)ym, (float)zm ) );
+    vec4 v = cross( u, vec4( (float)xm, (float)ym, (float)zm ) );
     return v;
 }
 
-
-inline vec_t computeVecFromPlanNormal( vec_t localDir, float angle, float len )
+inline vec4 computeVecFromPlanNormal( vec4 localDir, float angle, float len )
 {
-	vec_t newDirX = perpStark(localDir);
-	vec_t newDirY;
+	vec4 newDirX = perpStark(localDir);
+	vec4 newDirY;
 	newDirY.cross( localDir, newDirX );
 	newDirY.normalize();
-	vec_t newDir = ( newDirX * cosf( angle ) + newDirY * sinf( angle ) ) * len;
+	vec4 newDir = ( newDirX * cosf( angle ) + newDirY * sinf( angle ) ) * len;
 	return newDir;
 }
 
-inline vec_t computeRandomVecFromPlanNormal( vec_t localDir )
+inline vec4 computeRandomVecFromPlanNormal( vec4 localDir )
 {
-	return computeVecFromPlanNormal( localDir, r01()*ZPI*2.f, r01() );
+	return computeVecFromPlanNormal( localDir, r01() * PI * 2.f, r01() );
 }
 
 inline float roundf(float d)
@@ -1204,17 +1132,16 @@ inline float roundf(float d)
   return floorf(d + 0.5f);
 }
 
-inline vec_t Reflect(const vec_t &incidentVec, const vec_t &normal)
+inline vec4 Reflect(const vec4 &incidentVec, const vec4 &normal)
 {
 	return incidentVec - normal * Dot(incidentVec, normal) * 2.f;
 }
 
-
-inline vec_t computePlansIntersections( vec_t n1, float d1, vec_t n2, float d2, vec_t n3, float d3 )
+inline vec4 computePlansIntersections( vec4 n1, float d1, vec4 n2, float d2, vec4 n3, float d3 )
 {
 	float div = Dot(n1,cross(n2,n3));
-	vec_t u = -cross(n2,n3)*d1 - cross(n3,n1)*d2 - cross(n1,n2)*d3;
-	vec_t r = u * (1.f/div);
+	vec4 u = -cross(n2,n3)*d1 - cross(n3,n1)*d2 - cross(n1,n2)*d3;
+	vec4 r = u * (1.f/div);
 	return r;
 }
 //////////////////////////////////////////////////////////////////////
@@ -1272,16 +1199,16 @@ inline vec2i max2i(const vec2i a, const vec2i b)
 	return vec2i(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
 }
 
-inline vec_t Rotate(const vec_t & v, float a)
+inline vec4 Rotate(const vec4 & v, float a)
 {
 	float sn = sinf(a);
 	float cs = cosf(a);
-	return vec_t(v.x * cs - v.y * sn, v.x * sn + v.y * cs, 0.f);
+	return vec4(v.x * cs - v.y * sn, v.x * sn + v.y * cs, 0.f);
 }
 
-inline float GetAngle(const vec_t& a, const vec_t& b)
+inline float GetAngle(const vec4& a, const vec4& b)
 {
-	vec_t crossed = cross(a, b);
+	vec4 crossed = cross(a, b);
 	float dt = Dot(a, b);
 	return atan2f(crossed.length(), dt) * ((crossed.z >= 0.f) ? 1.f:-1.f);
 }
@@ -1298,12 +1225,10 @@ template<typename T> bool SegmentsIntersect(T x1, T x2, T y1, T y2)
 	return x2 >= y1 && y2 >= x1;
 }
 //static const float ZPI = 3.14159265358979323846f;
-static const float RAD2DEG = (180.f / ZPI);
-static const float DEG2RAD = (ZPI / 180.f);
 
-inline void DecomposeMatrixToComponents(const float* matrix, float* translation, float* rotation, float* scale)
+inline void DecomposeMatrixToComponents(const float* source, float* translation, float* rotation, float* scale)
 {
-	matrix_t mat = *(matrix_t*)matrix;
+	matrix mat = *(matrix*)source;
 
 	scale[0] = mat.right.length();
 	scale[1] = mat.up.length();
@@ -1320,11 +1245,11 @@ inline void DecomposeMatrixToComponents(const float* matrix, float* translation,
 	translation[2] = mat.position.z;
 }
 
-inline void RecomposeMatrixFromComponents(const float* translation, const float* rotation, const float* scale, float* matrix)
+inline void RecomposeMatrixFromComponents(const float* translation, const float* rotation, const float* scale, float* destination)
 {
-	matrix_t& mat = *(matrix_t*)matrix;
-	static const vec_t directionUnary[3] = { vec_t(1.f, 0.f, 0.f), vec_t(0.f, 1.f, 0.f), vec_t(0.f, 0.f, 1.f) };
-	matrix_t rot[3];
+	matrix& mat = *(matrix*)destination;
+	static const vec4 directionUnary[3] = { vec4(1.f, 0.f, 0.f), vec4(0.f, 1.f, 0.f), vec4(0.f, 0.f, 1.f) };
+	matrix rot[3];
 	for (int i = 0; i < 3; i++)
 	{
 		rot[i].rotationAxis(directionUnary[i], rotation[i] * DEG2RAD);
@@ -1347,5 +1272,24 @@ inline void RecomposeMatrixFromComponents(const float* translation, const float*
 	mat.right *= validScale[0];
 	mat.up *= validScale[1];
 	mat.dir *= validScale[2];
-	mat.position = vec_t(translation[0], translation[1], translation[2], 1.f);
+	mat.position = vec4(translation[0], translation[1], translation[2], 1.f);
 }
+
+// Static arrays
+template <typename T, size_t N>
+struct Array
+{
+   T data[N];
+   const size_t size() const { return N; }
+
+   const T operator [] (size_t index) const { return data[index]; }
+   operator T* () {
+      T* p = new T[N];
+      memcpy(p, data, sizeof(data));
+      return p;
+   }
+};
+
+template <typename T, typename ... U> Array(T, U...)->Array<T, 1 + sizeof...(U)>;
+
+} // namespace Imm

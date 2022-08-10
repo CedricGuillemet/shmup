@@ -24,12 +24,10 @@ struct GLTFFrame {
     float znear, zfar;
 };
 
-std::vector< GLTFFrame> gltfFrames;
-
-void ImportGLTF(const char* szFilename)
+std::vector< GLTFFrame> ImportGLTF(const char* szFilename)
 {
-    gltfFrames.clear();
-    cgltf_options options = { 0 };
+    std::vector< GLTFFrame> gltfFrames;
+    cgltf_options options = {  };
     cgltf_data* data = NULL;
     cgltf_result result = cgltf_parse_file(&options, szFilename, &data);
     if (result == cgltf_result_success)
@@ -44,7 +42,7 @@ void ImportGLTF(const char* szFilename)
             for (cgltf_size samp = 0; samp < animation.samplers_count; samp++)
             {
                 auto& sampler = animation.samplers[samp];
-                frameCount = max(frameCount, sampler.output->count);
+                frameCount = std::max((size_t)frameCount, sampler.output->count);
             }
         }
         gltfFrames.resize(frameCount);
@@ -87,10 +85,10 @@ void ImportGLTF(const char* szFilename)
             {
                 const auto& node = data->nodes[nodeIndex];
                 if (node.camera) {
-                    matrix_t* p = (matrix_t*)&gltfFrame.projection;
+                    Imm::matrix* p = (Imm::matrix*)&gltfFrame.projection;
                     gltfFrame.znear = node.camera->data.perspective.znear;
                     gltfFrame.zfar = node.camera->data.perspective.zfar;
-                    p->glhPerspectivef2Rad(node.camera->data.perspective.yfov * 0.5f, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar);
+                    p->glhPerspectivef2Rad(node.camera->data.perspective.yfov * 0.5f, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar, true);
                     cgltf_node_transform_world(&node, gltfFrame.view.m);
                 }
                 else if (node.mesh) {
@@ -126,10 +124,10 @@ void ImportGLTF(const char* szFilename)
                     auto meshVertexBase = gltfFrame.positions.size();
 
                     // transform / copy positions
-                    matrix_t worldMat;
+                    Imm::matrix worldMat;
                     cgltf_node_transform_world(&node, worldMat.m16);
                     for (const auto& position : vertices) {
-                        vec_t p{ position.x, position.y, position.z };
+                        Imm::vec4 p{ position.x, position.y, position.z, 0.f };
                         p.TransformPoint(worldMat);
                         gltfFrame.positions.push_back({p.x, p.y, p.z});
                     }
@@ -163,4 +161,6 @@ void ImportGLTF(const char* szFilename)
         }
         cgltf_free(data);
     }
+    
+    return gltfFrames;
 }

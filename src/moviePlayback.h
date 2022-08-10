@@ -8,7 +8,7 @@ struct FrameInfos
 };
 struct FrameVertex
 {
-	int8_t x, y;
+	int16_t x, y;
 };
 struct FrameFace
 {

@@ -3,6 +3,7 @@
 .build
 *.ilk
 *.pdb
+.DS_STORE
 
 # Compiled Object files
 *.slo

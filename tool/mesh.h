@@ -6,7 +6,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "maths.h"
+#include "Immath.h"
 #include "moviePlayback.h"
 
 inline std::vector<uint8_t> ReadFile(const std::string& filePathName)
@@ -55,13 +55,13 @@ public:
 			g = (v >> 8) & 0xFF;
 			b = (v >> 16) & 0xFF;
 		}
-		vec_t GetVect() const
+		Imm::vec4 GetVect() const
 		{
-			vec_t res;
+			Imm::vec4 res;
 			res.fromUInt32(Get32());
 			return res;
 		}
-		void SetVect(const vec_t& v)
+		void SetVect(const Imm::vec4& v)
 		{
 			uint32_t c = v.toUInt32();
 			Set32(c);
@@ -130,17 +130,17 @@ public:
 		int maxY = int(max3(v0.y, v1.y, v2.y));
 
 		// Clip against screen bounds
-		minX = max(minX, 0);
-		minY = max(minY, 0);
-		maxX = min(maxX, bufferWidth - 1);
-		maxY = min(maxY, bufferHeight - 1);
+		minX = std::max(minX, 0);
+		minY = std::max(minY, 0);
+		maxX = std::min(maxX, bufferWidth - 1);
+		maxY = std::min(maxY, bufferHeight - 1);
 
 		// Rasterize
 		int x, y;
 		for (y = minY; y <= maxY; y++) {
 			for (x = minX; x <= maxX; x++) {
 				// Determine barycentric coordinates
-				V p{x, y};
+				V p{(int16_t)x, (int16_t)y};
 
 				int w0 = orient2d(v1, v2, p);
 				int w1 = orient2d(v2, v0, p);
@@ -165,17 +165,17 @@ public:
 		int maxY = int(max3(v0.y, v1.y, v2.y));
 
 		// Clip against screen bounds
-		minX = max(minX, 0);
-		minY = max(minY, 0);
-		maxX = min(maxX, bufferWidth - 1);
-		maxY = min(maxY, bufferHeight - 1);
+		minX = std::max(minX, 0);
+		minY = std::max(minY, 0);
+		maxX = std::min(maxX, bufferWidth - 1);
+		maxY = std::min(maxY, bufferHeight - 1);
 
 		// Rasterize
 		int x, y;
 		for (y = minY; y <= maxY; y++) {
 			for (x = minX; x <= maxX; x++) {
 				// Determine barycentric coordinates
-				V p{ x, y };
+				V p{ (float)x, (float)y };
 
 				int w0 = orient2d(v1, v2, p);
 				int w1 = orient2d(v2, v0, p);
@@ -210,17 +210,17 @@ public:
 		int maxY = int(max3(v0.y, v1.y, v2.y));
 
 		// Clip against screen bounds
-		minX = max(minX, 0);
-		minY = max(minY, 0);
-		maxX = min(maxX, bufferWidth - 1);
-		maxY = min(maxY, bufferHeight - 1);
+		minX = std::max(minX, 0);
+		minY = std::max(minY, 0);
+		maxX = std::min(maxX, bufferWidth - 1);
+		maxY = std::min(maxY, bufferHeight - 1);
 
 		// Rasterize
 		int x, y;
 		for (y = minY; y <= maxY; y++) {
 			for (x = minX; x <= maxX; x++) {
 				// Determine barycentric coordinates
-				V p{ x, y };
+				V p{ (float)x, (float)y };
 
 				int w0 = orient2d(v1, v2, p);
 				int w1 = orient2d(v2, v0, p);
@@ -247,14 +247,14 @@ public:
 		}
 	}
 
-	std::vector<Face> ClipFaces(const std::vector<Face>& faces, std::vector<vec_t>& positions, const vec_t& plan) const
+	std::vector<Face> ClipFaces(const std::vector<Face>& faces, std::vector<Imm::vec4>& positions, const Imm::vec4& plan) const
 	{
 		std::vector<Face> res;
 
 		for (size_t i = 0; i < faces.size(); i++)
 		{
 			const auto& face = faces[i];
-			vec_t p[3];
+			Imm::vec3 p[3];
 			p[0] = positions[face.a];
 			p[1] = positions[face.b];
 			p[2] = positions[face.c];
@@ -269,7 +269,7 @@ public:
 			for (int j = 0; j < 3; j++)
 			{
 				const auto vt = p[j];
-				float distanceToPlan = plan.signedDistanceTo(vt);
+                float distanceToPlan = plan.signedDistanceTo({vt.x, vt.y, vt.z, 0.f});
 				distancesToPlan[j] = distanceToPlan;
 				if (distanceToPlan > 0.f) {
 					indexFrontPlan[indexFrontPlanCount++] = j;
@@ -295,8 +295,8 @@ public:
 				float db = -distancesToPlan[b[1]];
 				float ta = d0 / (d0 + da);
 				float tb = d0 / (d0 + db);
-				vec_t newA = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[0]]], ta);
-				vec_t newB = LERP(mPositions[indices[frontIndex]], mPositions[indices[b[1]]], tb);
+				Imm::vec4 newA = Imm::Lerp(mPositions[indices[frontIndex]], mPositions[indices[b[0]]], ta);
+				Imm::vec4 newB = Imm::Lerp(mPositions[indices[frontIndex]], mPositions[indices[b[1]]], tb);
 				auto baseIndex = static_cast<uint16_t>(mPositions.size());
 				positions.push_back(newA);
 				positions.push_back(newB);
@@ -314,8 +314,8 @@ public:
 				float db = distancesToPlan[b[1]];
 				float ta = da / (d0 + da);
 				float tb = db / (d0 + db);
-				vec_t newA = LERP(mPositions[indices[b[0]]], mPositions[indices[behindIndex]], ta);
-				vec_t newB = LERP(mPositions[indices[b[1]]], mPositions[indices[behindIndex]], tb);
+				Imm::vec4 newA = Imm::Lerp(mPositions[indices[b[0]]], mPositions[indices[behindIndex]], ta);
+				Imm::vec4 newB = Imm::Lerp(mPositions[indices[b[1]]], mPositions[indices[behindIndex]], tb);
 				auto baseIndex = static_cast<uint16_t>(mPositions.size());
 				positions.push_back(newA);
 				positions.push_back(newB);
@@ -327,24 +327,24 @@ public:
 		return res;
 	}
 
-	void Transform(const matrix_t& view, const matrix_t proj, float znear)
+	void Transform(const Imm::matrix& view, const Imm::matrix proj, float znear)
 	{
-		matrix_t invView;
+		Imm::matrix invView;
 		invView.inverse(view);
 
 		//invView.lookAtLH(view.position, view.position+view.dir, view.up);
-		matrix_t matrix = invView * proj;
+		Imm::matrix matrix = invView * proj;
 		
 		// reject faces not in frustum, clip with near plane all others
 		std::vector<Face> mClippedFaces = mFaces;
 
-		ZFrustum frustum;
+        Imm::ZFrustum frustum;
 		frustum.Update(invView, proj);
 
 		for (int planIndex = 0; planIndex < 6; planIndex++)
 		{
 			float d = frustum.m_Frustum[planIndex][3];
-			mClippedFaces = ClipFaces(mClippedFaces, mPositions, vec_t{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
+			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
 		}
 
 		// transform to clip space
@@ -352,7 +352,8 @@ public:
 		mTransformedPositions.resize(mPositions.size());
 		for (size_t positionIndex = 0; positionIndex < mPositions.size(); positionIndex++)
 		{
-			mTransformedPositions[positionIndex].TransformPoint(mPositions[positionIndex], matrix);
+            const auto p = mPositions[positionIndex];
+            mTransformedPositions[positionIndex].TransformPoint({p.x, p.y, p.z, 0.f}, matrix);
 			mTransformedPositions[positionIndex] *= 1.f / mTransformedPositions[positionIndex].w;
 		}
 
@@ -375,8 +376,8 @@ public:
 		{
 			const auto& face = mSortedFaces[sortedFaceIndex];
 
-			vec_t p[3];
-			vec_t pc[3];
+			Imm::vec3 p[3];
+			Imm::vec3 pc[3];
 
 			p[0] = mTransformedPositions[face.a];
 			p[1] = mTransformedPositions[face.b];
@@ -384,7 +385,7 @@ public:
 
 			for (int j = 0; j < 3; j++)
 			{
-				pc[j] = vec_t((p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z);
+                pc[j] = Imm::vec3{(p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z};
 			}
 
 			DrawTriangleDepthTested(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex));
@@ -435,8 +436,8 @@ public:
 			const auto& face = mSortedFaces[sortedFaceIndex];
 			if (face.visible && !face.rendered)
 			{
-				vec_t p[3];
-				vec_t pc[3];
+				Imm::vec3 p[3];
+				Imm::vec3 pc[3];
 
 				p[0] = mTransformedPositions[face.a];
 				p[1] = mTransformedPositions[face.b];
@@ -444,7 +445,7 @@ public:
 
 				for (int j = 0; j < 3; j++)
 				{
-					pc[j] = vec_t((p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z);
+                    pc[j] = Imm::vec3{(p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z};
 				}
 
 				auto& occluders = occludedBy[sortedFaceIndex];
@@ -541,8 +542,8 @@ public:
 					else
 					{
 
-						vec_t trPos = mTransformedPositions[index];
-						FrameVertex frameVertex{int8_t((trPos.x * 127 + 128)), 200 - int8_t((trPos.y * 100 + 100))};
+						Imm::vec4 trPos = mTransformedPositions[index];
+                        FrameVertex frameVertex{int16_t((trPos.x * 127 + 128)), static_cast<int16_t>(200 - ((trPos.y * 100 + 100)))};
 
 						int foundSameVertex = -1;
 						for (size_t k = 0;k< currentFrame.vertices.size(); k++)
@@ -740,13 +741,13 @@ public:
 			}
 		}
 	}
-
+#if 0
 	void DebugDraw(ImDrawList& list, ImVec2 displaySize, ImVec2 displayOffset)
 	{
 		for (size_t i = 0; i < mRasterizedFaces.size(); i++)
 		{
 			const auto& face = mRasterizedFaces[i];
-			vec_t p[3];
+			Imm::vec3 p[3];
 			ImVec2 pc[3];
 
 			p[0] = mTransformedPositions[face.a];
@@ -763,7 +764,7 @@ public:
 			list.AddTriangleFilled(pc[0], pc[1], pc[2], face.mColor.Get32());
 		}
 	}
-	
+#endif
 
 	const uint32_t GetFaceCount() const { return uint32_t(mFaces.size()); }
 	const uint32_t GetRasterizedFaceCount() const { return uint32_t(mRasterizedFaces.size()); }
@@ -771,8 +772,8 @@ public:
 public:
 
 
-    std::vector<vec_t> mPositions;
-	std::vector<vec_t> mTransformedPositions;
+    std::vector<Imm::vec4> mPositions;
+	std::vector<Imm::vec4> mTransformedPositions;
     std::vector<Face> mFaces;
 	
 	std::vector<Face> mRasterizedFaces;

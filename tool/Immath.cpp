@@ -1,49 +1,36 @@
-//#include "stdafx.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  
-//      __   __                              __    
-//     |  |_|  |--.-----. .----.--.--.-----.|  |--.
-//   __|   _|     |  -__| |   _|  |  |__ --||     |
-//  |__|____|__|__|_____| |__| |_____|_____||__|__|
-//                                                 
-//  Copyright (C) 2007-2013 Cedric Guillemet
+//  Copyright (C) 2007-2022 Cedric Guillemet
 //
-// This file is part of .the rush//.
-//
-//    .the rush// is free software: you can redistribute it and/or modify
+//    Immath is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
-//    .the rush// is distributed in the hope that it will be useful,
+//    Immath is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with .the rush//.  If not, see <http://www.gnu.org/licenses/>
-//
-//
+//    along with Immath.  If not, see <http://www.gnu.org/licenses/>
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "Immath.h"
 
-#include "maths.h"
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
+using namespace Imm;
 
 int g_seed = 0;
-vec_t vec_t::zero(0.f,0.f,0.f,0.f);
+vec4 vec4::zero(0.f, 0.f, 0.f, 0.f);
 
-matrix_t matrix_t::Identity(1.f, 0.f, 0.f, 0.f,
-0.f, 1.f, 0.f, 0.f,
-0.f, 0.f, 1.f, 0.f,
-0.f, 0.f, 0.f, 1.f);
+matrix matrix::Identity(1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f);
 
-
-void vec_t::transform(const matrix_t& matrix )
+void vec4::transform(const matrix& matrix)
 {
-	vec_t out;
+	vec4 out;
 
 	out.x = x * matrix.m[0][0] + y * matrix.m[1][0] + z * matrix.m[2][0] + w * matrix.m[3][0];
 	out.y = x * matrix.m[0][1] + y * matrix.m[1][1] + z * matrix.m[2][1] + w * matrix.m[3][1];
@@ -56,15 +43,15 @@ void vec_t::transform(const matrix_t& matrix )
 	w = out.w;
 }
 
-void vec_t::transform(const vec_t & s, const matrix_t& matrix )
+void vec4::transform(const vec4 & s, const matrix& matrix )
 {
 	*this = s;
     transform( matrix );
 }
 
-void vec_t::TransformVector(const matrix_t& matrix )
+void vec4::TransformVector(const matrix& matrix )
 {
-	vec_t out;
+	vec4 out;
 
 	out.x = x * matrix.m[0][0] + y * matrix.m[1][0] + z * matrix.m[2][0] ;
 	out.y = x * matrix.m[0][1] + y * matrix.m[1][1] + z * matrix.m[2][1] ;
@@ -77,9 +64,9 @@ void vec_t::TransformVector(const matrix_t& matrix )
 	w = out.w;
 }
 
-void vec_t::TransformPoint(const matrix_t& matrix )
+void vec4::TransformPoint(const matrix& matrix )
 {
-	vec_t out;
+	vec4 out;
 
 	out.x = x * matrix.m[0][0] + y * matrix.m[1][0] + z * matrix.m[2][0] + matrix.m[3][0] ;
 	out.y = x * matrix.m[0][1] + y * matrix.m[1][1] + z * matrix.m[2][1] + matrix.m[3][1] ;
@@ -96,55 +83,52 @@ void vec_t::TransformPoint(const matrix_t& matrix )
 //matrix will receive the calculated perspective matrix.
 //You would have to upload to your shader
 // or use glLoadMatrixf if you aren't using shaders.
-void matrix_t::glhPerspectivef2(float fovyInDegrees, float aspectRatio,
-									  float znear, float zfar)
+void matrix::glhPerspectivef2(float fovyInDegrees, float aspectRatio,
+									  float znear, float zfar, bool homogeneousNdc, bool rightHand)
 {
-    float ymax, xmax;
-    ymax = znear * tanf(fovyInDegrees * ZPI / 360.0f);
-    xmax = ymax * aspectRatio;
-    glhFrustumf2(-xmax, xmax, -ymax, ymax, znear, zfar);
+	const float height = 1.0f / tanf(fovyInDegrees * DEG2RAD * 0.5f);
+	const float width = height * 1.0f / aspectRatio;
+	glhFrustumf2(0.0f, 0.0f, width, height, znear, zfar, homogeneousNdc, rightHand);
 }
 
-void matrix_t::glhPerspectivef2Rad(float fovyRad, float aspectRatio,
-	float znear, float zfar)
+void matrix::glhPerspectivef2Rad(float fovyRad, float aspectRatio,
+	float znear, float zfar, bool homogeneousNdc, bool rightHand)
 {
-	float ymax, xmax;
-	ymax = znear * tanf(fovyRad);
-	xmax = ymax * aspectRatio;
-	glhFrustumf2(-xmax, xmax, -ymax, ymax, znear, zfar);
+	const float height = 1.0f / tanf(fovyRad * 0.5f);
+	const float width = height * 1.0f / aspectRatio;
+	glhFrustumf2(0.0f, 0.0f, width, height, znear, zfar, homogeneousNdc, rightHand);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void matrix_t::glhFrustumf2(float left, float right, float bottom, float top,
-								  float znear, float zfar)
+void matrix::glhFrustumf2(float x, float y, float width, float height,
+								  float znear, float zfar, bool homogeneousNdc, bool rightHand)
 {
-    float temp, temp2, temp3, temp4;
-    temp = 2.0f * znear;
-    temp2 = right - left;
-    temp3 = top - bottom;
-    temp4 = zfar - znear;
-    m16[0] = temp / temp2;
-    m16[1] = 0.0;
-    m16[2] = 0.0;
-    m16[3] = 0.0;
-    m16[4] = 0.0;
-    m16[5] = temp / temp3;
-    m16[6] = 0.0;
-    m16[7] = 0.0;
-    m16[8] = (right + left) / temp2;
-    m16[9] = (top + bottom) / temp3;
-    m16[10] = (-zfar - znear) / temp4;
-    m16[11] = -1.0f;
-    m16[12] = 0.0;
-    m16[13] = 0.0;
-    m16[14] = (-temp * zfar) / temp4;
-    m16[15] = 0.0;
+	const float diff = zfar - znear;
+	const float aa = homogeneousNdc ? (zfar + znear) / diff : zfar / diff;
+	const float bb = homogeneousNdc ? (2.0f * zfar * znear) / diff : znear * aa;
+
+	m16[0] = width;
+	m16[1] = 0.f;
+	m16[2] = 0.f;
+	m16[3] = 0.f;
+	m16[4] = 0.f;
+	m16[5] = height;
+	m16[6] = 0.f;
+	m16[7] = 0.f;
+	m16[8] = rightHand ? x : -x;
+	m16[9] = rightHand ? y : -y;
+	m16[10] = rightHand ? -aa : aa;
+	m16[11] = rightHand ? -1.0f : 1.0f;
+	m16[12] = 0.f;
+	m16[13] = 0.f;
+	m16[14] = -bb;
+	m16[15] = 0.f;
 }
 
-void matrix_t::lookAtRH(const vec_t &eye, const vec_t &at, const vec_t &up )
+void matrix::lookAtRH(const vec4 &eye, const vec4 &at, const vec4 &up )
 {	
-	vec_t X, Y, Z, tmp;
+	vec4 X, Y, Z, tmp;
 	
 	Z.normalize(eye - at);
 	Y.normalize(up);
@@ -178,9 +162,9 @@ void matrix_t::lookAtRH(const vec_t &eye, const vec_t &at, const vec_t &up )
 }
 
 
-void matrix_t::lookAtLH(const vec_t &eye, const vec_t &at, const vec_t &up )
+void matrix::lookAtLH(const vec4 &eye, const vec4 &at, const vec4 &up )
 {
-	vec_t X, Y, Z, tmp;
+	vec4 X, Y, Z, tmp;
 
 	Z.normalize(at - eye);
 	Y.normalize(up);
@@ -212,10 +196,10 @@ void matrix_t::lookAtLH(const vec_t &eye, const vec_t &at, const vec_t &up )
 	m[3][3] = 1.0f;
 }
 
-void matrix_t::LookAt(const vec_t &eye, const vec_t &at, const vec_t &up )
+void matrix::LookAt(const vec4 &eye, const vec4 &at, const vec4 &up )
 {
 
-	vec_t X, Y, Z, tmp;
+	vec4 X, Y, Z, tmp;
 
 	Z.normalize(eye - at);
 	Y.normalize(up);
@@ -247,7 +231,7 @@ void matrix_t::LookAt(const vec_t &eye, const vec_t &at, const vec_t &up )
 	m[3][3] = 1.0f;
 }
 
-void matrix_t::PerspectiveFovLH2(const float fovy, const float aspect, const float zn, const float zf )
+void matrix::PerspectiveFovLH2(const float fovy, const float aspect, const float zn, const float zf )
 {
 /*
 	xScale     0          0               0
@@ -294,7 +278,7 @@ float xscale = yscale / aspect;
 
 
 
-void matrix_t::OrthoOffCenterLH(const float l, float r, float b, const float t, float zn, const float zf )
+void matrix::OrthoOffCenterLH(const float l, float r, float b, const float t, float zn, const float zf )
 {
 	m[0][0] = 2 / (r-l);
 	m[0][1] = 0.0f;
@@ -318,10 +302,10 @@ void matrix_t::OrthoOffCenterLH(const float l, float r, float b, const float t, 
 }
 
 
-vec_t vec_t::interpolateHermite(const vec_t &nextKey, const vec_t &nextKeyP1, const vec_t &prevKey, float ratio) const
+vec4 vec4::interpolateHermite(const vec4 &nextKey, const vec4 &nextKeyP1, const vec4 &prevKey, float ratio) const
 {
-	//((tvec_t3*)res)->Lerp(m_Value, nextKey.m_Value, ratio );
-	//return *((tvec_t3*)res);
+	//((tvec43*)res)->Lerp(m_Value, nextKey.m_Value, ratio );
+	//return *((tvec43*)res);
 	float t = ratio;
 	float t2 = t*t;
 	float t3 = t2*t;
@@ -330,7 +314,7 @@ vec_t vec_t::interpolateHermite(const vec_t &nextKey, const vec_t &nextKeyP1, co
 	float h3 = (t3 - 2.f*t2 + t) * .5f;
 	float h4 = (t3 - t2) *.5f;
 	
-	vec_t res;
+	vec4 res;
 	res = (*this) * h1;
 	res += nextKey *h2;
 	res += (nextKey - prevKey) * h3;
@@ -340,7 +324,7 @@ vec_t vec_t::interpolateHermite(const vec_t &nextKey, const vec_t &nextKeyP1, co
 }
 
 
-float matrix_t::inverse(const matrix_t &srcMatrix, bool affine )
+float matrix::inverse(const matrix &srcMatrix, bool affine )
 {
     float det = 0;
 
@@ -438,7 +422,7 @@ float matrix_t::inverse(const matrix_t &srcMatrix, bool affine )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-float matrix_t::inverse(bool affine)
+float matrix::inverse(bool affine)
 {
     float det = 0;
 
@@ -548,16 +532,16 @@ float matrix_t::inverse(bool affine)
 }
 
 
-void matrix_t::rotationAxis(const vec_t & axis, float angle )
+void matrix::rotationAxis(const vec4 & axis, float angle )
 {
 	float length2 = axis.lengthSq();
-	if ( length2 < FLOAT_EPSILON)
+	if ( length2 < FLT_EPSILON)
 	{
 		identity();
 		return;
 	}
 
-	vec_t n = axis * (1.f / sqrtf(length2));
+	vec4 n = axis * (1.f / sqrtf(length2));
 	float s = sinf(angle);
 	float c = cosf(angle);
 	float k = 1.f - c;
@@ -594,7 +578,7 @@ void matrix_t::rotationAxis(const vec_t & axis, float angle )
 
 
 
-void matrix_t::rotationYawPitchRoll(const float yaw, const float pitch, const float roll )
+void matrix::rotationYawPitchRoll(const float yaw, const float pitch, const float roll )
 {
 	float cy = cosf(yaw);
 	float sy = sinf(yaw);
@@ -627,7 +611,7 @@ void matrix_t::rotationYawPitchRoll(const float yaw, const float pitch, const fl
 }
 
 
-void matrix_t::rotationQuaternion( const vec_t &q )
+void matrix::rotationQuaternion( const vec4 &q )
 {
 	float xx = q.x*q.x;
 	float xy = q.x*q.y;
@@ -745,7 +729,7 @@ void ZFrustum::Update(const float* clip)
 	NormalizePlane(m_Frustum, FRONT);
 }
 
-void ZFrustum::Update(const matrix_t &view, const matrix_t& projection)
+void ZFrustum::Update(const matrix &view, const matrix& projection)
 {
 	float   *proj;
 	float   *modl;
@@ -783,16 +767,16 @@ void ZFrustum::Update(const matrix_t &view, const matrix_t& projection)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool ZFrustum::OBBInFrustum( const matrix_t &mt, const vec_t &pos, const vec_t& size) const
+bool ZFrustum::OBBInFrustum( const matrix &mt, const vec4 &pos, const vec4& size) const
 {
 	ZFrustum tmpfrus;
 	for (int i=0;i<6;i++)
 	{
-		((vec_t&)tmpfrus.m_Frustum[i]).TransformVector(((vec_t&)m_Frustum[i]), mt);
+		((vec4&)tmpfrus.m_Frustum[i]).TransformVector(((vec4&)m_Frustum[i]), mt);
 		tmpfrus.m_Frustum[i][3] = m_Frustum[i][3];
 	}
 
-	vec_t npos;
+	vec4 npos;
 	npos.TransformPoint(pos, mt);
 	bool bRet = tmpfrus.BoxInFrustum(npos, size);
 	return bRet;

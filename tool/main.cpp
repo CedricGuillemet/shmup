@@ -1,16 +1,25 @@
 #include "imgui.h"
-#define IMAPP_IMPL
-#include "ImApp.h"
-#include <io.h>
 #include <math.h>
 #include <vector>
 #include <algorithm>
 #include "imgui_internal.h"
-#include "mesh.h"
+//#include "mesh.h"
 #include "moviePlayback.h"
-#include "gltfImport.h"
+//#include "gltfImport.h"
 #include <string>
+#include "Movie.h"
 
+Movie movie;
+
+void frame() {
+}
+
+int main(int, char **) {
+    movie.ParseScript("movie.txt");
+    imgui_app(frame, "shmup Tool", 1024, 768);
+    return 0;
+}
+#if 0
 void GetFilesList(std::vector<std::string>& aList, const char* szPath, const char* szWild, bool bRecurs, bool bDirectoriesInsteadOfFiles, bool bCompletePath)
 {
     _finddata_t fileinfo;
@@ -157,7 +166,7 @@ bool fileList_getter(void* data, int idx, const char** out_text)
     return true;
 }
 
-int main(int, char**)
+int main2(int, char**)
 {
    ImApp::ImApp imApp;
 
@@ -326,3 +335,4 @@ int main(int, char**)
 
    return 0;
 }
+#endif
