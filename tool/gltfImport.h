@@ -24,7 +24,7 @@ struct GLTFFrame {
     float znear, zfar;
 };
 
-std::vector< GLTFFrame> ImportGLTF(const char* szFilename)
+std::vector< GLTFFrame> ImportGLTF(const char* szFilename, const char* cameraName)
 {
     std::vector< GLTFFrame> gltfFrames;
     cgltf_options options = {  };
@@ -85,11 +85,14 @@ std::vector< GLTFFrame> ImportGLTF(const char* szFilename)
             {
                 const auto& node = data->nodes[nodeIndex];
                 if (node.camera) {
-                    Imm::matrix* p = (Imm::matrix*)&gltfFrame.projection;
-                    gltfFrame.znear = node.camera->data.perspective.znear;
-                    gltfFrame.zfar = node.camera->data.perspective.zfar;
-                    p->glhPerspectivef2Rad(node.camera->data.perspective.yfov * 0.5f, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar, true);
-                    cgltf_node_transform_world(&node, gltfFrame.view.m);
+                    if (!strcmp(node.name, cameraName))
+                    {
+                        Imm::matrix* p = (Imm::matrix*)&gltfFrame.projection;
+                        gltfFrame.znear = node.camera->data.perspective.znear;
+                        gltfFrame.zfar = node.camera->data.perspective.zfar;
+                        p->glhPerspectivef2Rad(node.camera->data.perspective.yfov * 0.5f, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar, true);
+                        cgltf_node_transform_world(&node, gltfFrame.view.m);
+                    }
                 }
                 else if (node.mesh) {
                     struct Vertex
