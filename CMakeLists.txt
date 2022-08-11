@@ -16,6 +16,7 @@ file(GLOB TOOL_FILES
     ${CMAKE_SOURCE_DIR}/tool/*.cpp
     ${CMAKE_SOURCE_DIR}/tool/imgui-app/*.cpp
     ${CMAKE_SOURCE_DIR}/tool/imgui-app/*.h
+    ${CMAKE_SOURCE_DIR}/src/moviePlayback.*
 
 )
 

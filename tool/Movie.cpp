@@ -5,6 +5,7 @@
 #include <vector>
 #include "mesh.h"
 #include "gltfImport.h"
+#include "moviePlayback.h"
 
 static int ParseTokens(char* str, std::vector<std::string>& strings)
 {
@@ -70,14 +71,28 @@ void Movie::ReleaseSequenceSlot(int8_t slot)
     mSlots ^= (1<<slot);
 }
 
+void Movie::PushUI32(uint32_t v)
+{
+    uint8_t* val = (uint8_t*)&v;
+    for (int i = 0; i < 4; i++)
+    {
+        mBytes.push_back(*val++);
+    }
+}
+
 void Movie::PushSequence(int8_t slot, const std::vector<uint8_t>& bytes)
 {
-    
+    mBytes.push_back(MOVIE_SEQ);
+    mBytes.push_back((uint8_t)slot);
+    PushUI32(uint32_t(bytes.size()));
+    mBytes.insert(mBytes.end(), bytes.begin(), bytes.end());
 }
 
 void Movie::PushPlayback(int8_t slot, uint8_t count)
 {
-    
+    mBytes.push_back(MOVIE_PLAY);
+    mBytes.push_back((uint8_t)slot);
+    mBytes.push_back(count);
 }
 
 void Movie::ParseScript(const std::string& filename)
@@ -176,5 +191,5 @@ void Movie::ParseScript(const std::string& filename)
 
 void Movie::WriteMovie(const std::string& filename)
 {
-
+    WriteFile(filename.c_str(), mBytes);
 }

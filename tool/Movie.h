@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <vector>
 
 class Movie
 {
@@ -14,6 +15,7 @@ public:
 protected:
     void PushSequence(int8_t slot, const std::vector<uint8_t>& bytes);
     void PushPlayback(int8_t slot, uint8_t count);
+    void PushUI32(uint32_t v);
 
     // SEQ road Levels/road.glb Cam_road 5
     struct Sequence
@@ -29,4 +31,6 @@ protected:
     uint8_t mSlots{0};
     int8_t AcquireSequenceSlot();
     void ReleaseSequenceSlot(int8_t slot);
+    
+    std::vector<uint8_t> mBytes;
 };

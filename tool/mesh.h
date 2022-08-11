@@ -341,7 +341,7 @@ public:
         Imm::ZFrustum frustum;
 		frustum.Update(invView, proj);
 
-		for (int planIndex = 0; planIndex < 6; planIndex++)
+		for (int planIndex = 0; planIndex < 0; planIndex++)
 		{
 			float d = frustum.m_Frustum[planIndex][3];
 			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
@@ -543,7 +543,7 @@ public:
 					{
 
 						Imm::vec4 trPos = mTransformedPositions[index];
-                        FrameVertex frameVertex{int16_t((trPos.x * 127 + 128)), static_cast<int16_t>(200 - ((trPos.y * 100 + 100)))};
+                        FrameVertex frameVertex{int16_t((trPos.x * 160 + 160)), static_cast<int16_t>(200 - ((trPos.y * 100 + 100)))};
 
 						int foundSameVertex = -1;
 						for (size_t k = 0;k< currentFrame.vertices.size(); k++)

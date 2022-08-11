@@ -90,7 +90,7 @@ std::vector< GLTFFrame> ImportGLTF(const char* szFilename, const char* cameraNam
                         Imm::matrix* p = (Imm::matrix*)&gltfFrame.projection;
                         gltfFrame.znear = node.camera->data.perspective.znear;
                         gltfFrame.zfar = node.camera->data.perspective.zfar;
-                        p->glhPerspectivef2Rad(node.camera->data.perspective.yfov * 0.5f, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar, true);
+                        p->glhPerspectivef2Rad(node.camera->data.perspective.yfov, 320.f / 200.f, gltfFrame.znear, gltfFrame.zfar, false);
                         cgltf_node_transform_world(&node, gltfFrame.view.m);
                     }
                 }

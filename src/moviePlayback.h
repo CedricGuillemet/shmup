@@ -32,6 +32,15 @@ inline  struct FrameColor Color32Frame(uint32_t color)
 	frameColor.b = (color >> 16) & 0xFF;
 	return frameColor;
 }
+extern uint32_t palette[256];
+
+#define MOVIE_SEQ 0x01
+#define MOVIE_PLAY 0x02
+
 
 extern int ReadMovie(const char* szPath);
 extern int RenderMovieFrame();
+
+// slow/debug
+extern int GetMovieFrameCount();
+

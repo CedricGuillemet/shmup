@@ -11,104 +11,20 @@
 
 Movie movie;
 
-void frame() {
-}
-
-int main(int, char **) {
-    movie.ParseScript("movie.txt");
-    imgui_app(frame, "shmup Tool", 1024, 768);
-    return 0;
-}
-#if 0
-void GetFilesList(std::vector<std::string>& aList, const char* szPath, const char* szWild, bool bRecurs, bool bDirectoriesInsteadOfFiles, bool bCompletePath)
+struct Triangle
 {
-    _finddata_t fileinfo;
-    std::string path = szPath;
-    std::string wildc = "*";
+    int16_t ax,ay,bx,by,cx,cy;
+    uint32_t color;
+};
 
-    long fret;
-    std::string findDir = path + wildc;
-    intptr_t fndhand = _findfirst(findDir.c_str(), &fileinfo);
-    if (fndhand != -1)
-    {
-        do
-        {
-            if (strcmp(fileinfo.name, ".") && strcmp(fileinfo.name, ".."))
-            {
-                std::string wildc2;
-                wildc2 = szPath;
-                wildc2 += fileinfo.name;
-                if (!(fileinfo.attrib & _A_HIDDEN))
-                {
-                    if (fileinfo.attrib & _A_SUBDIR)
-                    {
-                        if (bDirectoriesInsteadOfFiles)
-                        {
-                            if (bCompletePath)
-                            {
-                                aList.push_back(wildc2);
-                            }
-                            else
-                            {
-                                aList.push_back(fileinfo.name);
-                            }
-                        }
+std::vector<Triangle> triangles;
 
-                        wildc2 += "/";
-                        if (bRecurs)
-                            GetFilesList(aList, wildc2.c_str(), szWild, bRecurs, bDirectoriesInsteadOfFiles, bCompletePath);
-                    }
-                    else
-                    {
-                        if (!bDirectoriesInsteadOfFiles)
-                        {
-                            if (strstr(wildc2.c_str(), szWild))
-                            {
-                                if (bCompletePath)
-                                {
-                                    aList.push_back(wildc2);
-                                }
-                                else
-                                {
-                                    aList.push_back(fileinfo.name);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            fret = _findnext(fndhand, &fileinfo);
-        } 		while (fret != -1);
-    }
-    _findclose(fndhand);
-}
-
-ImDrawList* BeginFrame()
+void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t color)
 {
-    const ImU32 flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-#ifdef IMGUI_HAS_VIEWPORT
-    ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
-#else
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-#endif
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, 0);
-    ImGui::PushStyleColor(ImGuiCol_Border, 0);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-
-    ImGui::Begin("gizmo", NULL, flags);
-    ImDrawList* res = ImGui::GetWindowDrawList();
-    ImGui::End();
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor(2);
-    return res;
+    triangles.push_back({ax,ay,bx,by,cx,cy, palette[color]});
 }
 
-void DrawBitmap(int width, int height, uint32_t* bmp, const char* buttonName)
+void Draw(int width, int height, const char* buttonName)
 {
     int factor = 2;
 
@@ -116,56 +32,40 @@ void DrawBitmap(int width, int height, uint32_t* bmp, const char* buttonName)
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();            // ImDrawList API uses screen coordinates!
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();        // Resize canvas to what's available
 
-    for (int y = 0; y < height; y++)
+    draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200));
+    for(auto triangle : triangles)
     {
-        for (int x = 0; x < width; x++)
-        {
-            ImVec2 st = canvas_pos;
-            st.x += x * factor;
-            st.y +=  y * factor;
-            draw_list->AddRectFilled(st, ImVec2(st.x + factor, st.y + factor), bmp[y * width + x]);
-        }
+        draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x, canvas_pos.y + 200 - triangle.cy),
+                                     ImVec2(triangle.bx + canvas_pos.x, canvas_pos.y + 200 - triangle.by),
+                                     ImVec2(triangle.ax + canvas_pos.x, canvas_pos.y + 200 - triangle.ay), triangle.color);
     }
-    ImGui::InvisibleButton(buttonName, ImVec2((float)(width * factor), (float)(height * factor)));
+    draw_list->PopClipRect();
+    ImGui::InvisibleButton(buttonName, ImVec2(width, height));
+    //
 }
 
-void ConvertGLTFToMesh(const GLTFFrame& frame, Mesh& mesh, matrix_t& view, matrix_t& projection, float& znear)
-{
-    znear = frame.znear;
-    mesh.mPositions.resize(frame.positions.size());
-    for(uint32_t i = 0; i < frame.positions.size(); i++)
-    {
-        mesh.mPositions[i].x = frame.positions[i].x;
-        mesh.mPositions[i].y = frame.positions[i].y;
-        mesh.mPositions[i].z = frame.positions[i].z;
-    }
-
-    mesh.mFaces.resize(frame.triangles.size());
-    for (uint32_t i = 0; i < frame.triangles.size(); i++)
-    {
-        auto& f = mesh.mFaces[i];
-        auto& tri = frame.triangles[i];
-        f.a = tri.a;
-        f.b = tri.b;
-        f.c = tri.c;
-        f.mColor.SetVect({tri.red, tri.green, tri.blue});
-    }
-
-    memcpy(&view, frame.view.m, sizeof(float) * 16);
-    memcpy(&projection, frame.projection.m, sizeof(float) * 16);
-}
-/*
-(void* data, int idx, const char** out_text) {
-    *out_text = "hoho";
-}*/
-
-bool fileList_getter(void* data, int idx, const char** out_text)
-{
-    std::vector<std::string>* list = (std::vector<std::string>*)data;
-    *out_text = (*list)[idx].c_str();
-    return true;
+void frame() {
+    triangles.clear();
+    RenderMovieFrame();
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Movie");
+    ImGui::Button("What");
+    Draw(320, 200, "InvButton");
+    ImGui::Button("What2");
+    ImGui::End();
 }
 
+int main(int, char **) {
+    movie.ParseScript("movie.txt");
+    movie.WriteMovie("movie.bin");
+    ReadMovie("movie.bin");
+    
+    imgui_app(frame, "shmup Tool", 1024, 768);
+    return 0;
+}
+
+#if 0
 int main2(int, char**)
 {
    ImApp::ImApp imApp;
