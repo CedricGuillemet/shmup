@@ -43,4 +43,4 @@ extern int RenderMovieFrame();
 
 // slow/debug
 extern int GetMovieFrameCount();
-
+extern void RenderMovieFrame(int frameIndex);

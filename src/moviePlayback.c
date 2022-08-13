@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "moviePlayback.h"
-
+#include <assert.h>
 unsigned char* movieData = NULL;
 unsigned char* movieDataEnd = NULL;
 //unsigned char* movieFrame = NULL;
-unsigned char* moviePointer = NULL;
+//unsigned char* moviePointer = NULL;
 
 struct MovieState
 {
@@ -89,58 +89,116 @@ int ReadChunk()
     return 1;
 }
 
-int RenderMovieFrame()
+
+struct FrameDecodedInfos
 {
-	/*if (movieFrame >= movieDataEnd)
-	{
-		free(movieData);
-		movieData = NULL;
-		return 0;
-	}*/
+    struct FrameInfos* frameInfos;
+    struct FrameVertex* frameVertices;
+    struct FrameFace* frameFaces;
+    struct FrameColor* frameColors;
+};
+
+FrameDecodedInfos DecodeNextFrame()
+{
+    FrameDecodedInfos frameDecodedInfos;
+    frameDecodedInfos.frameInfos = NULL;
+    /*if (movieFrame >= movieDataEnd)
+    {
+        free(movieData);
+        movieData = NULL;
+        return 0;
+    }*/
     
     while (!movieState.playCount)
     {
         if (!ReadChunk())
         {
-            return 0;
+            return frameDecodedInfos;
         }
     };
     
     movieState.playCount --;
 
-    unsigned char* frameDiff = movieState.sequencePlaying;
-    struct FrameInfos* frameInfos = (struct FrameInfos*)movieState.sequencePlaying;
+    frameDecodedInfos.frameInfos = (struct FrameInfos*)movieState.sequencePlaying;
     movieState.sequencePlaying += sizeof(struct FrameInfos);
-    struct FrameVertex* frameVertices = (struct FrameVertex*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameVertex) * frameInfos->vertexCount;
-    struct FrameFace* frameFaces = (struct FrameFace*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameFace) * frameInfos->faceCount;
-    struct FrameColor* frameColors = (struct FrameColor*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameColor) * frameInfos->colorCount;
-    
-    //auto difft = movieState.sequencePlaying - frameDiff;
-    //auto difft2 = movieState.sequenceEnd - movieState.sequencePlaying;
-    
+    frameDecodedInfos.frameVertices = (struct FrameVertex*)movieState.sequencePlaying;
+    movieState.sequencePlaying += sizeof(struct FrameVertex) * frameDecodedInfos.frameInfos->vertexCount;
+    frameDecodedInfos.frameFaces = (struct FrameFace*)movieState.sequencePlaying;
+    movieState.sequencePlaying += sizeof(struct FrameFace) * frameDecodedInfos.frameInfos->faceCount;
+    frameDecodedInfos.frameColors = (struct FrameColor*)movieState.sequencePlaying;
+    movieState.sequencePlaying += sizeof(struct FrameColor) * frameDecodedInfos.frameInfos->colorCount;
+        
     // loop sequence
     if (movieState.sequencePlaying >= movieState.sequencePlayingEnd)
     {
         movieState.sequencePlaying = movieState.sequencePlayingBase;
     }
+    return frameDecodedInfos;
+}
 
-    // set palette
-    for (int i = 0; i<frameInfos->colorCount; i++, frameColors++)
+void UpdatePalette(FrameDecodedInfos* frameDecodedInfos)
+{
+    for (int i = 0; i<frameDecodedInfos->frameInfos->colorCount; i++, frameDecodedInfos->frameColors++)
     {
-        palette[frameColors->index + 50] = frameColors->b + (frameColors->g << 8) + (frameColors->r << 16) + 0xFF000000;
+        palette[frameDecodedInfos->frameColors->index + 50] = frameDecodedInfos->frameColors->b + (frameDecodedInfos->frameColors->g << 8) + (frameDecodedInfos->frameColors->r << 16) + 0xFF000000;
+    }
+}
+
+int RenderMovieFrame()
+{
+    FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
+    if (!frameDecodedInfos.frameInfos)
+    {
+        return 0;
     }
 
-    struct FrameFace* face = frameFaces;
-    for (int i = 0; i < frameInfos->faceCount; i++, face++)
+    // set palette
+    UpdatePalette(&frameDecodedInfos);
+
+    struct FrameFace* face = frameDecodedInfos.frameFaces;
+    for (int i = 0; i < frameDecodedInfos.frameInfos->faceCount; i++, face++)
     {
-        struct FrameVertex vc = frameVertices[face->a];
-        struct FrameVertex vb = frameVertices[face->b];
-        struct FrameVertex va = frameVertices[face->c];
+        struct FrameVertex vc = frameDecodedInfos.frameVertices[face->a];
+        struct FrameVertex vb = frameDecodedInfos.frameVertices[face->b];
+        struct FrameVertex va = frameDecodedInfos.frameVertices[face->c];
         
         DrawTriangleMovie(va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + 50);
     }
 	return 1;
+}
+
+// Debug
+
+int GetMovieFrameCount()
+{
+    unsigned char* svgMoviePointer = movieState.moviePointer;
+    movieState.moviePointer = movieData;
+
+    int count = 0;
+    movieState.playCount = 0;
+    while (1)
+    {
+        while (!movieState.playCount)
+        {
+            if (!ReadChunk())
+            {
+                movieState.moviePointer = svgMoviePointer;
+                return count;
+            }
+        };
+        count += movieState.playCount;
+        movieState.playCount = 0;
+    };
+}
+
+void RenderMovieFrame(int frameIndex)
+{
+    movieState.moviePointer = movieData;
+    
+    for (int i = 0; i < frameIndex; i++)
+    {
+        FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
+        UpdatePalette(&frameDecodedInfos);
+    }
+    RenderMovieFrame();
 }

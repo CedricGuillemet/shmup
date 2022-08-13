@@ -1,4 +1,11 @@
 #
 SEQ road Levels/road.glb Cam_road 5
+SEQ road_lamp Levels/road.glb Cam_lamp 25
 
-PLAY road 7500
+PLAY road 200
+PLAY road_lamp 25
+PLAY road 50
+PLAY road_lamp 25
+PLAY road 50
+PLAY road_lamp 25
+PLAY road 50

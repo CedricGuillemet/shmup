@@ -9,6 +9,11 @@
 #include <string>
 #include "Movie.h"
 
+/*
+ - fast track to frame number (skip without rendering)
+ 
+ - per frame debug display (frame count, vtc count, colors, frame size)
+ */
 Movie movie;
 
 struct Triangle
@@ -17,11 +22,16 @@ struct Triangle
     uint32_t color;
 };
 
+uint32_t BGRA(uint32_t v)
+{
+    return (v & 0xFF000000) + ((v & 0xFF) << 16) + (v & 0xFF00) + ((v & 0xFF0000)>>16);
+}
+
 std::vector<Triangle> triangles;
 
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t color)
 {
-    triangles.push_back({ax,ay,bx,by,cx,cy, palette[color]});
+    triangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
 }
 
 void Draw(int width, int height, const char* buttonName)
@@ -44,15 +54,52 @@ void Draw(int width, int height, const char* buttonName)
     //
 }
 
+bool playing(false), nextFrame(true);
+int frameIndex(-1);
+int totalFrameCount(0);
+
 void frame() {
-    triangles.clear();
-    RenderMovieFrame();
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("Movie");
-    ImGui::Button("What");
+    //ImGui::InputInt("Index", &frameIndex);
+    if (ImGui::SliderInt("Frame", &frameIndex, 0, totalFrameCount))
+    {
+        triangles.clear();
+        RenderMovieFrame(frameIndex);
+    }
+    ImGui::SameLine();
+    ImGui::LabelText("End", "%d", totalFrameCount);
+    if (ImGui::Button("Next Frame"))
+    {
+        nextFrame = true;
+    }
+    if (ImGui::Button(playing? "Stop" : "Play"))
+    {
+        playing = !playing;
+    }
+    
+    if (nextFrame || playing)
+    {
+        static int other = 0;
+        other ++;
+        if (other %3 == 0)
+        {
+            nextFrame = false;
+            triangles.clear();
+            RenderMovieFrame();
+            
+            if (frameIndex < totalFrameCount)
+            {
+                frameIndex ++;
+            }
+            else
+            {
+                playing = false;
+            }
+        }
+    }
     Draw(320, 200, "InvButton");
-    ImGui::Button("What2");
     ImGui::End();
 }
 
@@ -60,7 +107,7 @@ int main(int, char **) {
     movie.ParseScript("movie.txt");
     movie.WriteMovie("movie.bin");
     ReadMovie("movie.bin");
-    
+    totalFrameCount = GetMovieFrameCount();
     imgui_app(frame, "shmup Tool", 1024, 768);
     return 0;
 }

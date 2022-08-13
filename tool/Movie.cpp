@@ -55,6 +55,7 @@ int8_t Movie::AcquireSequenceSlot()
         int slot = 1 << i;
         if (mSlots ^ slot)
         {
+            mSlots ^= slot;
             return i;
         }
     }
@@ -151,7 +152,7 @@ void Movie::ParseScript(const std::string& filename)
                         mesh.Transform(view, proj, znear);
                     }
                     mesh.CompressColors();
-                    mesh.ReorderPositions();
+                    //mesh.ReorderPositions();
                     for (int i = 0; i < frameCount; i++)
                     {
                         const auto& currentFrame = mesh.frames[i];
