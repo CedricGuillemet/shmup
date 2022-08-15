@@ -16,7 +16,9 @@ public:
 protected:
     void PushSequence(int8_t slot, const std::vector<uint8_t>& bytes);
     void PushPlayback(int8_t slot, uint8_t count);
+    void PushBackground(uint16_t width, uint16_t height, const std::vector<uint8_t>& bytes);
     void PushUI32(uint32_t v);
+    void PushUI16(uint16_t v);
 
     // SEQ road Levels/road.glb Cam_road 5
     struct Sequence

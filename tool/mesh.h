@@ -327,7 +327,7 @@ public:
 		return res;
 	}
 
-	void Transform(const Imm::matrix& view, const Imm::matrix proj, float znear)
+	void Transform(const Imm::matrix& view, const Imm::matrix proj, float znear, int renderWidth, int renderHeight)
 	{
 		Imm::matrix invView;
 		invView.inverse(view);
@@ -339,12 +339,12 @@ public:
 		std::vector<Face> mClippedFaces = mFaces;
 
         Imm::ZFrustum frustum;
-		frustum.Update(view, proj);
+		frustum.Update(invView, proj);
 
-        for (int planIndex = 5; planIndex < 6; planIndex++)
+        for (int planIndex = 0; planIndex < 6; planIndex++)
 		{
 			float d = frustum.m_Frustum[planIndex][3];
-			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], d });
+			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
 		}
 
 		// transform to clip space
@@ -368,8 +368,8 @@ public:
 		}
 
 		// rasterizer test
-		std::vector<uint16_t> drawBuffer(320*200, 0xFFFF);
-		std::vector<float> zbuffer(320*200, FLT_MAX);
+		std::vector<uint16_t> drawBuffer(renderWidth * renderHeight, 0xFFFF);
+		std::vector<float> zbuffer(renderWidth * renderHeight, FLT_MAX);
 
 		// go
 		for (size_t sortedFaceIndex = 0; sortedFaceIndex < mSortedFaces.size(); sortedFaceIndex++)
@@ -385,13 +385,13 @@ public:
 
 			for (int j = 0; j < 3; j++)
 			{
-                pc[j] = Imm::vec3{(p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z};
+                pc[j] = Imm::vec3{(p[j].x * renderWidth / 2 + renderWidth / 2), renderHeight - (p[j].y * renderHeight / 2 + renderHeight / 2), p[j].z};
 			}
 
-			DrawTriangleDepthTested(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex));
+			DrawTriangleDepthTested(drawBuffer.data(), zbuffer.data(), renderWidth, renderHeight, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex));
 		}
 	
-		mDepthTestedColor.resize(320*200);
+		mDepthTestedColor.resize(renderWidth * renderHeight);
 		for (size_t texelIndex = 0; texelIndex < drawBuffer.size(); texelIndex++)
 		{
 			auto faceIndex = drawBuffer[texelIndex];
@@ -445,11 +445,11 @@ public:
 
 				for (int j = 0; j < 3; j++)
 				{
-                    pc[j] = Imm::vec3{(p[j].x * 320 / 2 + 320 / 2), 200 - (p[j].y * 200 / 2 + 200 / 2), p[j].z};
+                    pc[j] = Imm::vec3{(p[j].x * renderWidth / 2 + renderWidth / 2), renderHeight - (p[j].y * renderHeight / 2 + renderHeight / 2), p[j].z};
 				}
 
 				auto& occluders = occludedBy[sortedFaceIndex];
-				TestTriangleOcclusion(drawBuffer.data(), zbuffer.data(), 320, 200, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex), occluders);
+				TestTriangleOcclusion(drawBuffer.data(), zbuffer.data(), renderWidth, renderHeight, pc[2], pc[1], pc[0], uint16_t(sortedFaceIndex), occluders);
 			}
 		}
 
@@ -543,7 +543,7 @@ public:
 					{
 
 						Imm::vec4 trPos = mTransformedPositions[index];
-                        FrameVertex frameVertex{int16_t((trPos.x * 160 + 160)), static_cast<int16_t>(200 - ((trPos.y * 100 + 100)))};
+                        FrameVertex frameVertex{int16_t((trPos.x * (renderWidth/2) + (renderWidth/2))), static_cast<int16_t>(renderHeight - ((trPos.y * (renderHeight/2) + renderHeight/2)))};
 
 						int foundSameVertex = -1;
 						for (size_t k = 0;k< currentFrame.vertices.size(); k++)
@@ -771,7 +771,6 @@ public:
 
 public:
 
-
     std::vector<Imm::vec4> mPositions;
 	std::vector<Imm::vec4> mTransformedPositions;
     std::vector<Face> mFaces;
@@ -821,8 +820,7 @@ public:
 	std::vector<Frame> frames;
 	std::vector<uint32_t> mDepthTestedColor;
 
-
-	void DebugDrawFrame(Frame* frame, uint32_t* rgbaBuffer)
+	void DebugDrawFrame(Frame* frame, uint32_t* rgbaBuffer, int renderWidth, int renderHeight)
 	{
 		for (size_t i = 0; i < frame->faces.size(); i++)
 		{
@@ -839,7 +837,7 @@ public:
 			{
 				color = frame->colors[face->colorIndex];
 			}
-			DrawTriangle(rgbaBuffer, 320, 200, v2, v1, v0, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
+			DrawTriangle(rgbaBuffer, renderWidth, renderHeight, v2, v1, v0, uint32_t(0xFF000000 + (color.b << 16) + (color.g << 8) + color.r));
 		}
 	}
 };

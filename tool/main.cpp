@@ -10,9 +10,10 @@
 #include "Movie.h"
 
 /*
- - background rendering
- - per frame debug display (frame count, vtc count, colors, frame size)
+ - background rendering (colors, resolution, scrolling)
+ - check colors : 50 gameplay 150 foreground 56 background
  - frustum clipping is broken
+ - per frame debug display (frame count, vt count, colors, frame size)
  */
 Movie movie;
 
@@ -28,10 +29,19 @@ uint32_t BGRA(uint32_t v)
 }
 
 std::vector<Triangle> triangles;
+std::vector<Triangle> backgroundTriangles;
+bool renderingBackground(false);
 
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t color)
 {
-    triangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
+    if (renderingBackground)
+    {
+        backgroundTriangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
+    }
+    else
+    {
+        triangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
+    }
 }
 
 void Draw(int width, int height, const char* buttonName)
@@ -44,15 +54,30 @@ void Draw(int width, int height, const char* buttonName)
 
     draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200));
     draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200), 0xFFFF00FF);
-    for(auto triangle : triangles)
+    
+    std::vector<Triangle>* batches[] = {&backgroundTriangles, &triangles};
+    for(const auto& batch : batches)
     {
-        draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x, canvas_pos.y + 200 - triangle.cy),
-                                     ImVec2(triangle.bx + canvas_pos.x, canvas_pos.y + 200 - triangle.by),
-                                     ImVec2(triangle.ax + canvas_pos.x, canvas_pos.y + 200 - triangle.ay), triangle.color);
+        for(auto triangle : *batch)
+        {
+            draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x, canvas_pos.y + triangle.cy),
+                                         ImVec2(triangle.bx + canvas_pos.x, canvas_pos.y + triangle.by),
+                                         ImVec2(triangle.ax + canvas_pos.x, canvas_pos.y + triangle.ay), triangle.color);
+        }
     }
     draw_list->PopClipRect();
     ImGui::InvisibleButton(buttonName, ImVec2(width, height));
-    //
+}
+
+void BeginBackground(unsigned short width, unsigned short height)
+{
+    backgroundTriangles.clear();
+    renderingBackground = true;
+}
+
+void StopBackground()
+{
+    renderingBackground = false;
 }
 
 bool playing(false), nextFrame(true);
@@ -75,7 +100,8 @@ void CompileMovie()
     errorMessage = movie.GetParsingError();
 }
 
-void frame() {
+void frame()
+{
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("Movie");
@@ -116,7 +142,6 @@ void frame() {
         if (other %3 == 0)
         {
             nextFrame = false;
-            
             
             if (frameIndex < totalFrameCount-1)
             {

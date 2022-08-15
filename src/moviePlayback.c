@@ -51,10 +51,35 @@ int ReadMovie(const char* szPath)
 	}
 	return 0;
 }
+extern void BeginBackground(unsigned short width, unsigned short height);
+extern void StopBackground();
 
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex);
 uint32_t palette[256];
 //int everyOtherFrame = 0;
+
+struct FrameDecodedInfos
+{
+    struct FrameInfos* frameInfos;
+    struct FrameVertex* frameVertices;
+    struct FrameFace* frameFaces;
+    struct FrameColor* frameColors;
+};
+
+void DecodeNextFrameInfos(FrameDecodedInfos* frameDecodedInfos, unsigned char** ptr)
+{
+    frameDecodedInfos->frameInfos = (struct FrameInfos*)*ptr;
+    *ptr += sizeof(struct FrameInfos);
+    frameDecodedInfos->frameVertices = (struct FrameVertex*)*ptr;
+    *ptr += sizeof(struct FrameVertex) * frameDecodedInfos->frameInfos->vertexCount;
+    frameDecodedInfos->frameFaces = (struct FrameFace*)*ptr;
+    *ptr += sizeof(struct FrameFace) * frameDecodedInfos->frameInfos->faceCount;
+    frameDecodedInfos->frameColors = (struct FrameColor*)*ptr;
+    *ptr += sizeof(struct FrameColor) * frameDecodedInfos->frameInfos->colorCount;
+}
+
+void UpdatePalette(FrameDecodedInfos* frameDecodedInfos);
+void RenderTriangles(FrameDecodedInfos* frameDecodedInfos);
 
 // return 1 if chunk found
 int ReadChunk()
@@ -85,18 +110,27 @@ int ReadChunk()
                 movieState.playCount = count;
             }
             break;
+        case MOVIE_BACKGROUND:
+        {
+            unsigned short width = *(unsigned short*)movieState.moviePointer;
+            movieState.moviePointer += 2;
+            unsigned short height = *(unsigned short*)movieState.moviePointer;
+            movieState.moviePointer += 2;
+            BeginBackground(width, height);
+            
+            FrameDecodedInfos frameDecodedInfos;
+            DecodeNextFrameInfos(&frameDecodedInfos, &movieState.moviePointer);
+            UpdatePalette(&frameDecodedInfos);
+            RenderTriangles(&frameDecodedInfos);
+
+            StopBackground();
+
+        }
     }
     return 1;
 }
 
 
-struct FrameDecodedInfos
-{
-    struct FrameInfos* frameInfos;
-    struct FrameVertex* frameVertices;
-    struct FrameFace* frameFaces;
-    struct FrameColor* frameColors;
-};
 
 FrameDecodedInfos DecodeNextFrame()
 {
@@ -119,15 +153,7 @@ FrameDecodedInfos DecodeNextFrame()
     
     movieState.playCount --;
 
-    frameDecodedInfos.frameInfos = (struct FrameInfos*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameInfos);
-    frameDecodedInfos.frameVertices = (struct FrameVertex*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameVertex) * frameDecodedInfos.frameInfos->vertexCount;
-    frameDecodedInfos.frameFaces = (struct FrameFace*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameFace) * frameDecodedInfos.frameInfos->faceCount;
-    frameDecodedInfos.frameColors = (struct FrameColor*)movieState.sequencePlaying;
-    movieState.sequencePlaying += sizeof(struct FrameColor) * frameDecodedInfos.frameInfos->colorCount;
-        
+    DecodeNextFrameInfos(&frameDecodedInfos, &movieState.sequencePlaying);
     // loop sequence
     if (movieState.sequencePlaying >= movieState.sequencePlayingEnd)
     {
@@ -144,6 +170,19 @@ void UpdatePalette(FrameDecodedInfos* frameDecodedInfos)
     }
 }
 
+void RenderTriangles(FrameDecodedInfos* frameDecodedInfos)
+{
+    struct FrameFace* face = frameDecodedInfos->frameFaces;
+    for (int i = 0; i < frameDecodedInfos->frameInfos->faceCount; i++, face++)
+    {
+        struct FrameVertex vc = frameDecodedInfos->frameVertices[face->a];
+        struct FrameVertex vb = frameDecodedInfos->frameVertices[face->b];
+        struct FrameVertex va = frameDecodedInfos->frameVertices[face->c];
+        
+        DrawTriangleMovie(va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + 50);
+    }
+}
+
 int RenderMovieFrame()
 {
     FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
@@ -154,16 +193,8 @@ int RenderMovieFrame()
 
     // set palette
     UpdatePalette(&frameDecodedInfos);
+    RenderTriangles(&frameDecodedInfos);
 
-    struct FrameFace* face = frameDecodedInfos.frameFaces;
-    for (int i = 0; i < frameDecodedInfos.frameInfos->faceCount; i++, face++)
-    {
-        struct FrameVertex vc = frameDecodedInfos.frameVertices[face->a];
-        struct FrameVertex vb = frameDecodedInfos.frameVertices[face->b];
-        struct FrameVertex va = frameDecodedInfos.frameVertices[face->c];
-        
-        DrawTriangleMovie(va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + 50);
-    }
 	return 1;
 }
 

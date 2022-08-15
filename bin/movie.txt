@@ -1,31 +1,39 @@
 #
 SEQ road Levels/road.glb Cam_road 5
-#SEQ road_lamp Levels/road.glb Cam_lamp 25
+SEQ road_lamp Levels/road.glb Cam_lamp 25
 SEQ road_patio Levels/road.glb Cam_patio 5
 SEQ road_patio_in Levels/road.glb Cam_patio_in 20
 SEQ road_patio_out Levels/road.glb Cam_patio_out 20
-#SEQ road_tunnel Levels/road.glb Cam_tunnel 38
-#SEQ road_tunnel_in Levels/road.glb Cam_tunnel_in 38
-#SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 38
+SEQ road_tunnel Levels/road.glb Cam_tunnel 38
+SEQ road_tunnel_in Levels/road.glb Cam_tunnel_in 38
+SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 38
 
-#PLAY road 200
-#PLAY road_lamp 25
-#PLAY road 50
-#PLAY road_lamp 25
-#PLAY road 50
-#PLAY road_lamp 25
-#PLAY road 50
+BACK Levels/road_back.glb Cam_background 640 100
 
+PLAY road 200
+PLAY road_lamp 25
+PLAY road 50
+PLAY road_lamp 25
+PLAY road 50
+PLAY road_lamp 25
+PLAY road 50
+
+# patio in/patio out
 PLAY road 20
 PLAY road_patio_in 20
 PLAY road_patio 40
 PLAY road_patio_out 20
 PLAY road 20
 
-#PLAY road_patio_in 20
-#PLAY road_patio 40
-#PLAY road_patio_out 20
-#PLAY road 20
+PLAY road 100
+PLAY road_patio_in 20
+PLAY road_patio 100
+PLAY road_tunnel_in 38
+PLAY road_tunnel 76
+PLAY road_tunnel_out 38
+PLAY road_patio 100
+PLAY road_patio_out 20
+PLAY road 20
 
 #PLAY road_tunnel_in 38
 #PLAY road_tunnel 38
