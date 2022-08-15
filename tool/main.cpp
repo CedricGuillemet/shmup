@@ -10,9 +10,9 @@
 #include "Movie.h"
 
 /*
- - fast track to frame number (skip without rendering)
- 
+ - background rendering
  - per frame debug display (frame count, vtc count, colors, frame size)
+ - frustum clipping is broken
  */
 Movie movie;
 
@@ -43,6 +43,7 @@ void Draw(int width, int height, const char* buttonName)
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();        // Resize canvas to what's available
 
     draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200));
+    draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200), 0xFFFF00FF);
     for(auto triangle : triangles)
     {
         draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x, canvas_pos.y + 200 - triangle.cy),
@@ -57,13 +58,42 @@ void Draw(int width, int height, const char* buttonName)
 bool playing(false), nextFrame(true);
 int frameIndex(-1);
 int totalFrameCount(0);
+std::string errorMessage;
+
+void CompileMovie()
+{
+    if (movie.ParseScript("movie.txt"))
+    {
+        movie.WriteMovie("movie.bin");
+        ReadMovie("movie.bin");
+        
+        totalFrameCount = GetMovieFrameCount();
+        frameIndex = -1;
+        playing = false;
+        nextFrame = true;
+    }
+    errorMessage = movie.GetParsingError();
+}
 
 void frame() {
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("Movie");
-    //ImGui::InputInt("Index", &frameIndex);
-    if (ImGui::SliderInt("Frame", &frameIndex, 0, totalFrameCount))
+    if (ImGui::Button("Reload"))
+    {
+        CompileMovie();
+    }
+    if (errorMessage.size())
+    {
+        ImGui::LabelText("Error parsing movie text !", "%s", errorMessage.c_str());
+        ImGui::End();
+        return;
+    }
+    if (!totalFrameCount)
+    {
+        return;
+    }
+    if (ImGui::SliderInt("Frame", &frameIndex, 0, totalFrameCount-1))
     {
         triangles.clear();
         RenderMovieFrame(frameIndex);
@@ -86,11 +116,12 @@ void frame() {
         if (other %3 == 0)
         {
             nextFrame = false;
-            triangles.clear();
-            RenderMovieFrame();
             
-            if (frameIndex < totalFrameCount)
+            
+            if (frameIndex < totalFrameCount-1)
             {
+                triangles.clear();
+                RenderMovieFrame();
                 frameIndex ++;
             }
             else
@@ -104,10 +135,7 @@ void frame() {
 }
 
 int main(int, char **) {
-    movie.ParseScript("movie.txt");
-    movie.WriteMovie("movie.bin");
-    ReadMovie("movie.bin");
-    totalFrameCount = GetMovieFrameCount();
+    CompileMovie();
     imgui_app(frame, "shmup Tool", 1024, 768);
     return 0;
 }

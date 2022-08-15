@@ -12,8 +12,8 @@ unsigned char* movieDataEnd = NULL;
 
 struct MovieState
 {
-    unsigned char* sequenceSlots[8];
-    unsigned int sequenceSize[8]; // size in bytes
+    unsigned char* sequenceSlots[MOVIE_SLOT_COUNT];
+    unsigned int sequenceSize[MOVIE_SLOT_COUNT]; // size in bytes
     //unsigned char* sequenceBase; //
     unsigned char* moviePointer; // global movie pointer
     unsigned char* sequencePlaying; // pointer in sequence
@@ -194,6 +194,7 @@ int GetMovieFrameCount()
 void RenderMovieFrame(int frameIndex)
 {
     movieState.moviePointer = movieData;
+    movieState.playCount = 0;
     
     for (int i = 0; i < frameIndex; i++)
     {

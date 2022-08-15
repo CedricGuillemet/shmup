@@ -339,12 +339,12 @@ public:
 		std::vector<Face> mClippedFaces = mFaces;
 
         Imm::ZFrustum frustum;
-		frustum.Update(invView, proj);
+		frustum.Update(view, proj);
 
-		for (int planIndex = 0; planIndex < 0; planIndex++)
+        for (int planIndex = 5; planIndex < 6; planIndex++)
 		{
 			float d = frustum.m_Frustum[planIndex][3];
-			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], -d });
+			mClippedFaces = ClipFaces(mClippedFaces, mPositions, Imm::vec4{ frustum.m_Frustum[planIndex][0], frustum.m_Frustum[planIndex][1], frustum.m_Frustum[planIndex][2], d });
 		}
 
 		// transform to clip space

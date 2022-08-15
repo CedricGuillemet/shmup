@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <cstring>
+#include <sstream>
 #include <vector>
 #include "mesh.h"
 #include "gltfImport.h"
@@ -50,12 +51,12 @@ static void ConvertGLTFToMesh(const GLTFFrame& frame, Mesh& mesh, Imm::matrix& v
 
 int8_t Movie::AcquireSequenceSlot()
 {
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < MOVIE_SLOT_COUNT; i++)
     {
         int slot = 1 << i;
-        if (mSlots ^ slot)
+        if (!(mSlots & slot))
         {
-            mSlots ^= slot;
+            mSlots |= slot;
             return i;
         }
     }
@@ -63,13 +64,14 @@ int8_t Movie::AcquireSequenceSlot()
     return -1;
 }
 
-void Movie::ReleaseSequenceSlot(int8_t slot)
+bool Movie::ReleaseSequenceSlot(int8_t slot)
 {
     if (slot < 0 || slot >= 8 || !(mSlots & (1<<slot)))
     {
-        // ERROR MESSAGE : invalid slot to free
+        return false;
     }
-    mSlots ^= (1<<slot);
+    mSlots &= ~(1<<slot);
+    return true;
 }
 
 void Movie::PushUI32(uint32_t v)
@@ -96,13 +98,20 @@ void Movie::PushPlayback(int8_t slot, uint8_t count)
     mBytes.push_back(count);
 }
 
-void Movie::ParseScript(const std::string& filename)
+bool Movie::ParseScript(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rt");
 	if (fp)
 	{
+        mSequences.clear();
+        mSlots = 0;
+        mBytes.clear();
+        mParsingError = "";
+        int line = 0;
+
         while(!feof(fp))
         {
+            line++;
             char tmps[1024];
             fgets(tmps, sizeof(tmps), fp);
             auto l = strlen(tmps);
@@ -121,14 +130,20 @@ void Movie::ParseScript(const std::string& filename)
                 int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount != 2 && tokenCount != 3)
                 {
-                    // ERROR MESSAGE : syntax error
+                    std::stringstream strm;
+                    strm << "Invalid syntax Line " << line;
+                    mParsingError = strm.str();
+                    return false;
                 }
                 int playCount = (tokenCount == 3) ? atoi(strings[2].c_str()) : 1;
 
                 auto iter = mSequences.find(strings[1]);
                 if (iter == mSequences.end())
                 {
-                    // ERROR MESSAGE: sequence not found
+                    std::stringstream strm;
+                    strm << "Sequence not found Line " << line;
+                    mParsingError = strm.str();
+                    return false;
                 }
                 // sequence found
                 auto& seq = iter->second;
@@ -142,9 +157,19 @@ void Movie::ParseScript(const std::string& filename)
                     Mesh mesh;
                     std::vector<uint8_t> dump;
                     auto frameCount{seq.mFrameCount};
+                    if (!gltfFrames.size())
+                    {
+                        std::stringstream strm;
+                        strm << "GLTF not found or has no frames line " << line;
+                        mParsingError = strm.str();
+                        return false;
+                    }
                     if (frameCount > gltfFrames.size())
                     {
-                        // ERROR MESSAGE : not enough animation frames
+                        std::stringstream strm;
+                        strm << "Not enough animation frames between camera and sequence line " << line;
+                        mParsingError = strm.str();
+                        return false;
                     }
                     for (int i = 0; i < frameCount; i++)
                     {
@@ -160,6 +185,13 @@ void Movie::ParseScript(const std::string& filename)
                         dump.insert(dump.end(), bytes.begin(), bytes.end());
                     }
                     seq.mSlot = AcquireSequenceSlot();
+                    if (seq.mSlot < 0)
+                    {
+                        std::stringstream strm;
+                        strm << "Unable to find a free slot for sequence at line " << line << " Consider releasing using less sequences at once.";
+                        mParsingError = strm.str();
+                        return false;
+                    }
                     PushSequence(seq.mSlot, dump);
                 }
                 
@@ -174,7 +206,10 @@ void Movie::ParseScript(const std::string& filename)
                 int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount != 5)
                 {
-                    // ERROR MESSAGE: syntax error
+                    std::stringstream strm;
+                    strm << "Invalid syntax Line " << line;
+                    mParsingError = strm.str();
+                    return false;
                 }
                 std::string name = strings[1];
                 seq.mGLTFPath = strings[2];
@@ -183,11 +218,13 @@ void Movie::ParseScript(const std::string& filename)
                 
                 mSequences.insert(std::make_pair(name, seq));
             }
-            
-        }
+        } // while !feof
         
         fclose(fp);
+        return true;
     }
+    mParsingError = "Unable to open movie text file.";
+    return false;
 }
 
 void Movie::WriteMovie(const std::string& filename)

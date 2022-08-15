@@ -8,10 +8,11 @@ class Movie
 public:
     Movie() {}
 
-    void ParseScript(const std::string& filename);
+    // return true if OK
+    bool ParseScript(const std::string& filename);
     void WriteMovie(const std::string& filename);
 
-
+    const std::string& GetParsingError() const { return mParsingError; }
 protected:
     void PushSequence(int8_t slot, const std::vector<uint8_t>& bytes);
     void PushPlayback(int8_t slot, uint8_t count);
@@ -27,10 +28,11 @@ protected:
     };
 
     std::map<std::string, Sequence> mSequences;
-    
-    uint8_t mSlots{0};
-    int8_t AcquireSequenceSlot();
-    void ReleaseSequenceSlot(int8_t slot);
-    
+    uint32_t mSlots{0};
     std::vector<uint8_t> mBytes;
+    std::string mParsingError;
+    
+    int8_t AcquireSequenceSlot();
+    bool ReleaseSequenceSlot(int8_t slot);
+
 };
