@@ -58,6 +58,8 @@ void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t c
     }
 }
 
+bool drawBackground(true), drawForeground(true);
+
 void Draw(int width, int height, const char* buttonName)
 {
     int factor = 2;
@@ -72,6 +74,10 @@ void Draw(int width, int height, const char* buttonName)
     std::vector<Triangle>* batches[] = {&backgroundTriangles, &triangles};
     for(int i = (backgroundVisible?0:1); i < 2; i++)
     {
+        if ((i == 0 && !drawBackground) || (i && !drawForeground))
+        {
+            continue;
+        }
         const auto& batch = batches[i];
         int x = (i == 0) ? scrollx : 0;
         int y = (i == 0) ? scrolly : 0;
@@ -151,6 +157,9 @@ void frame()
     {
         playing = !playing;
     }
+    
+    ImGui::Checkbox("Draw Background", &drawBackground);
+    ImGui::Checkbox("Draw Foreground", &drawForeground);
     
     if (nextFrame || playing)
     {
