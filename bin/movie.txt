@@ -12,14 +12,18 @@ BACK Levels/road_back.glb Cam_background 640 100
 
 BACK ON
 BACK SCROLL FROM 0 0
+BACK SCROLL ON
 PLAY road 200
 PLAY road_lamp 25
+BACK SCROLL OFF
 PLAY road 50
 #BACK OFF
 PLAY road_lamp 25
 PLAY road 50
+BACK SCROLL ON
 PLAY road_lamp 25
 PLAY road 50
+BACK SCROLL TO 320 0
 #BACK ON
 
 
@@ -30,7 +34,6 @@ PLAY road_patio 40
 PLAY road_patio_out 20
 PLAY road 20
 
-BACK SCROLL TO 320 0
 
 PLAY road 100
 PLAY road_patio_in 20

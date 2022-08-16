@@ -24,6 +24,7 @@ struct MovieState
     // scroll
     int scrollx, scrolly;
     int scrollDeltax, scrollDeltay;
+    int scrollOn;
 };
 
 MovieState movieState;
@@ -84,8 +85,8 @@ void DecodeNextFrameInfos(FrameDecodedInfos* frameDecodedInfos, unsigned char** 
     *ptr += sizeof(struct FrameColor) * frameDecodedInfos->frameInfos->colorCount;
     }
 
-void UpdatePalette(FrameDecodedInfos* frameDecodedInfos);
-void RenderTriangles(FrameDecodedInfos* frameDecodedInfos);
+void UpdatePalette(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
+void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
 
 // return 1 if chunk found
 int ReadChunk()
@@ -126,8 +127,8 @@ int ReadChunk()
                 
                 FrameDecodedInfos frameDecodedInfos;
                 DecodeNextFrameInfos(&frameDecodedInfos, &movieState.moviePointer);
-                UpdatePalette(&frameDecodedInfos);
-                RenderTriangles(&frameDecodedInfos);
+                UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_BACKGROUND);
+                RenderTriangles(&frameDecodedInfos, MOVIE_COLOR_OFFSET_BACKGROUND);
 
                 StopBackground();
             }
@@ -162,7 +163,16 @@ int ReadChunk()
                 movieState.scrollDeltay = 0;
             }
             break;
-
+        case MOVIE_SCROLL_ON:
+            {
+                movieState.scrollOn = true;
+            }
+            break;
+        case MOVIE_SCROLL_OFF:
+            {
+                movieState.scrollOn = false;
+            }
+            break;
 
     }
     return 1;
@@ -192,9 +202,11 @@ FrameDecodedInfos DecodeNextFrame()
     movieState.playCount --;
     
     // scroll
-    movieState.scrollx += movieState.scrollDeltax;
-    movieState.scrolly += movieState.scrollDeltay;
-    
+    if (movieState.scrollOn)
+    {
+        movieState.scrollx += movieState.scrollDeltax;
+        movieState.scrolly += movieState.scrollDeltay;
+    }
     SetScroll((movieState.scrollx >> 16) & 0xFFFF, (movieState.scrolly >> 16) & 0xFFFF);
 
     DecodeNextFrameInfos(&frameDecodedInfos, &movieState.sequencePlaying);
@@ -206,15 +218,15 @@ FrameDecodedInfos DecodeNextFrame()
     return frameDecodedInfos;
 }
 
-void UpdatePalette(FrameDecodedInfos* frameDecodedInfos)
+void UpdatePalette(FrameDecodedInfos* frameDecodedInfos, int colorOffset)
 {
     for (int i = 0; i<frameDecodedInfos->frameInfos->colorCount; i++, frameDecodedInfos->frameColors++)
     {
-        palette[frameDecodedInfos->frameColors->index + 50] = frameDecodedInfos->frameColors->b + (frameDecodedInfos->frameColors->g << 8) + (frameDecodedInfos->frameColors->r << 16) + 0xFF000000;
+        palette[frameDecodedInfos->frameColors->index + colorOffset] = frameDecodedInfos->frameColors->b + (frameDecodedInfos->frameColors->g << 8) + (frameDecodedInfos->frameColors->r << 16) + 0xFF000000;
     }
 }
 
-void RenderTriangles(FrameDecodedInfos* frameDecodedInfos)
+void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset)
 {
     struct FrameFace* face = frameDecodedInfos->frameFaces;
     for (int i = 0; i < frameDecodedInfos->frameInfos->faceCount; i++, face++)
@@ -223,7 +235,7 @@ void RenderTriangles(FrameDecodedInfos* frameDecodedInfos)
         struct FrameVertex vb = frameDecodedInfos->frameVertices[face->b];
         struct FrameVertex va = frameDecodedInfos->frameVertices[face->c];
         
-        DrawTriangleMovie(va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + 50);
+        DrawTriangleMovie(va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + colorOffset);
     }
 }
 
@@ -236,8 +248,8 @@ int RenderMovieFrame()
     }
 
     // set palette
-    UpdatePalette(&frameDecodedInfos);
-    RenderTriangles(&frameDecodedInfos);
+    UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
+    RenderTriangles(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
 
 	return 1;
 }
@@ -274,7 +286,7 @@ void RenderMovieFrame(int frameIndex)
     for (int i = 0; i < frameIndex; i++)
     {
         FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
-        UpdatePalette(&frameDecodedInfos);
+        UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
     }
     RenderMovieFrame();
 }

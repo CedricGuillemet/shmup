@@ -677,8 +677,20 @@ public:
 		}
 	}
 
-	void CompressColors()
+    // return true if successfull
+	bool CompressColors(int maxColors)
 	{
+        // check color count
+        for (size_t i = 0; i < frames.size(); i++)
+        {
+            if (frames[i].colors.size() > maxColors)
+            {
+                return false;
+            }
+        }
+        
+        // go on
+        
 		std::map<uint32_t, int> colorMap;
 		for (size_t i = 0; i < frames[0].colors.size(); i++)
 		{
@@ -740,6 +752,7 @@ public:
 				frames[i].colors.push_back(frameColor);
 			}
 		}
+        return true;
 	}
 #if 0
 	void DebugDraw(ImDrawList& list, ImVec2 displaySize, ImVec2 displayOffset)

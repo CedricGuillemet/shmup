@@ -19,6 +19,8 @@ protected:
     void PushBackground(uint16_t width, uint16_t height, const std::vector<uint8_t>& bytes);
     void PushBackgroundOn();
     void PushBackgroundOff();
+    void PushScrollOn();
+    void PushScrollOff();
     void PushScrollFrom(int x, int y);
     void PushScrollTo(int x, int y);
     void PushUI32(uint32_t v);
@@ -42,6 +44,7 @@ protected:
     int mScrollDeltaIndex{};
     int mScrollFrameCount;
     int mFromx, mFromy;
+    bool mScrollOn{};
     
     int8_t AcquireSequenceSlot();
     bool ReleaseSequenceSlot(int8_t slot);

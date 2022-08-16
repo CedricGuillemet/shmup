@@ -175,6 +175,18 @@ void Movie::PushScrollTo(int x, int y)
     mScrollDeltaIndex = 0;
 }
 
+void Movie::PushScrollOn()
+{
+    mBytes.push_back(MOVIE_SCROLL_ON);
+    mScrollOn = true;
+}
+
+void Movie::PushScrollOff()
+{
+    mBytes.push_back(MOVIE_SCROLL_OFF);
+    mScrollOn = false;
+}
+
 bool Movie::ParseScript(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rt");
@@ -184,6 +196,12 @@ bool Movie::ParseScript(const std::string& filename)
         mSlots = 0;
         mBytes.clear();
         mParsingError = "";
+        mScrollDeltaIndex = 0;
+        mScrollFrameCount = 0;
+        mFromx = 0;
+        mFromy = 0;
+        mScrollOn = false;
+
         int line = 0;
 
         while(!feof(fp))
@@ -216,7 +234,7 @@ bool Movie::ParseScript(const std::string& filename)
             {
                 std::vector<std::string> strings;
                 int tokenCount = ParseTokens(tmps, strings);
-                if (tokenCount != 5)
+                if (tokenCount != 5 && tokenCount != 3)
                 {
                     std::stringstream strm;
                     strm << "Invalid syntax Line " << line;
@@ -227,28 +245,46 @@ bool Movie::ParseScript(const std::string& filename)
                 // scroll
                 if (strings[1] == "SCROLL")
                 {
-                    // BACK SCROLL TO 320 0
-                    bool from = strings[2] == "FROM";
-                    int x = atoi(strings[3].c_str());
-                    int y = atoi(strings[4].c_str());
-                    
-                    if (from)
+                    if (strings[2].substr(0, 2) == "ON")
                     {
-                        PushScrollFrom(x, y);
+                        PushScrollOn();
+                    }
+                    else if (strings[2].substr(0, 3) == "OFF")
+                    {
+                        PushScrollOff();
+                    }
+                    else if (strings[2] == "FROM" || strings[2] == "TO")
+                    {
+                        // BACK SCROLL TO 320 0
+                        bool from = strings[2] == "FROM";
+                        int x = atoi(strings[3].c_str());
+                        int y = atoi(strings[4].c_str());
+                        
+                        if (from)
+                        {
+                            PushScrollFrom(x, y);
+                        }
+                        else
+                        {
+                            // TO
+                            if (!mScrollDeltaIndex)
+                            {
+                                std::stringstream strm;
+                                strm << "Scroll has a 'TO' without a 'FROM' Line " << line;
+                                mParsingError = strm.str();
+                                return false;
+                            }
+                            PushScrollTo(x, y);
+                        }
                     }
                     else
                     {
-                        // TO
-                        if (!mScrollDeltaIndex)
-                        {
-                            std::stringstream strm;
-                            strm << "Scroll has a 'TO' without a 'FROM' Line " << line;
-                            mParsingError = strm.str();
-                            return false;
-                        }
-                        PushScrollTo(x, y);
+                        std::stringstream strm;
+                        strm << "Invalid scroll command Line " << line;
+                        mParsingError = strm.str();
+                        return false;
+
                     }
-                    
                 }
                 else
                 {
@@ -274,7 +310,13 @@ bool Movie::ParseScript(const std::string& filename)
 
                     ConvertGLTFToMesh(gltfFrames[0], mesh, view, proj, znear);
                     mesh.Transform(view, proj, znear, width, height);
-                    mesh.CompressColors();
+                    if (!mesh.CompressColors(MOVIE_COLOR_COUNT_BACKGROUND))
+                    {
+                        std::stringstream strm;
+                        strm << "Too many colors Background " << gltfPath.c_str() << " with camera " << camera.c_str();
+                        mParsingError = strm.str();
+                        return false;
+                    }
                     const auto& currentFrame = mesh.frames[0];
                     auto bytes = currentFrame.GetBytes();
                     dump.insert(dump.end(), bytes.begin(), bytes.end());
@@ -294,7 +336,10 @@ bool Movie::ParseScript(const std::string& filename)
                     return false;
                 }
                 int playCount = (tokenCount == 3) ? atoi(strings[2].c_str()) : 1;
-                mScrollFrameCount += playCount;
+                if (mScrollOn)
+                {
+                    mScrollFrameCount += playCount;
+                }
 
                 auto iter = mSequences.find(strings[1]);
                 if (iter == mSequences.end())
@@ -335,7 +380,13 @@ bool Movie::ParseScript(const std::string& filename)
                         ConvertGLTFToMesh(gltfFrames[i], mesh, view, proj, znear);
                         mesh.Transform(view, proj, znear, 320, 200);
                     }
-                    mesh.CompressColors();
+                    if (!mesh.CompressColors(MOVIE_COLOR_COUNT_FOREGROUND))
+                    {
+                        std::stringstream strm;
+                        strm << "Too many colors Sequence " << seq.mGLTFPath.c_str() << " with camera " << seq.mCameraName.c_str();
+                        mParsingError = strm.str();
+                        return false;
+                    }
                     //mesh.ReorderPositions();
                     for (int i = 0; i < frameCount; i++)
                     {

@@ -7,14 +7,11 @@
 #include <string>
 #include "Movie.h"
 
-/*
- - background rendering (colors, resolution, scrolling, on/off)
+/* 
+ - LOOP count or CLEARED
+ - transition/warp token
+ - FORE ON/OFF
  
- BACK scroll start x, y
- BACK scroll end x, y
- BACK scroll off/on
- 
- - check colors : 50 gameplay 150 foreground 56 background
  - per frame debug display (frame count, vt count, colors, frame size)
  */
 Movie movie;
@@ -68,8 +65,8 @@ void Draw(int width, int height, const char* buttonName)
     ImVec2 canvas_pos = ImGui::GetCursorScreenPos();            // ImDrawList API uses screen coordinates!
     ImVec2 canvas_size = ImGui::GetContentRegionAvail();        // Resize canvas to what's available
 
-    draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200));
-    draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200), 0xFFFF00FF);
+    draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + 319 * factor, canvas_pos.y + 199 * factor));
+    draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + 319 * factor, canvas_pos.y + 199 * factor), 0xFFFF00FF);
     
     std::vector<Triangle>* batches[] = {&backgroundTriangles, &triangles};
     for(int i = (backgroundVisible?0:1); i < 2; i++)
@@ -83,13 +80,17 @@ void Draw(int width, int height, const char* buttonName)
         int y = (i == 0) ? scrolly : 0;
         for(auto triangle : *batch)
         {
-            draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x - x, canvas_pos.y + triangle.cy - y),
-                                         ImVec2(triangle.bx + canvas_pos.x - x, canvas_pos.y + triangle.by - y),
-                                         ImVec2(triangle.ax + canvas_pos.x - x, canvas_pos.y + triangle.ay - y), triangle.color);
+            draw_list->AddTriangleFilled(ImVec2(canvas_pos.x + (triangle.cx - x) * factor,
+                                                canvas_pos.y + (triangle.cy - y) * factor),
+                                         ImVec2(canvas_pos.x + (triangle.bx - x) * factor,
+                                                canvas_pos.y + (triangle.by - y) * factor),
+                                         ImVec2(canvas_pos.x + (triangle.ax - x) * factor,
+                                                canvas_pos.y + (triangle.ay - y) * factor),
+                                         triangle.color);
         }
     }
     draw_list->PopClipRect();
-    ImGui::InvisibleButton(buttonName, ImVec2(width, height));
+    ImGui::InvisibleButton(buttonName, ImVec2(width * factor, height * factor));
 }
 
 void BeginBackground(unsigned short width, unsigned short height)
@@ -126,7 +127,7 @@ void CompileMovie()
 void frame()
 {
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(800, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("Movie");
     if (ImGui::Button("Reload"))
     {

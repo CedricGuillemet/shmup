@@ -41,9 +41,16 @@ extern uint32_t palette[256];
 #define MOVIE_BACKGROUND_OFF 0x05
 #define MOVIE_SCROLL_FROM 0x06
 #define MOVIE_SCROLL_TO 0x07
-
+#define MOVIE_SCROLL_OFF 0x08
+#define MOVIE_SCROLL_ON 0x09
 
 #define MOVIE_SLOT_COUNT 32
+
+#define MOVIE_COLOR_OFFSET_BACKGROUND 200
+#define MOVIE_COLOR_OFFSET_FOREGROUND 50
+#define MOVIE_COLOR_COUNT_BACKGROUND 50
+#define MOVIE_COLOR_COUNT_FOREGROUND 150
+
 
 extern int ReadMovie(const char* szPath);
 extern int RenderMovieFrame();
