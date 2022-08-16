@@ -3,16 +3,18 @@
 #include <vector>
 #include <algorithm>
 #include "imgui_internal.h"
-//#include "mesh.h"
 #include "moviePlayback.h"
-//#include "gltfImport.h"
 #include <string>
 #include "Movie.h"
 
 /*
- - background rendering (colors, resolution, scrolling)
+ - background rendering (colors, resolution, scrolling, on/off)
+ 
+ BACK scroll start x, y
+ BACK scroll end x, y
+ BACK scroll off/on
+ 
  - check colors : 50 gameplay 150 foreground 56 background
- - frustum clipping is broken
  - per frame debug display (frame count, vt count, colors, frame size)
  */
 Movie movie;
@@ -31,6 +33,18 @@ uint32_t BGRA(uint32_t v)
 std::vector<Triangle> triangles;
 std::vector<Triangle> backgroundTriangles;
 bool renderingBackground(false);
+bool backgroundVisible(false);
+int16_t scrollx, scrolly;
+void BackgroundVisible(bool visible)
+{
+    backgroundVisible = visible;
+}
+
+void SetScroll(int16_t x, int16_t y)
+{
+    scrollx = x;
+    scrolly = y;
+}
 
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t color)
 {
@@ -56,13 +70,16 @@ void Draw(int width, int height, const char* buttonName)
     draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + 320, canvas_pos.y + 200), 0xFFFF00FF);
     
     std::vector<Triangle>* batches[] = {&backgroundTriangles, &triangles};
-    for(const auto& batch : batches)
+    for(int i = (backgroundVisible?0:1); i < 2; i++)
     {
+        const auto& batch = batches[i];
+        int x = (i == 0) ? scrollx : 0;
+        int y = (i == 0) ? scrolly : 0;
         for(auto triangle : *batch)
         {
-            draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x, canvas_pos.y + triangle.cy),
-                                         ImVec2(triangle.bx + canvas_pos.x, canvas_pos.y + triangle.by),
-                                         ImVec2(triangle.ax + canvas_pos.x, canvas_pos.y + triangle.ay), triangle.color);
+            draw_list->AddTriangleFilled(ImVec2(triangle.cx + canvas_pos.x - x, canvas_pos.y + triangle.cy - y),
+                                         ImVec2(triangle.bx + canvas_pos.x - x, canvas_pos.y + triangle.by - y),
+                                         ImVec2(triangle.ax + canvas_pos.x - x, canvas_pos.y + triangle.ay - y), triangle.color);
         }
     }
     draw_list->PopClipRect();

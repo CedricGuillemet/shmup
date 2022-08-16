@@ -37,6 +37,11 @@ extern uint32_t palette[256];
 #define MOVIE_SEQ 0x01
 #define MOVIE_PLAY 0x02
 #define MOVIE_BACKGROUND 0x03
+#define MOVIE_BACKGROUND_ON 0x04
+#define MOVIE_BACKGROUND_OFF 0x05
+#define MOVIE_SCROLL_FROM 0x06
+#define MOVIE_SCROLL_TO 0x07
+
 
 #define MOVIE_SLOT_COUNT 32
 

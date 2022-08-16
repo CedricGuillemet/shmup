@@ -4,6 +4,9 @@
 *.ilk
 *.pdb
 .DS_STORE
+*.blend1
+*_d
+.vscode/
 
 # Compiled Object files
 *.slo

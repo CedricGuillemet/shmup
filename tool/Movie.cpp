@@ -83,7 +83,25 @@ void Movie::PushUI32(uint32_t v)
     }
 }
 
+void Movie::PushI32(uint32_t v)
+{
+    uint8_t* val = (uint8_t*)&v;
+    for (int i = 0; i < 4; i++)
+    {
+        mBytes.push_back(*val++);
+    }
+}
+
 void Movie::PushUI16(uint16_t v)
+{
+    uint8_t* val = (uint8_t*)&v;
+    for (int i = 0; i < 2; i++)
+    {
+        mBytes.push_back(*val++);
+    }
+}
+
+void Movie::PushI16(int16_t v)
 {
     uint8_t* val = (uint8_t*)&v;
     for (int i = 0; i < 2; i++)
@@ -115,6 +133,48 @@ void Movie::PushBackground(uint16_t width, uint16_t height, const std::vector<ui
     mBytes.insert(mBytes.end(), bytes.begin(), bytes.end());
 }
 
+void Movie::PushBackgroundOn()
+{
+    mBytes.push_back(MOVIE_BACKGROUND_ON);
+}
+
+void Movie::PushBackgroundOff()
+{
+    mBytes.push_back(MOVIE_BACKGROUND_OFF);
+}
+
+void Movie::PushScrollFrom(int x, int y)
+{
+    mBytes.push_back(MOVIE_SCROLL_FROM);
+    PushI16((int16_t)x);
+    PushI16((int16_t)y);
+    
+    mFromx = x;
+    mFromy = y;
+    
+    // deltas
+    mScrollDeltaIndex = mBytes.size();
+    PushI32(0);
+    PushI32(0);
+    mScrollFrameCount = 0;
+}
+
+void Movie::PushScrollTo(int x, int y)
+{
+    mBytes.push_back(MOVIE_SCROLL_TO);
+    
+    int dx = x - mFromx;
+    int dy = y - mFromy;
+    dx *= 0x10000;
+    dy *= 0x10000;
+    dx /= mScrollFrameCount;
+    dy /= mScrollFrameCount;
+    
+    *(int32_t*)&mBytes[mScrollDeltaIndex] = dx;
+    *(int32_t*)&mBytes[mScrollDeltaIndex+4] = dy;
+    mScrollDeltaIndex = 0;
+}
+
 bool Movie::ParseScript(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rt");
@@ -140,8 +200,19 @@ bool Movie::ParseScript(const std::string& filename)
             {
                 continue;
             }
+            // BACK ON
+            if (l >= 7 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'N')
+            {
+                PushBackgroundOn();
+            }
+            // BACK OFF
+            else if (l >= 8 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'F' && tmps[7] == 'F')
+            {
+                PushBackgroundOff();
+            }
+
             // BACK Levels/road_back.glb Cam_background 640 100
-            if (l >= 4 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K')
+            else if (l >= 4 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K')
             {
                 std::vector<std::string> strings;
                 int tokenCount = ParseTokens(tmps, strings);
@@ -153,32 +224,62 @@ bool Movie::ParseScript(const std::string& filename)
                     return false;
                 }
                 
-                const std::string& gltfPath = strings[1];
-                const std::string& camera = strings[2];
-                const int width = atoi(strings[3].c_str());
-                const int height = atoi(strings[4].c_str());
-                
-                Imm::matrix view, proj;
-                float znear;
-                
-                auto gltfFrames = ImportGLTF(gltfPath.c_str(), camera.c_str());
-                Mesh mesh;
-                std::vector<uint8_t> dump;
-                if (gltfFrames.size() != 1)
+                // scroll
+                if (strings[1] == "SCROLL")
                 {
-                    std::stringstream strm;
-                    strm << "Background has more than 1 frame Line " << line;
-                    mParsingError = strm.str();
-                    return false;
+                    // BACK SCROLL TO 320 0
+                    bool from = strings[2] == "FROM";
+                    int x = atoi(strings[3].c_str());
+                    int y = atoi(strings[4].c_str());
+                    
+                    if (from)
+                    {
+                        PushScrollFrom(x, y);
+                    }
+                    else
+                    {
+                        // TO
+                        if (!mScrollDeltaIndex)
+                        {
+                            std::stringstream strm;
+                            strm << "Scroll has a 'TO' without a 'FROM' Line " << line;
+                            mParsingError = strm.str();
+                            return false;
+                        }
+                        PushScrollTo(x, y);
+                    }
+                    
                 }
+                else
+                {
+                    // BACKGROUND definition
+                    const std::string& gltfPath = strings[1];
+                    const std::string& camera = strings[2];
+                    const int width = atoi(strings[3].c_str());
+                    const int height = atoi(strings[4].c_str());
+                    
+                    Imm::matrix view, proj;
+                    float znear;
+                    
+                    auto gltfFrames = ImportGLTF(gltfPath.c_str(), camera.c_str());
+                    Mesh mesh;
+                    std::vector<uint8_t> dump;
+                    if (gltfFrames.size() != 1)
+                    {
+                        std::stringstream strm;
+                        strm << "Background has more than 1 frame Line " << line;
+                        mParsingError = strm.str();
+                        return false;
+                    }
 
-                ConvertGLTFToMesh(gltfFrames[0], mesh, view, proj, znear);
-                mesh.Transform(view, proj, znear, width, height);
-                mesh.CompressColors();
-                const auto& currentFrame = mesh.frames[0];
-                auto bytes = currentFrame.GetBytes();
-                dump.insert(dump.end(), bytes.begin(), bytes.end());
-                PushBackground(width, height, dump);
+                    ConvertGLTFToMesh(gltfFrames[0], mesh, view, proj, znear);
+                    mesh.Transform(view, proj, znear, width, height);
+                    mesh.CompressColors();
+                    const auto& currentFrame = mesh.frames[0];
+                    auto bytes = currentFrame.GetBytes();
+                    dump.insert(dump.end(), bytes.begin(), bytes.end());
+                    PushBackground(width, height, dump);
+                }
             }
             // PLAY
             if (l >= 4 && tmps[0] == 'P' && tmps[1] == 'L' && tmps[2] == 'A' && tmps[3] == 'Y')
@@ -193,6 +294,7 @@ bool Movie::ParseScript(const std::string& filename)
                     return false;
                 }
                 int playCount = (tokenCount == 3) ? atoi(strings[2].c_str()) : 1;
+                mScrollFrameCount += playCount;
 
                 auto iter = mSequences.find(strings[1]);
                 if (iter == mSequences.end())
@@ -255,7 +357,7 @@ bool Movie::ParseScript(const std::string& filename)
                 PushPlayback(seq.mSlot, playCount);
             }
             // SEQ
-            if (l >= 3 && tmps[0] == 'S' && tmps[1] == 'E' && tmps[2] == 'Q')
+            else if (l >= 3 && tmps[0] == 'S' && tmps[1] == 'E' && tmps[2] == 'Q')
             {
                 Sequence seq;
                 

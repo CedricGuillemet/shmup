@@ -20,6 +20,10 @@ struct MovieState
     unsigned char* sequencePlayingBase; // source pointer
     unsigned char* sequencePlayingEnd; // end pointer in sequence
     unsigned char playCount;
+    
+    // scroll
+    int scrollx, scrolly;
+    int scrollDeltax, scrollDeltay;
 };
 
 MovieState movieState;
@@ -53,6 +57,8 @@ int ReadMovie(const char* szPath)
 }
 extern void BeginBackground(unsigned short width, unsigned short height);
 extern void StopBackground();
+extern void BackgroundVisible(bool visible);
+extern void SetScroll(int16_t x, int16_t y);
 
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex);
 uint32_t palette[256];
@@ -76,7 +82,7 @@ void DecodeNextFrameInfos(FrameDecodedInfos* frameDecodedInfos, unsigned char** 
     *ptr += sizeof(struct FrameFace) * frameDecodedInfos->frameInfos->faceCount;
     frameDecodedInfos->frameColors = (struct FrameColor*)*ptr;
     *ptr += sizeof(struct FrameColor) * frameDecodedInfos->frameInfos->colorCount;
-}
+    }
 
 void UpdatePalette(FrameDecodedInfos* frameDecodedInfos);
 void RenderTriangles(FrameDecodedInfos* frameDecodedInfos);
@@ -111,21 +117,53 @@ int ReadChunk()
             }
             break;
         case MOVIE_BACKGROUND:
-        {
-            unsigned short width = *(unsigned short*)movieState.moviePointer;
-            movieState.moviePointer += 2;
-            unsigned short height = *(unsigned short*)movieState.moviePointer;
-            movieState.moviePointer += 2;
-            BeginBackground(width, height);
-            
-            FrameDecodedInfos frameDecodedInfos;
-            DecodeNextFrameInfos(&frameDecodedInfos, &movieState.moviePointer);
-            UpdatePalette(&frameDecodedInfos);
-            RenderTriangles(&frameDecodedInfos);
+            {
+                unsigned short width = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                unsigned short height = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                BeginBackground(width, height);
+                
+                FrameDecodedInfos frameDecodedInfos;
+                DecodeNextFrameInfos(&frameDecodedInfos, &movieState.moviePointer);
+                UpdatePalette(&frameDecodedInfos);
+                RenderTriangles(&frameDecodedInfos);
 
-            StopBackground();
+                StopBackground();
+            }
+            break;
+        case MOVIE_BACKGROUND_ON:
+            {
+                BackgroundVisible(true);
+            }
+            break;
+        case MOVIE_BACKGROUND_OFF:
+            {
+                BackgroundVisible(false);
+            }
+            break;
+        case MOVIE_SCROLL_FROM:
+            {
+                movieState.scrollx = *(short*)movieState.moviePointer;
+                movieState.scrollx <<= 16;
+                movieState.moviePointer += 2;
+                movieState.scrolly = *(short*)movieState.moviePointer;
+                movieState.scrolly <<= 16;
+                movieState.moviePointer += 2;
+                movieState.scrollDeltax = *(unsigned int*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                movieState.scrollDeltay = *(unsigned int*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+            }
+            break;
+        case MOVIE_SCROLL_TO:
+            {
+                movieState.scrollDeltax = 0;
+                movieState.scrollDeltay = 0;
+            }
+            break;
 
-        }
+
     }
     return 1;
 }
@@ -152,6 +190,12 @@ FrameDecodedInfos DecodeNextFrame()
     };
     
     movieState.playCount --;
+    
+    // scroll
+    movieState.scrollx += movieState.scrollDeltax;
+    movieState.scrolly += movieState.scrollDeltay;
+    
+    SetScroll((movieState.scrollx >> 16) & 0xFFFF, (movieState.scrolly >> 16) & 0xFFFF);
 
     DecodeNextFrameInfos(&frameDecodedInfos, &movieState.sequencePlaying);
     // loop sequence

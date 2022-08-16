@@ -10,13 +10,18 @@ SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 38
 
 BACK Levels/road_back.glb Cam_background 640 100
 
+BACK ON
+BACK SCROLL FROM 0 0
 PLAY road 200
 PLAY road_lamp 25
 PLAY road 50
+#BACK OFF
 PLAY road_lamp 25
 PLAY road 50
 PLAY road_lamp 25
 PLAY road 50
+#BACK ON
+
 
 # patio in/patio out
 PLAY road 20
@@ -24,6 +29,8 @@ PLAY road_patio_in 20
 PLAY road_patio 40
 PLAY road_patio_out 20
 PLAY road 20
+
+BACK SCROLL TO 320 0
 
 PLAY road 100
 PLAY road_patio_in 20
