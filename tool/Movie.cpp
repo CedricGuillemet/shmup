@@ -214,12 +214,16 @@ bool Movie::ParseScript(const std::string& filename)
             {
                 continue;
             }
-            if (tmps[0] == '#')
+            else if (l >= 3 && tmps[0] == 'E' && tmps[1] == 'N' && tmps[2] == 'D')
+            {
+                break;
+            }
+            else if (tmps[0] == '#')
             {
                 continue;
             }
             // BACK ON
-            if (l >= 7 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'N')
+            else if (l >= 7 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'N')
             {
                 PushBackgroundOn();
             }

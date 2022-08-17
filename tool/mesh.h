@@ -689,69 +689,110 @@ public:
             }
         }
         
-        // go on
+        static const uint32_t UnassignedColor = 0xFFFFFFFF;
         
-		std::map<uint32_t, int> colorMap;
-		for (size_t i = 0; i < frames[0].colors.size(); i++)
-		{
-			uint32_t col32 = FrameColor32(frames[0].colors[i]);
-			colorMap[col32] = i;
-		}
-		for (size_t i = 1; i < frames.size(); i ++)
-		{
-			std::map<uint32_t, int> frameNewColors;
-			std::map<int, int> previousToCurrentFrameColorIndex;
-			bool previousFrameColorUsed[256];
-			memset(previousFrameColorUsed, 0, sizeof(bool) * 256);
-			for (size_t j = 0; j < frames[i].colors.size(); j++)
-			{
-				uint32_t col32 = FrameColor32(frames[i].colors[j]);
-				int newColorIndex = -1;
-				auto iter = colorMap.find(col32);
-				if (iter == colorMap.end())
-				{
-					// color not found in previous frame
-					frameNewColors[col32] = j;
-				} else {
-					// color found in previous frame
-					previousToCurrentFrameColorIndex[j] = iter->second;
-					previousFrameColorUsed[iter->second] = true;
-				}
-			}
-			// happen newly created colors
-			for(const auto& newColor : frameNewColors)
-			{
-				for (int freeColorIndex = 0; freeColorIndex < 256; freeColorIndex++)
-				{
-					if (!previousFrameColorUsed[freeColorIndex])
-					{
-						colorMap[newColor.first] = freeColorIndex;
-						previousToCurrentFrameColorIndex[newColor.second] = freeColorIndex;
-						previousFrameColorUsed[freeColorIndex] = true;
-						break;
-					}
-				}
-			}
-			// reindex face colors
-			for (size_t j = 0; j < frames[i].faces.size(); j++)
-			{
-				auto& face = frames[i].faces[j];
-				auto iter = previousToCurrentFrameColorIndex.find(face.colorIndex);
-				assert(iter != previousToCurrentFrameColorIndex.end());
-				face.colorIndex = iter->second;
-			}
+        uint32_t palette[256];
+        memset(palette, UnassignedColor, sizeof(uint32_t) * 256);
+        for (size_t colorIndex = 0; colorIndex < frames[0].colors.size(); colorIndex++)
+        {
+            const auto currentColor = frames[0].colors[colorIndex];
+            uint32_t col32 = FrameColor32(currentColor);
+            palette[currentColor.index] = col32;
+        }
+        for (size_t frameIndex = 1; frameIndex < frames.size(); frameIndex ++)
+        {
+            std::vector<FrameColor> newFrameColors;
+            auto& currentFrame = frames[frameIndex];
+            std::vector<FrameFace> remappedFaces = currentFrame.faces;
+            const auto& currentColors = currentFrame.colors;
+            // find currently bound colors in new frame
+            for (size_t paletteIndex = 0; paletteIndex < 256; paletteIndex++)
+            {
+                const auto paletteColor = palette[paletteIndex];
+                if (paletteColor == UnassignedColor)
+                {
+                    continue;
+                }
+                bool paletteColorIsStillUsed = false;
+                for (size_t frameColorIndex = 0; frameColorIndex < currentColors.size(); frameColorIndex++)
+                {
+                    auto currentFrameColor = currentColors[frameColorIndex];
+                    uint32_t col32 = FrameColor32(currentFrameColor);
+                    if (col32 == paletteColor)
+                    {
+                        // color is found is new frame, reassign index in faces
+                        paletteColorIsStillUsed = true;
+                        for (size_t faceIndex = 0; faceIndex < currentFrame.faces.size(); faceIndex++)
+                        {
+                            const auto& face = currentFrame.faces[faceIndex];
+                            auto& remappedFace = remappedFaces[faceIndex];
+                            if (face.colorIndex == currentFrameColor.index)
+                            {
+                                remappedFace.colorIndex = paletteIndex;
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (!paletteColorIsStillUsed)
+                {
+                    palette[paletteIndex] = UnassignedColor;
+                }
+            }
 
-			// recreate color array for the frame
-			frames[i].colors.clear();
-			for (const auto& newColor : frameNewColors)
-			{
-				uint32_t color = newColor.first;
-				int index = previousToCurrentFrameColorIndex[newColor.second];
-				FrameColor frameColor = Color32Frame(color);
-				frameColor.index = index;
-				frames[i].colors.push_back(frameColor);
-			}
-		}
+            // second pass to get colors in frame not set in current palette
+            for (size_t frameColorIndex = 0; frameColorIndex < currentColors.size(); frameColorIndex++)
+            {
+                auto currentFrameColor = currentColors[frameColorIndex];
+                uint32_t col32 = FrameColor32(currentFrameColor);
+                bool alreadyBound = false;
+                for (size_t paletteIndex = 0; paletteIndex < 256; paletteIndex++)
+                {
+                    const auto paletteColor = palette[paletteIndex];
+                    if (paletteColor == UnassignedColor)
+                    {
+                        continue;
+                    }
+                    if (paletteColor == col32)
+                    {
+                        alreadyBound = true;
+                        break;
+                    }
+                }
+                if (!alreadyBound)
+                {
+                    // get first free color index
+                    bool colorAttributed = false;
+                    for (size_t paletteIndex = 0; paletteIndex < 256; paletteIndex++)
+                    {
+                        const auto paletteColor = palette[paletteIndex];
+                        if (paletteColor == UnassignedColor)
+                        {
+                            colorAttributed = true;
+                            palette[paletteIndex] = col32;
+                            newFrameColors.push_back({(uint8_t)paletteIndex, currentFrameColor.r, currentFrameColor.g, currentFrameColor.b});
+                            // reassign every faces
+                            for (size_t faceIndex = 0; faceIndex < currentFrame.faces.size(); faceIndex++)
+                            {
+                                const auto face = currentFrame.faces[faceIndex];
+                                auto& remappedFace = remappedFaces[faceIndex];
+                                if (face.colorIndex == currentFrameColor.index)
+                                {
+                                    remappedFace.colorIndex = paletteIndex;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    assert(colorAttributed);
+                }
+            }
+            // apply new color delta
+            currentFrame.colors = newFrameColors;
+            // set remapped faces
+            currentFrame.faces = remappedFaces;
+        }
+        
         return true;
 	}
 #if 0
