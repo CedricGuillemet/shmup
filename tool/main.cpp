@@ -3,10 +3,44 @@
 #include <vector>
 #include <algorithm>
 #include "imgui_internal.h"
-#include "moviePlayback.h"
 #include <string>
 #include "Movie.h"
 #include "sokol_gfx.h"
+
+
+extern "C" {
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 200
+#define SCREEN_FACTOR 4
+
+#include "moviePlayback.h"
+#include "tga.h"
+#include "types.h"
+#include "tables.h"
+#include "glyph.h"
+#include "trigo.h"
+#include "constants.h"
+#include "meshes.h"
+#include "palette.h"
+#include "geometry.h"
+#include "score.h"
+#include "display.h"
+#include "hud.h"
+#include "effects.h"
+#include "paths.h"
+#include "bullets.h"
+#include "ship.h"
+#include "enemies.h"
+
+#include "orchestra.h"
+
+#include "triggers.h"
+#include "level.h"
+#include "moviePlayback.h"
+#include "states.h"
+#include "record.h"
+#include "sprites.h"
+
 /*
  - use bitmap buffer for rendering
  - LOOP count or CLEARED
@@ -44,6 +78,8 @@ void SetScroll(int16_t x, int16_t y)
     scrolly = y;
 }
 
+uint32_t temp_bitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
+#if 0
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t color)
 {
     if (renderingBackground)
@@ -52,10 +88,11 @@ void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t c
     }
     else
     {
-        triangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
+        //triangles.push_back({ax,ay,bx,by,cx,cy, BGRA(palette[color])});
+        DrawTrianglex(ax,ay,bx,by,cx,cy, BGRA(palette[color]));
     }
 }
-
+#endif
 bool drawBackground(true), drawForeground(true);
 
 void Draw(int width, int height, const char* buttonName)
@@ -127,7 +164,7 @@ void CompileMovie()
 
 ImTextureID ftex = 0;
 sg_image skImage;
-uint32_t temp_bitmap[320 * 200];
+
 void updateTex()
 {
     if (!ftex)
@@ -156,10 +193,6 @@ void updateTex()
     }
     else
     {
-        for (int i = 0;i<320*200;i++)
-        {
-            temp_bitmap[i] = 0xFFFF00FF;
-        }
         sg_image_data data;
         memset(&data, 0, sizeof(data));
         data.subimage[0][0].ptr = temp_bitmap;
@@ -168,6 +201,7 @@ void updateTex()
     }
 }
 
+} // C
 void frame()
 {
     updateTex();
@@ -192,7 +226,7 @@ void frame()
     if (ImGui::SliderInt("Frame", &frameIndex, 0, totalFrameCount-1))
     {
         triangles.clear();
-        RenderMovieFrame(frameIndex);
+        RenderMovieSingleFrame(frameIndex);
     }
     ImGui::SameLine();
     ImGui::LabelText("End", "%d", totalFrameCount);

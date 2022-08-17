@@ -33,22 +33,22 @@ void MoveShip(struct Vector2 direction)
     Ship.position = V2Add(Ship.position, V2Mul(direction, FromFixed(0x18000)));
 
     int margin = 14;
-    if (Ship.position.x.integer < margin)
+    if (Ship.position.x.parts.integer < margin)
     {
         SetInt(&Ship.position.x, margin);
     }
 
-    if (Ship.position.x.integer > SCREEN_WIDTH - margin)
+    if (Ship.position.x.parts.integer > SCREEN_WIDTH - margin)
     {
         SetInt(&Ship.position.x, SCREEN_WIDTH - margin);
     }
 
-    if (Ship.position.y.integer < margin)
+    if (Ship.position.y.parts.integer < margin)
     {
         SetInt(&Ship.position.y, margin);
     }
 
-    if (Ship.position.y.integer > SCREEN_HEIGHT - margin)
+    if (Ship.position.y.parts.integer > SCREEN_HEIGHT - margin)
     {
         SetInt(&Ship.position.y, SCREEN_HEIGHT - margin);
     }
@@ -192,6 +192,6 @@ void DrawShip(int flameRadius)
 
         screenpos[1].x = Sub(screenpos[1].x, FromInt(10 + flameRadius));
         DrawCircle(screenpos[1], flameRadius * 2, 0, 15);
-        DrawRectangle2(V2FromInt(0, screenpos[1].y.integer - flameRadius), V2FromInt(screenpos[1].x.integer, screenpos[1].y.integer + flameRadius), 15);
+        DrawRectangle2(V2FromInt(0, screenpos[1].y.parts.integer - flameRadius), V2FromInt(screenpos[1].x.parts.integer, screenpos[1].y.parts.integer + flameRadius), 15);
     }
 }

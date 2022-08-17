@@ -91,8 +91,8 @@ void SpawnTinyExplosion(struct Vector2 position)
 
 void SpawnRandomTinyExplosion(struct Vector2 position)
 {
-    position.x.integer += (fastrand() & 0xF) - 15;
-    position.y.integer += (fastrand() & 0xF) - 7;
+    position.x.parts.integer += (fastrand() & 0xF) - 15;
+    position.y.parts.integer += (fastrand() & 0xF) - 7;
     SpawnTinyExplosion(position);
 }
 

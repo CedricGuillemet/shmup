@@ -8,14 +8,14 @@ void ClearBuffer()
 
 void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t color)
 {
-    int width = halfExtend.x.integer * 2;
-    int height = halfExtend.y.integer * 2;
+    int width = halfExtend.x.parts.integer * 2;
+    int height = halfExtend.y.parts.integer * 2;
 
-    int startx = center.x.integer - halfExtend.x.integer;
-    int starty = center.y.integer - halfExtend.y.integer;
+    int startx = center.x.parts.integer - halfExtend.x.parts.integer;
+    int starty = center.y.parts.integer - halfExtend.y.parts.integer;
 
-    int endx = center.x.integer + halfExtend.x.integer;
-    int endy = center.y.integer + halfExtend.y.integer;
+    int endx = center.x.parts.integer + halfExtend.x.parts.integer;
+    int endy = center.y.parts.integer + halfExtend.y.parts.integer;
 
     for (int y = starty; y< endy; y++)
     {
@@ -36,11 +36,11 @@ void DrawRectangle(struct Vector2 center, struct Vector2 halfExtend, uint8_t col
 
 void DrawRectangle2(struct Vector2 start, struct Vector2 end, uint8_t color)
 {
-    int startx = start.x.integer;
-    int starty = start.y.integer;
+    int startx = start.x.parts.integer;
+    int starty = start.y.parts.integer;
 
-    int endx = end.x.integer;
-    int endy = end.y.integer;
+    int endx = end.x.parts.integer;
+    int endy = end.y.parts.integer;
 
     for (int y = starty; y < endy; y++)
     {
@@ -61,7 +61,7 @@ void DrawRectangle2(struct Vector2 start, struct Vector2 end, uint8_t color)
 
 int orient2d(struct Vector2 a, struct Vector2 b, struct Vector2 c)
 {
-    return (b.x.integer - a.x.integer) * (c.y.integer - a.y.integer) - (b.y.integer - a.y.integer) * (c.x.integer - a.x.integer);
+    return (b.x.parts.integer - a.x.parts.integer) * (c.y.parts.integer - a.y.parts.integer) - (b.y.parts.integer - a.y.parts.integer) * (c.x.parts.integer - a.x.parts.integer);
 }
 
 int min2(int a, int b)
@@ -98,13 +98,25 @@ void setPixel(int x, int y, uint8_t color)
     setPixelNoCheck(x, y, color);
 }
 
+int min(int a, int b)
+{
+    return (a < b) ? a : b;
+}
+
+int max(int a, int b)
+{
+    return (a > b) ? a : b;
+}
+
+
+
 void DrawTriangle(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
 {
     // Compute triangle bounding box
-    int minX = min3(v0.x.integer, v1.x.integer, v2.x.integer);
-    int minY = min3(v0.y.integer, v1.y.integer, v2.y.integer);
-    int maxX = max3(v0.x.integer, v1.x.integer, v2.x.integer);
-    int maxY = max3(v0.y.integer, v1.y.integer, v2.y.integer);
+    int minX = min3(v0.x.parts.integer, v1.x.parts.integer, v2.x.parts.integer);
+    int minY = min3(v0.y.parts.integer, v1.y.parts.integer, v2.y.parts.integer);
+    int maxX = max3(v0.x.parts.integer, v1.x.parts.integer, v2.x.parts.integer);
+    int maxY = max3(v0.y.parts.integer, v1.y.parts.integer, v2.y.parts.integer);
 
     // Clip against screen bounds
     minX = max(minX, 0);
@@ -146,11 +158,11 @@ void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t c
 
 void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned char color)
 {
-    int startx = max(position.x.integer - radiusOut, 0);
-    int endx = min(position.x.integer + radiusOut, SCREEN_WIDTH);
+    int startx = max(position.x.parts.integer - radiusOut, 0);
+    int endx = min(position.x.parts.integer + radiusOut, SCREEN_WIDTH);
 
-    int starty = max(position.y.integer - radiusOut, 0);
-    int endy = min(position.y.integer + radiusOut, SCREEN_HEIGHT);
+    int starty = max(position.y.parts.integer - radiusOut, 0);
+    int endy = min(position.y.parts.integer + radiusOut, SCREEN_HEIGHT);
 
     int radiusOutSq = radiusOut * radiusOut;
     int radiusInSq = radiusIn * radiusIn;
@@ -159,8 +171,8 @@ void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned c
     {
         for (int x = startx; x < endx; x++)
         {
-            int dx = x - position.x.integer;
-            int dy = y - position.y.integer;
+            int dx = x - position.x.parts.integer;
+            int dy = y - position.y.parts.integer;
             int distSq = dx * dx + dy * dy;
             if (distSq < radiusOutSq && distSq >= radiusInSq)
             {
@@ -201,9 +213,9 @@ void DrawBeam(struct Vector2 pta, struct Vector2 ptb, int side, unsigned char co
 
 void DrawSprite(struct Vector2 pt, uint8_t* sprite, int width, int height, bool inverse)
 {
-    int sy = pt.y.integer - height / 2;
+    int sy = pt.y.parts.integer - height / 2;
     int ey = sy + height;
-    int sx = pt.x.integer - width / 2;
+    int sx = pt.x.parts.integer - width / 2;
     int ex = sx + width;
 
     int index = 0;

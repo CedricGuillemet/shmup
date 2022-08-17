@@ -38,5 +38,5 @@ void ScoreOnDestroy(enum EnemyType enemyType)
         }
     }
     
-    comboType = DESTROY_COMBO[enemyType];
+    comboType = (ComboType)DESTROY_COMBO[enemyType];
 }

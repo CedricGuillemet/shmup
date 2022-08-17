@@ -3,6 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "cgltf.h"
 #include <vector>
+#include "Immath.h"
 
 struct GLTFVec3 {
     float x, y, z;

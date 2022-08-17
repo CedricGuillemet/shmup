@@ -142,10 +142,10 @@ void TickBullets()
             struct Vector2 destination = (bulletPtr->enemyIndex == INVALID_ENEMY_INDEX) ? bulletPtr->destination : Enemies[bulletPtr->enemyIndex].position;
             struct Vector2 delta = V2Sub(destination, bulletPtr->position);
             bool hasHit = false;
-            if (abs(delta.x.integer) < 20 && abs(delta.y.integer) < 20)
+            if (abs(delta.x.parts.integer) < 20 && abs(delta.y.parts.integer) < 20)
             {
                 struct Fixed lengthSq = V2LengthSq(delta);
-                hasHit = lengthSq.integer < 5;
+                hasHit = lengthSq.parts.integer < 5;
             }
             
             if (hasHit)

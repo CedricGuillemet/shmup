@@ -38,22 +38,22 @@ unsigned int bulletCount = 0;
 
 bool IsClipped(struct Vector2 position, int margin)
 {
-    if (position.x.integer < margin)
+    if (position.x.parts.integer < margin)
     {
         return true;
     }
 
-    if (position.x.integer > SCREEN_WIDTH - margin)
+    if (position.x.parts.integer > SCREEN_WIDTH - margin)
     {
         return true;
     }
 
-    if (position.y.integer < margin)
+    if (position.y.parts.integer < margin)
     {
         return true;
     }
 
-    if (position.y.integer > SCREEN_HEIGHT - margin)
+    if (position.y.parts.integer > SCREEN_HEIGHT - margin)
     {
         return true;
     }
@@ -181,7 +181,7 @@ void DrawBullets(int layer)
                     //DrawCircle(bulletPtr->trailPositions[i], halfExtend.x.integer, 0, bulletColor);
                     struct Vector2 p0 = bulletPtr->trailPositions[i];
                     struct Vector2 p1 = bulletPtr->trailPositions[i + 1];
-                    DrawLine(p0.x.integer, p0.y.integer, p1.x.integer, p1.y.integer, bulletColor);
+                    DrawLine(p0.x.parts.integer, p0.y.parts.integer, p1.x.parts.integer, p1.y.parts.integer, bulletColor);
                 }
             }
             else

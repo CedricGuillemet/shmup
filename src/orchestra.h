@@ -145,7 +145,7 @@ void TearShot(struct Enemy* enemy)
     struct Fixed angle = GetAngleFromDirection(direction);
 
     struct Bullet* bullet = SpawnBullet(enemy->position, V2Mul(direction, FromFixed(0x10000)), (enemy->enemyType&1) ? EnemyTearBlack : EnemyTearWhite);
-    bullet->directionAngle16 = 15 - ((angle.integer * 16 / 2048) & 15);
+    bullet->directionAngle16 = 15 - ((angle.parts.integer * 16 / 2048) & 15);
 }
 
 
@@ -159,7 +159,7 @@ void TearShotCircular(struct Enemy* enemy)
         struct Fixed angle = GetAngleFromDirection(direction);
 
         struct Bullet* bullet = SpawnBullet(V2FromInt(200,100), V2Mul(direction, FromFixed(0x10000)), EnemyTearBlack);
-        bullet->directionAngle16 = 15 - ((angle.integer * 16 / 2048) & 15);
+        bullet->directionAngle16 = 15 - ((angle.parts.integer * 16 / 2048) & 15);
     }
 }
 

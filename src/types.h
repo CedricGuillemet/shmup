@@ -7,17 +7,18 @@ typedef unsigned char bool;
 #define false 0
 
 // Fixed point value
+struct parts_t
+{
+    unsigned short decimal;  // fixed point
+    short integer; // int
+};
 
 struct Fixed
 {
-    union 
+    union
     {
         int value;
-        struct parts
-        {
-            unsigned short decimal;  // fixed point
-            short integer; // int
-        };
+        struct parts_t parts;
     };
 };
 
@@ -38,6 +39,7 @@ struct Fixed Sub(struct Fixed a, struct Fixed b)
 struct Fixed Mul(struct Fixed a, struct Fixed b)
 {
     struct Fixed res;
+#if defined(__i386__) || defined(__x86_64__)
     __asm {
         mov eax, a.value
         imul b.value;
@@ -45,12 +47,17 @@ struct Fixed Mul(struct Fixed a, struct Fixed b)
         shr eax, 16
         mov res.value.decimal, ax
     }
+#else
+    int64_t v = (int64_t)a.value * (int64_t)b.value;
+    res.value = v >> 32;
+#endif
     return res;
 }
 
 struct Fixed Div(struct Fixed a, struct Fixed b)
 {
     struct Fixed res;
+#if defined(__i386__) || defined(__x86_64__)
     __asm {
         xor eax, eax
         xor edx, edx
@@ -64,6 +71,10 @@ struct Fixed Div(struct Fixed a, struct Fixed b)
         idiv b.value
         mov res.value, eax
     }
+#else
+    int64_t v = (int64_t)a.value / (int64_t)b.value;
+    res.value = v << 32;
+#endif
     //res.value = a.value / b.value;
     return res;
 }
@@ -71,15 +82,15 @@ struct Fixed Div(struct Fixed a, struct Fixed b)
 struct Fixed FromInt(int v)
 {
     struct Fixed res;
-    res.integer = v;
-    res.decimal = 0;
+    res.parts.integer = v;
+    res.parts.decimal = 0;
     return res;
 }
 
 void SetInt(struct Fixed* value, int v)
 {
-    value->integer = v;
-    value->decimal = 0;
+    value->parts.integer = v;
+    value->parts.decimal = 0;
 }
 
 void SetFixed(struct Fixed* value, int i)
@@ -177,7 +188,7 @@ struct Vector2 V2Normalize(struct Vector2 v)
     struct Vector2 res;
     struct Fixed len;
 
-    while (abs(v.x.integer) > 128 || abs(v.y.integer) > 128)
+    while (abs(v.x.parts.integer) > 128 || abs(v.y.parts.integer) > 128)
     {
         v.x.value >>= 1;
         v.y.value >>= 1;
@@ -401,7 +412,7 @@ struct Vector3 V3Lerp(struct Vector3 a, struct Vector3 b, struct Fixed t)
 }
 uint32_t V3ToUint32(struct Vector3 v)
 {
-    uint32_t res = ((v.x.integer&0xFF)<<16) + ((v.y.integer & 0xFF) << 8) + ((v.z.integer & 0xFF) << 0);
+    uint32_t res = ((v.x.parts.integer&0xFF)<<16) + ((v.y.parts.integer & 0xFF) << 8) + ((v.z.parts.integer & 0xFF) << 0);
     return res;
 }
 // Matrix
@@ -445,12 +456,12 @@ struct Fixed RadianToCircular(struct Fixed radian)
     return Mul(radian, FromFixed(21361414)); // /3.141592 * 1024 * 65536
 }
 
-int g_seed = 17;
+int g_frseed = 17;
 
 int fastrand()
 {
-    g_seed = (214013 * g_seed + 2531011);
-    return (g_seed >> 16) & 0x7FFF;
+    g_frseed = (214013 * g_frseed + 2531011);
+    return (g_frseed >> 16) & 0x7FFF;
 }
 
 // Rectangle for collision detection
@@ -475,9 +486,9 @@ bool IntersectRect(struct Rectangle r1, struct Rectangle r2)
 struct Rectangle GetRectangle(struct Vector2 position, int halfExtend)
 {
     struct Rectangle res;
-    res.left = position.x.integer - halfExtend;
+    res.left = position.x.parts.integer - halfExtend;
     res.right = res.left + halfExtend * 2;
-    res.top = position.y.integer - halfExtend;
+    res.top = position.y.parts.integer - halfExtend;
     res.bottom = res.top + halfExtend * 2;
     return res;
 }

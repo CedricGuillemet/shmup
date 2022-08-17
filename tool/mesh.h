@@ -7,8 +7,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Immath.h"
+extern "C" {
 #include "moviePlayback.h"
-
+}
 inline std::vector<uint8_t> ReadFile(const std::string& filePathName)
 {
 	std::vector<uint8_t> res;
