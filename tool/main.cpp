@@ -6,9 +6,9 @@
 #include "moviePlayback.h"
 #include <string>
 #include "Movie.h"
-
+#include "sokol_gfx.h"
 /*
- - asset issue: face colors second part of tunnel_light
+ - use bitmap buffer for rendering
  - LOOP count or CLEARED
  - FORE ON/OFF
  
@@ -125,11 +125,56 @@ void CompileMovie()
     errorMessage = movie.GetParsingError();
 }
 
+ImTextureID ftex = 0;
+sg_image skImage;
+uint32_t temp_bitmap[320 * 200];
+void updateTex()
+{
+    if (!ftex)
+    {
+        for (int i = 0;i<320*200;i++)
+        {
+            temp_bitmap[i] = i * i;
+        }
+        
+        sg_image_desc img_desc;
+        //_simgui_clear(&img_desc, sizeof(img_desc));
+        memset(&img_desc, 0, sizeof(img_desc));
+        img_desc.usage = SG_USAGE_STREAM;
+        img_desc.width = 320;
+        img_desc.height = 200;
+        img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+        img_desc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+        img_desc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+        img_desc.min_filter = SG_FILTER_LINEAR;
+        img_desc.mag_filter = SG_FILTER_LINEAR;
+        //img_desc.data.subimage[0][0].ptr = temp_bitmap;
+        //img_desc.data.subimage[0][0].size = (size_t)(320 * 200) * sizeof(uint32_t);
+        img_desc.label = "game";
+        skImage = sg_make_image(&img_desc);
+        ftex = (ImTextureID)(uintptr_t) skImage.id;
+    }
+    else
+    {
+        for (int i = 0;i<320*200;i++)
+        {
+            temp_bitmap[i] = 0xFFFF00FF;
+        }
+        sg_image_data data;
+        memset(&data, 0, sizeof(data));
+        data.subimage[0][0].ptr = temp_bitmap;
+        data.subimage[0][0].size = (size_t)(320 * 200) * sizeof(uint32_t);
+        sg_update_image(skImage, data);
+    }
+}
+
 void frame()
 {
+    updateTex();
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(800, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("Movie");
+    ImGui::Image(ftex, ImVec2(320, 200));
     if (ImGui::Button("Reload"))
     {
         CompileMovie();
@@ -185,6 +230,8 @@ void frame()
     }
     Draw(320, 200, "InvButton");
     ImGui::End();
+    
+    ImGui::ShowDemoWindow();
 }
 
 int main(int, char **) {

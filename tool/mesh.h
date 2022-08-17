@@ -703,7 +703,7 @@ public:
         {
             std::vector<FrameColor> newFrameColors;
             auto& currentFrame = frames[frameIndex];
-            std::vector<FrameFace> remappedFaces = currentFrame.faces;
+            uint8_t remappedColorIndices[256];
             const auto& currentColors = currentFrame.colors;
             // find currently bound colors in new frame
             for (size_t paletteIndex = 0; paletteIndex < 256; paletteIndex++)
@@ -722,15 +722,7 @@ public:
                     {
                         // color is found is new frame, reassign index in faces
                         paletteColorIsStillUsed = true;
-                        for (size_t faceIndex = 0; faceIndex < currentFrame.faces.size(); faceIndex++)
-                        {
-                            const auto& face = currentFrame.faces[faceIndex];
-                            auto& remappedFace = remappedFaces[faceIndex];
-                            if (face.colorIndex == currentFrameColor.index)
-                            {
-                                remappedFace.colorIndex = paletteIndex;
-                            }
-                        }
+                        remappedColorIndices[currentFrameColor.index] = paletteIndex;
                         break;
                     }
                 }
@@ -771,16 +763,7 @@ public:
                             colorAttributed = true;
                             palette[paletteIndex] = col32;
                             newFrameColors.push_back({(uint8_t)paletteIndex, currentFrameColor.r, currentFrameColor.g, currentFrameColor.b});
-                            // reassign every faces
-                            for (size_t faceIndex = 0; faceIndex < currentFrame.faces.size(); faceIndex++)
-                            {
-                                const auto face = currentFrame.faces[faceIndex];
-                                auto& remappedFace = remappedFaces[faceIndex];
-                                if (face.colorIndex == currentFrameColor.index)
-                                {
-                                    remappedFace.colorIndex = paletteIndex;
-                                }
-                            }
+                            remappedColorIndices[currentFrameColor.index] = paletteIndex;
                             break;
                         }
                     }
@@ -790,7 +773,10 @@ public:
             // apply new color delta
             currentFrame.colors = newFrameColors;
             // set remapped faces
-            currentFrame.faces = remappedFaces;
+            for (auto& face : currentFrame.faces)
+            {
+                face.colorIndex = remappedColorIndices[face.colorIndex];
+            }
         }
         
         return true;
