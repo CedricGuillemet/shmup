@@ -26,13 +26,15 @@ protected:
     void PushWarp(bool on) { mBytes.push_back(on ? MOVIE_WARP_ON : MOVIE_WARP_OFF); }
     void PushWarpStripes(bool on) { mBytes.push_back(on ? MOVIE_WARP_STRIPES_ON : MOVIE_WARP_STRIPES_OFF); }
     void PushWarpBackground(bool on) { mBytes.push_back(on ? MOVIE_WARP_BACKGROUND_ON : MOVIE_WARP_BACKGROUND_OFF); }
-
+    void PushLoopCleared(uint32_t destination) { mBytes.push_back(MOVIE_LOOP_CLEARED); PushUI32(destination); };
+    void PushLoop(uint32_t destination, uint8_t count) { mBytes.push_back(MOVIE_LOOP); PushUI32(destination); PushUI8(count); };
     void PushScrollFrom(int x, int y);
     void PushScrollTo(int x, int y);
     void PushUI32(uint32_t v);
     void PushI32(uint32_t v);
     void PushUI16(uint16_t v);
     void PushI16(int16_t v);
+    void PushUI8(uint8_t v) { mBytes.push_back(v); }
 
     // SEQ road Levels/road.glb Cam_road 5
     struct Sequence
@@ -44,6 +46,7 @@ protected:
     };
 
     std::map<std::string, Sequence> mSequences;
+    std::map<std::string, uint32_t> mLabels;
     uint32_t mSlots{0};
     std::vector<uint8_t> mBytes;
     std::string mParsingError;
@@ -240,6 +243,7 @@ bool Movie::ParseScript(const std::string& filename)
         mFromx = 0;
         mFromy = 0;
         mScrollOn = false;
+        mLabels.clear();
 
         int line = 0;
 
@@ -253,6 +257,7 @@ bool Movie::ParseScript(const std::string& filename)
             {
                 continue;
             }
+            // END
             else if (l >= 3 && tmps[0] == 'E' && tmps[1] == 'N' && tmps[2] == 'D')
             {
                 break;
@@ -260,6 +265,48 @@ bool Movie::ParseScript(const std::string& filename)
             else if (tmps[0] == '#')
             {
                 continue;
+            }
+            // LOOP
+            else if (l >= 4 && tmps[0] == 'L' && tmps[1] == 'O' && tmps[2] == 'O' && tmps[3] == 'P')
+            {
+                std::vector<std::string> strings;
+                int tokenCount = ParseTokens(tmps, strings);
+                if (tokenCount != 3)
+                {
+                    std::stringstream strm;
+                    strm << "Syntax error line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                auto iter = mLabels.find(strings[2]);
+                if (iter == mLabels.end())
+                {
+                    std::stringstream strm;
+                    strm << "Label " << strings[2] << " not defined Line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                if (strings[1] == "CLEARED")
+                {
+                    PushLoopCleared(iter->second);
+                }
+                int loopCount = atoi(strings[1].c_str());
+                PushLoop(iter->second, loopCount);
+            }
+            // LABEL
+            else if (l >= 5 && tmps[0] == 'L' && tmps[1] == 'A' && tmps[2] == 'B' && tmps[3] == 'E' && tmps[4] == 'L')
+            {
+                std::vector<std::string> strings;
+                int tokenCount = ParseTokens(tmps, strings);
+                auto iter = mLabels.find(strings[1]);
+                if (iter != mLabels.end())
+                {
+                    std::stringstream strm;
+                    strm << "Label " << strings[1] << " already defined Line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                mLabels[strings[1]] = mBytes.size();
             }
             // WARP
             else if (l >= 4 && tmps[0] == 'W' && tmps[1] == 'A' && tmps[2] == 'R' && tmps[3] == 'P')

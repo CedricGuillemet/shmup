@@ -97,6 +97,9 @@ struct MovieState
     // state
     int foregroundDisabled;
     int frameIndex;
+    // loop
+    int loopCount;
+    int loopDestination;
 };
 
 MovieState movieState;
@@ -229,9 +232,9 @@ int ReadChunk()
                 movieState.scrolly <<= 16;
                 movieState.moviePointer += 2;
                 movieState.scrollDeltax = *(unsigned int*)movieState.moviePointer;
-                movieState.moviePointer += 2;
+                movieState.moviePointer += 4;
                 movieState.scrollDeltay = *(unsigned int*)movieState.moviePointer;
-                movieState.moviePointer += 2;
+                movieState.moviePointer += 4;
             }
             break;
         case MOVIE_SCROLL_TO:
@@ -262,6 +265,21 @@ int ReadChunk()
         break;
         case MOVIE_LOOP:
         {
+            if (!movieState.loopCount)
+            {
+                movieState.loopDestination = *(unsigned int*)movieState.moviePointer;
+                movieState.moviePointer += 4;
+                movieState.loopCount = *movieState.moviePointer++;
+            }
+            // goto anyway
+            movieState.loopCount --;
+            if (movieState.loopCount > 0)
+            {
+                movieState.moviePointer = movieData + movieState.loopDestination;
+            } else {
+                // skip chunk
+                movieState.moviePointer += 5;
+            }
         }
         break;
         case MOVIE_LOOP_CLEARED:
@@ -411,10 +429,12 @@ int GetMovieFrameCount()
 
 void RenderMovieSingleFrame(int frameIndex)
 {
-    movieState.moviePointer = movieData;
-    movieState.playCount = 0;
+    /*movieState.playCount = 0;
     movieState.foregroundDisabled = 0;
     movieState.frameIndex = 0;
+    movieState.loopCount = 0;*/
+    memset(&movieState, 0, sizeof(MovieState));
+    movieState.moviePointer = movieData;
     SetWarp(false, 0);
     SetWarpStripes(false);
     SetWarpBackground(false);
