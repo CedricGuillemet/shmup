@@ -11,7 +11,7 @@ int main()
         fputs("static const struct Fixed cosines[2048] = {\n", fp);
         for (int i = 0;i<2048;i++)
         {
-            float angle = (i / 2048.f);
+            float angle = (i / 2048.f) * 3.141592f * 2.f;
             float cs = cosf(angle) * 65536.f;
             if (cs >= 0.f)
             {

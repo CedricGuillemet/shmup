@@ -49,6 +49,18 @@ extern uint32_t palette[256];
 #define MOVIE_SCROLL_OFF 0x08
 #define MOVIE_SCROLL_ON 0x09
 
+#define MOVIE_FOREGROUND_OFF 0x0A
+#define MOVIE_FOREGROUND_ON 0x0B
+#define MOVIE_LOOP 0x0C
+#define MOVIE_LOOP_CLEARED 0x0D
+
+#define MOVIE_WARP_OFF 0x0E
+#define MOVIE_WARP_ON 0x0F
+#define MOVIE_WARP_STRIPES_OFF 0x10
+#define MOVIE_WARP_STRIPES_ON 0x11
+#define MOVIE_WARP_BACKGROUND_OFF 0x12
+#define MOVIE_WARP_BACKGROUND_ON 0x13
+
 #define MOVIE_SLOT_COUNT 32
 
 #define MOVIE_COLOR_OFFSET_BACKGROUND 200
@@ -82,6 +94,9 @@ struct MovieState
     int scrollx, scrolly;
     int scrollDeltax, scrollDeltay;
     int scrollOn;
+    // state
+    int foregroundDisabled;
+    int frameIndex;
 };
 
 MovieState movieState;
@@ -113,12 +128,17 @@ int ReadMovie(const char* szPath)
     }
     return 0;
 }
+
+// client Overrides
 void BeginBackground(unsigned short width, unsigned short height);
 void StopBackground();
 void BackgroundVisible(bool visible);
 void SetScroll(int16_t x, int16_t y);
-
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex);
+void SetWarp(bool enabled, int frameIndex);
+void SetWarpStripes(bool enabled);
+void SetWarpBackground(bool enabled);
+
 extern uint32_t palette[256];
 //int everyOtherFrame = 0;
 
@@ -230,6 +250,55 @@ int ReadChunk()
                 movieState.scrollOn = false;
             }
             break;
+        case MOVIE_FOREGROUND_OFF:
+        {
+            movieState.foregroundDisabled = true;
+        }
+        break;
+        case MOVIE_FOREGROUND_ON:
+        {
+            movieState.foregroundDisabled = false;
+        }
+        break;
+        case MOVIE_LOOP:
+        {
+        }
+        break;
+        case MOVIE_LOOP_CLEARED:
+        {
+        }
+        break;
+
+        case MOVIE_WARP_OFF:
+        {
+            SetWarp(false, 0);
+        }
+        break;
+        case MOVIE_WARP_ON:
+        {
+            SetWarp(true, movieState.frameIndex);
+        }
+        break;
+        case MOVIE_WARP_STRIPES_OFF:
+        {
+            SetWarpStripes(false);
+        }
+        break;
+        case MOVIE_WARP_STRIPES_ON:
+        {
+            SetWarpStripes(true);
+        }
+        break;
+        case MOVIE_WARP_BACKGROUND_OFF:
+        {
+            SetWarpBackground(false);
+        }
+        break;
+        case MOVIE_WARP_BACKGROUND_ON:
+        {
+            SetWarpBackground(true);
+        }
+        break;
 
     }
     return 1;
@@ -257,6 +326,7 @@ FrameDecodedInfos DecodeNextFrame()
     };
     
     movieState.playCount --;
+    movieState.frameIndex ++;
     
     // scroll
     if (movieState.scrollOn)
@@ -285,6 +355,10 @@ void UpdatePalette(FrameDecodedInfos* frameDecodedInfos, int colorOffset)
 
 void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset)
 {
+    if (movieState.foregroundDisabled)
+    {
+        return;
+    }
     struct FrameFace* face = frameDecodedInfos->frameFaces;
     for (int i = 0; i < frameDecodedInfos->frameInfos->faceCount; i++, face++)
     {
@@ -339,6 +413,11 @@ void RenderMovieSingleFrame(int frameIndex)
 {
     movieState.moviePointer = movieData;
     movieState.playCount = 0;
+    movieState.foregroundDisabled = 0;
+    movieState.frameIndex = 0;
+    SetWarp(false, 0);
+    SetWarpStripes(false);
+    SetWarpBackground(false);
     
     for (int i = 0; i < frameIndex; i++)
     {

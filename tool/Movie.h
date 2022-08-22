@@ -19,10 +19,14 @@ protected:
     void PushSequence(int8_t slot, const std::vector<uint8_t>& bytes);
     void PushPlayback(int8_t slot, uint8_t count);
     void PushBackground(uint16_t width, uint16_t height, const std::vector<uint8_t>& bytes);
-    void PushBackgroundOn();
-    void PushBackgroundOff();
+    void PushBackground(bool on) { mBytes.push_back(on ? MOVIE_BACKGROUND_ON : MOVIE_BACKGROUND_OFF); }
     void PushScrollOn();
     void PushScrollOff();
+    void PushForeground(bool on) { mBytes.push_back(on ? MOVIE_FOREGROUND_ON : MOVIE_FOREGROUND_OFF); }
+    void PushWarp(bool on) { mBytes.push_back(on ? MOVIE_WARP_ON : MOVIE_WARP_OFF); }
+    void PushWarpStripes(bool on) { mBytes.push_back(on ? MOVIE_WARP_STRIPES_ON : MOVIE_WARP_STRIPES_OFF); }
+    void PushWarpBackground(bool on) { mBytes.push_back(on ? MOVIE_WARP_BACKGROUND_ON : MOVIE_WARP_BACKGROUND_OFF); }
+
     void PushScrollFrom(int x, int y);
     void PushScrollTo(int x, int y);
     void PushUI32(uint32_t v);
@@ -178,16 +182,6 @@ void Movie::PushBackground(uint16_t width, uint16_t height, const std::vector<ui
     mBytes.insert(mBytes.end(), bytes.begin(), bytes.end());
 }
 
-void Movie::PushBackgroundOn()
-{
-    mBytes.push_back(MOVIE_BACKGROUND_ON);
-}
-
-void Movie::PushBackgroundOff()
-{
-    mBytes.push_back(MOVIE_BACKGROUND_OFF);
-}
-
 void Movie::PushScrollFrom(int x, int y)
 {
     mBytes.push_back(MOVIE_SCROLL_FROM);
@@ -267,15 +261,48 @@ bool Movie::ParseScript(const std::string& filename)
             {
                 continue;
             }
+            // WARP
+            else if (l >= 4 && tmps[0] == 'W' && tmps[1] == 'A' && tmps[2] == 'R' && tmps[3] == 'P')
+            {
+                std::vector<std::string> strings;
+                int tokenCount = ParseTokens(tmps, strings);
+                
+                bool isOn = (tokenCount == 2 && strings[1].substr(0, 2) == "ON") || (tokenCount == 3 && strings[2].substr(0, 2) == "ON");
+                
+                if (tokenCount == 2)
+                {
+                    PushWarp(isOn);
+                } else if (tokenCount == 3)
+                {
+                    if (strings[1] == "BACKGROUND")
+                    {
+                        PushWarpBackground(isOn);
+                    } else if (strings[1] == "STRIPES")
+                    {
+                        PushWarpStripes(isOn);
+                    }
+                }
+                
+            }
+            // foreground
+            else if (l >= 7 && tmps[0] == 'F' && tmps[1] == 'O' && tmps[2] == 'R' && tmps[3] == 'E' && tmps[5] == 'O' && tmps[6] == 'N')
+            {
+                PushForeground(true);
+            }
+            // BACK OFF
+            else if (l >= 8 && tmps[0] == 'F' && tmps[1] == 'O' && tmps[2] == 'R' && tmps[3] == 'E' && tmps[5] == 'O' && tmps[6] == 'F' && tmps[7] == 'F')
+            {
+                PushForeground(false);
+            }
             // BACK ON
             else if (l >= 7 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'N')
             {
-                PushBackgroundOn();
+                PushBackground(true);
             }
             // BACK OFF
             else if (l >= 8 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'F' && tmps[7] == 'F')
             {
-                PushBackgroundOff();
+                PushBackground(false);
             }
 
             // BACK Levels/road_back.glb Cam_background 640 100

@@ -42,10 +42,10 @@ extern "C" {
 #include "sprites.h"
 
 /*
+ 
  - LOOP count or CLEARED
- - FORE ON/OFF
- - transition/warp token
- - cache rendered background
+ - cache rendered background (remove setscroll?)
+ 
  - per frame debug display (frame count, vt count, colors, frame size)
  */
 Movie movie;
@@ -65,8 +65,19 @@ void SetScroll(int16_t x, int16_t y)
 }
 
 uint32_t temp_bitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
-bool drawBackground(true), drawForeground(true);
 
+int frameIndex(-1);
+int frameIndexStartWarp;
+bool drawBackground(true), drawForeground(true);
+bool warpOn(false), warpStripesOn(false), warpBackgroundOn(false);
+
+void SetWarp(bool enabled, int warpFrameIndex)
+{
+    frameIndexStartWarp = warpFrameIndex;
+    warpOn = enabled;
+}
+void SetWarpStripes(bool enabled) { warpStripesOn = enabled; }
+void SetWarpBackground(bool enabled) { warpBackgroundOn = enabled; }
 void BeginBackground(unsigned short width, unsigned short height)
 {
     renderingBackground = true;
@@ -78,7 +89,7 @@ void StopBackground()
 }
 
 bool playing(false), nextFrame(true);
-int frameIndex(-1);
+
 int totalFrameCount(0);
 std::string errorMessage;
 
@@ -104,7 +115,7 @@ void updateTex()
 {
     if (!ftex)
     {
-        for (int i = 0;i<320*200;i++)
+        for (int i = 0; i < 320 * 200; i++)
         {
             temp_bitmap[i] = i * i;
         }
@@ -198,12 +209,23 @@ void frame()
             }
         }
     }
-
+    
+    ComputeMatrices();
+    if (warpOn)
+    {
+        int warpFrame = frameIndex - frameIndexStartWarp;
+        if (warpFrame >= 400)
+        {
+            warpFrame = 399;
+        }
+        GameWarping(warpFrame, warpStripesOn, warpBackgroundOn);
+    }
     ImGui::End();
 }
 
 int main(int, char **) {
     CompileMovie();
+    SpritesInit();
     imgui_app(frame, "shmup Tool", 1024, 768);
     return 0;
 }

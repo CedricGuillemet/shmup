@@ -49,7 +49,8 @@ struct Fixed Mul(struct Fixed a, struct Fixed b)
     }
 #else
     int64_t v = (int64_t)a.value * (int64_t)b.value;
-    res.value = v >> 32;
+    v >>= 16u;
+    res.value = v;
 #endif
     return res;
 }
@@ -73,7 +74,8 @@ struct Fixed Div(struct Fixed a, struct Fixed b)
     }
 #else
     int64_t v = (int64_t)a.value / (int64_t)b.value;
-    res.value = v << 32;
+    v <<= 16u;
+    res.value = v;
 #endif
     //res.value = a.value / b.value;
     return res;

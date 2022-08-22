@@ -9,15 +9,14 @@ struct Input_t
     bool discharge;
 };
 
-int warping = 0;
-int levelLoaded = -1;
-void GameWarping()
+// Warping 0 .. 400
+void GameWarping(int warping, bool warpStripesOn, bool warpBackgroundOn)
 {
-    DrawSpeed();
+    DrawSpeed(warpStripesOn, warpBackgroundOn);
 
     static int flick = 0;
 
-    warping++;
+    //warping++;
 
     if (warping < 150)
     {
@@ -28,7 +27,7 @@ void GameWarping()
     }
     else if (warping < 300)
     {
-        fovy.value += 200;
+        fovy.value = 60622 + (warping - 300) * 200; //200;
         Ship.position = V2Sub(Ship.position, V2FromInt(1, 0));
         DrawShip(((++flick) & 1) * ((warping - 150) / 10));
     }
@@ -38,12 +37,12 @@ void GameWarping()
         DrawShip(((++flick) & 3) * 4);
         paletteFade = ((warping - 300) / 2) * 6;
     }
-    else
+    /*else
     {
         SpawnShip();
         FadePalette(0);
         warping = 0;
-    }
+    }*/
 }
 
 void GamePlay(struct Input_t Input)
@@ -82,17 +81,5 @@ void GameLoop(struct Input_t Input)
 {
     ComputeMatrices();
     FadePalette(paletteFade);
-    if (levelLoaded == -1)
-    {
-        ReadMovie("Levels/level0-0.mv");
-        levelLoaded = 0;
-    }
-    if (warping)
-    {
-        GameWarping();
-    }
-    else
-    {
-        GamePlay(Input);
-    }
+    GamePlay(Input);
 }

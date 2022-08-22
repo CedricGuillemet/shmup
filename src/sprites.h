@@ -4,7 +4,9 @@ void EndianSwap(uint32_t *buffer, int lengthInBytes)
     for (int i = 0; i < lengthInBytes/4;i++)
     {
         uint32_t v = buffer[i];
-        buffer[i] = ((v&0xFF)<<16) + (v & 0xFF00) + ((v & 0xFF0000) >> 16);
+        //uint32_t v2 = ((v&0xFF)<<0);// + ((v & 0xFF00)<<8) + ((v & 0xFF0000) >> 8) + ((v & 0xFF000000) >> 16);
+        
+        buffer[i] = (v&0xFF000000) + ((v&0xFF)<<16) + (v & 0xFF00) + ((v & 0xFF0000) >> 16);
     }
 }
 

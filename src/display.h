@@ -251,18 +251,21 @@ void DrawSprite(struct Vector2 pt, uint8_t* sprite, int width, int height, bool 
 
 #define MAX_TRAILS 32
 
-void DrawSpeed()
+void DrawSpeed(bool warpStripesOn, bool warpBackgroundOn)
 {
     memset(buffer, 0, 320*36);
 
-    for (int x = 0; x < 320; x++)
+    if (warpBackgroundOn)
     {
-        for (int y = 0;y<100;y++)
+        for (int x = 0; x < 320; x++)
         {
-            unsigned char col = (y + (fastrand()&3))>> 4;
-            col |= 32;
-            setPixelNoCheck(x, y+36, col);
-            setPixelNoCheck(x, 200 - y - 1, col);
+            for (int y = 0;y<100;y++)
+            {
+                unsigned char col = (y + (fastrand()&3))>> 4;
+                col |= 32;
+                setPixelNoCheck(x, y+36, col);
+                setPixelNoCheck(x, 200 - y - 1, col);
+            }
         }
     }
 
@@ -287,6 +290,10 @@ void DrawSpeed()
             shift[i] = (fastrand()&3) + 2;
             factors[i] = (fastrand() & 7) + 1;
         }
+    }
+    if (!warpStripesOn)
+    {
+        return;
     }
     for (int i = 0;i< currentTrailCount;i++)
     {
