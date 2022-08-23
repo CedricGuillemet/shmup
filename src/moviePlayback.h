@@ -136,11 +136,13 @@ int ReadMovie(const char* szPath)
 void BeginBackground(unsigned short width, unsigned short height);
 void StopBackground();
 void BackgroundVisible(bool visible);
-void SetScroll(int16_t x, int16_t y);
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex);
+void DrawTriangleMovieFB(uint16_t width, uint16_t height, int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex);
 void SetWarp(bool enabled, int frameIndex);
 void SetWarpStripes(bool enabled);
 void SetWarpBackground(bool enabled);
+void RenderBackground(int16_t x, int16_t y);
+int EnemiesCleared();
 
 extern uint32_t palette[256];
 //int everyOtherFrame = 0;
@@ -167,7 +169,7 @@ void DecodeNextFrameInfos(FrameDecodedInfos* frameDecodedInfos, unsigned char** 
 
 void UpdatePalette(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
 void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
-
+void RenderTrianglesFB(uint16_t width, uint16_t height, FrameDecodedInfos* frameDecodedInfos, int colorOffset);
 // return 1 if chunk found
 int ReadChunk()
 {
@@ -208,7 +210,7 @@ int ReadChunk()
                 FrameDecodedInfos frameDecodedInfos;
                 DecodeNextFrameInfos(&frameDecodedInfos, &movieState.moviePointer);
                 UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_BACKGROUND);
-                RenderTriangles(&frameDecodedInfos, MOVIE_COLOR_OFFSET_BACKGROUND);
+                RenderTrianglesFB(width, height, &frameDecodedInfos, MOVIE_COLOR_OFFSET_BACKGROUND);
 
                 StopBackground();
             }
@@ -284,6 +286,13 @@ int ReadChunk()
         break;
         case MOVIE_LOOP_CLEARED:
         {
+            if (EnemiesCleared())
+            {
+                // skip chunk
+                movieState.moviePointer += 4;
+            } else {
+                movieState.moviePointer = movieData + movieState.loopDestination;
+            }
         }
         break;
 
@@ -352,7 +361,6 @@ FrameDecodedInfos DecodeNextFrame()
         movieState.scrollx += movieState.scrollDeltax;
         movieState.scrolly += movieState.scrollDeltay;
     }
-    SetScroll((movieState.scrollx >> 16) & 0xFFFF, (movieState.scrolly >> 16) & 0xFFFF);
 
     DecodeNextFrameInfos(&frameDecodedInfos, &movieState.sequencePlaying);
     // loop sequence
@@ -388,6 +396,24 @@ void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset)
     }
 }
 
+void RenderTrianglesFB(uint16_t width, uint16_t height, FrameDecodedInfos* frameDecodedInfos, int colorOffset)
+{
+    if (movieState.foregroundDisabled)
+    {
+        return;
+    }
+    struct FrameFace* face = frameDecodedInfos->frameFaces;
+    for (int i = 0; i < frameDecodedInfos->frameInfos->faceCount; i++, face++)
+    {
+        struct FrameVertex vc = frameDecodedInfos->frameVertices[face->a];
+        struct FrameVertex vb = frameDecodedInfos->frameVertices[face->b];
+        struct FrameVertex va = frameDecodedInfos->frameVertices[face->c];
+        
+        DrawTriangleMovieFB(width, height, va.x, va.y, vb.x, vb.y, vc.x, vc.y, face->colorIndex + colorOffset);
+    }
+}
+
+
 int RenderMovieFrame()
 {
     FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
@@ -398,13 +424,13 @@ int RenderMovieFrame()
 
     // set palette
     UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
+    RenderBackground((movieState.scrollx >> 16) & 0xFFFF, (movieState.scrolly >> 16) & 0xFFFF);
     RenderTriangles(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
 
     return 1;
 }
 
 // Debug
-
 int GetMovieFrameCount()
 {
     unsigned char* svgMoviePointer = movieState.moviePointer;
@@ -429,10 +455,6 @@ int GetMovieFrameCount()
 
 void RenderMovieSingleFrame(int frameIndex)
 {
-    /*movieState.playCount = 0;
-    movieState.foregroundDisabled = 0;
-    movieState.frameIndex = 0;
-    movieState.loopCount = 0;*/
     memset(&movieState, 0, sizeof(MovieState));
     movieState.moviePointer = movieData;
     SetWarp(false, 0);

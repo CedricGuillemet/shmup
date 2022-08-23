@@ -1,3 +1,12 @@
+# label/loop example:
+# LABEL looplamp
+# PLAY road 50
+# LOOP 10 looplamp
+# LOOP CLEARED looplamp
+#
+#
+#
+#
 #
 SEQ road Levels/road.glb Cam_road 5
 SEQ road_lamp Levels/road.glb Cam_lamp 25
@@ -8,23 +17,12 @@ SEQ road_tunnel Levels/road.glb Cam_tunnel 38
 SEQ road_tunnel_in Levels/road.glb Cam_tunnel_in 25
 SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 25
 
+
+# scroll
 BACK Levels/road_back.glb Cam_background 640 100
-#BACK ON
-#BACK SCROLL FROM 0 0
-#BACK SCROLL ON
-#BACK OFF
-#BACK SCROLL OFF
-#BACK SCROLL ON
-#BACK SCROLL TO 320 0
-
-PLAY road 200
-PLAY road_lamp 25
-PLAY road 50
-PLAY road_lamp 25
-PLAY road 50
-PLAY road_lamp 25
-PLAY road 50
-
+BACK ON
+BACK SCROLL FROM 0 0
+BACK SCROLL ON
 
 
 # patio in/patio out
@@ -44,6 +42,8 @@ PLAY road_tunnel_out 25
 PLAY road_patio 100
 PLAY road_patio_out 20
 PLAY road 20
+
+BACK SCROLL TO 320 0
 
 #PLAY road_tunnel_in 38
 #PLAY road_tunnel 38

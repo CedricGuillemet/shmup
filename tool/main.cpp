@@ -43,28 +43,20 @@ extern "C" {
 
 /*
  
- - LOOP count or CLEARED
- - cache rendered background (remove setscroll?)
- 
  - per frame debug display (frame count, vt count, colors, frame size)
  */
 Movie movie;
 
 bool renderingBackground(false);
 bool backgroundVisible(false);
-int16_t scrollx, scrolly;
+uint16_t backgroundWidth, backgroundHeight;
 void BackgroundVisible(bool visible)
 {
     backgroundVisible = visible;
 }
 
-void SetScroll(int16_t x, int16_t y)
-{
-    scrollx = x;
-    scrolly = y;
-}
-
 uint32_t temp_bitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
+uint8_t backgroundBitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
 
 int frameIndex(-1);
 int frameIndexStartWarp;
@@ -81,11 +73,39 @@ void SetWarpBackground(bool enabled) { warpBackgroundOn = enabled; }
 void BeginBackground(unsigned short width, unsigned short height)
 {
     renderingBackground = true;
+    backgroundWidth = width;
+    backgroundHeight = height;
 }
 
 void StopBackground()
 {
     renderingBackground = false;
+    memcpy(backgroundBitmap, buffer, SCREEN_WIDTH * SCREEN_HEIGHT);
+}
+
+void RenderBackground(int16_t x, int16_t y)
+{
+    int rw = backgroundWidth - x;
+    if (rw > 320) rw = 320;
+    if (rw <= 0) return;
+    int rh = backgroundHeight - y;
+    if (rh > 200) rh = 200;
+    if (rh <= 0) return;
+    
+    for (int h = 0; h < rh; h++)
+    {
+        for (int w = 0; w < rw; w++)
+        {
+            int dst = h * 320 + w;
+            int src = (h + y) * backgroundWidth + (w + x);
+            buffer[dst] = backgroundBitmap[src];
+        }
+    }
+}
+
+int EnemiesCleared()
+{
+    return 1;
 }
 
 bool playing(false), nextFrame(true);

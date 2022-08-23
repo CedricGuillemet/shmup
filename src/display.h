@@ -89,6 +89,11 @@ void setPixelNoCheck(int x, int y, uint8_t color)
     buffer[y * SCREEN_WIDTH + x] = color;
 }
 
+void setPixelNoCheckFB(uint16_t width, int x, int y, uint8_t color)
+{
+    buffer[y * width + x] = color;
+}
+
 void setPixel(int x, int y, uint8_t color)
 {
     if (y < 0 || y >= SCREEN_HEIGHT || x < 0 || x >= SCREEN_WIDTH)
@@ -107,8 +112,6 @@ int max(int a, int b)
 {
     return (a > b) ? a : b;
 }
-
-
 
 void DrawTriangle(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
 {
@@ -146,7 +149,6 @@ void DrawTriangle(struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsig
     }
 }
 
-
 void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex)
 {
     struct Vector2 va = V2FromInt(ax, ay);
@@ -154,6 +156,51 @@ void DrawTriangleMovie(int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t c
     struct Vector2 vc = V2FromInt(cx, cy);
 
     DrawTriangle(va, vb, vc, colorIndex);
+}
+
+void DrawTriangleFB(uint16_t width, uint16_t height, struct Vector2 v0, struct Vector2 v1, struct Vector2 v2, unsigned char color)
+{
+    // Compute triangle bounding box
+    int minX = min3(v0.x.parts.integer, v1.x.parts.integer, v2.x.parts.integer);
+    int minY = min3(v0.y.parts.integer, v1.y.parts.integer, v2.y.parts.integer);
+    int maxX = max3(v0.x.parts.integer, v1.x.parts.integer, v2.x.parts.integer);
+    int maxY = max3(v0.y.parts.integer, v1.y.parts.integer, v2.y.parts.integer);
+
+    // Clip against screen bounds
+    minX = max(minX, 0);
+    minY = max(minY, 0);
+    maxX = min(maxX, width - 1);
+    maxY = min(maxY, height - 1);
+
+    // Rasterize
+    int x, y;
+    for (y = minY; y <= maxY; y++) {
+        for (x = minX; x <= maxX; x++) {
+            // Determine barycentric coordinates
+            struct Vector2 p;
+            p.x = FromInt(x);
+            p.y = FromInt(y);
+
+            int w0 = orient2d(v1, v2, p);
+            int w1 = orient2d(v2, v0, p);
+            int w2 = orient2d(v0, v1, p);
+
+            // If p is on or inside all edges, render pixel.
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0)
+            {
+                setPixelNoCheckFB(width, x, y, color);
+            }
+        }
+    }
+}
+
+void DrawTriangleMovieFB(uint16_t width, uint16_t height, int16_t ax, int16_t ay, int16_t bx, int16_t by, int16_t cx, int16_t cy, uint8_t colorIndex)
+{
+    struct Vector2 va = V2FromInt(ax, ay);
+    struct Vector2 vb = V2FromInt(bx, by);
+    struct Vector2 vc = V2FromInt(cx, cy);
+
+    DrawTriangleFB(width, height, va, vb, vc, colorIndex);
 }
 
 void DrawCircle(struct Vector2 position, int radiusOut, int radiusIn, unsigned char color)
