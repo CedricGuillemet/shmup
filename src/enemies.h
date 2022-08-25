@@ -17,6 +17,11 @@ struct Enemy
 struct Enemy Enemies[MAX_ENEMIES];
 unsigned char enemyCount = 0;
 
+void ClearEnemies()
+{
+    enemyCount = 0;
+}
+
 void RemoveEnemy(struct Enemy* enemyPtr)
 {
     enemyCount--;

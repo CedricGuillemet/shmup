@@ -61,13 +61,18 @@ extern uint32_t palette[256];
 #define MOVIE_WARP_BACKGROUND_OFF 0x12
 #define MOVIE_WARP_BACKGROUND_ON 0x13
 
-#define MOVIE_SLOT_COUNT 32
+#define MOVIE_PATH 0x14
+#define MOVIE_SPAWN 0x15
 
+#define MOVIE_SLOT_COUNT 32
+#define MOVIE_PATH_COUNT 4096
+#define MOVIE_MAX_SPAWNS 256
 #define MOVIE_COLOR_OFFSET_BACKGROUND 200
 #define MOVIE_COLOR_OFFSET_FOREGROUND 50
 #define MOVIE_COLOR_COUNT_BACKGROUND 50
 #define MOVIE_COLOR_COUNT_FOREGROUND 150
 
+#define MOVIE_TO_GAMEPLAY_RATIO 2
 
 extern int ReadMovie(const char* szPath);
 extern int RenderMovieFrame();
@@ -79,10 +84,19 @@ extern void RenderMovieSingleFrame(int frameIndex);
 unsigned char* movieData = NULL;
 unsigned char* movieDataEnd = NULL;
 
+struct MovieSpawn
+{
+    uint16_t pathIndex;
+    int16_t x,y;
+    uint16_t timeOffset;
+};
+
 struct MovieState
 {
     unsigned char* sequenceSlots[MOVIE_SLOT_COUNT];
     unsigned int sequenceSize[MOVIE_SLOT_COUNT]; // size in bytes
+    unsigned char* paths[MOVIE_PATH_COUNT];
+    struct MovieSpawn spawns[MOVIE_MAX_SPAWNS];
     //unsigned char* sequenceBase; //
     unsigned char* moviePointer; // global movie pointer
     unsigned char* sequencePlaying; // pointer in sequence
@@ -143,6 +157,8 @@ void SetWarpStripes(bool enabled);
 void SetWarpBackground(bool enabled);
 void RenderBackground(int16_t x, int16_t y);
 int EnemiesCleared();
+void DoSpawn(MovieSpawn* spawn);
+void TickFrame();
 
 extern uint32_t palette[256];
 //int everyOtherFrame = 0;
@@ -165,7 +181,7 @@ void DecodeNextFrameInfos(FrameDecodedInfos* frameDecodedInfos, unsigned char** 
     *ptr += sizeof(struct FrameFace) * frameDecodedInfos->frameInfos->faceCount;
     frameDecodedInfos->frameColors = (struct FrameColor*)*ptr;
     *ptr += sizeof(struct FrameColor) * frameDecodedInfos->frameInfos->colorCount;
-    }
+}
 
 void UpdatePalette(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
 void RenderTriangles(FrameDecodedInfos* frameDecodedInfos, int colorOffset);
@@ -256,82 +272,119 @@ int ReadChunk()
             }
             break;
         case MOVIE_FOREGROUND_OFF:
-        {
-            movieState.foregroundDisabled = true;
-        }
-        break;
+            {
+                movieState.foregroundDisabled = true;
+            }
+            break;
         case MOVIE_FOREGROUND_ON:
-        {
-            movieState.foregroundDisabled = false;
-        }
-        break;
+            {
+                movieState.foregroundDisabled = false;
+            }
+            break;
         case MOVIE_LOOP:
-        {
-            if (!movieState.loopCount)
             {
-                movieState.loopDestination = *(unsigned int*)movieState.moviePointer;
-                movieState.moviePointer += 4;
-                movieState.loopCount = *movieState.moviePointer++;
+                if (!movieState.loopCount)
+                {
+                    movieState.loopDestination = *(unsigned int*)movieState.moviePointer;
+                    movieState.moviePointer += 4;
+                    movieState.loopCount = *movieState.moviePointer++;
+                }
+                // goto anyway
+                movieState.loopCount --;
+                if (movieState.loopCount > 0)
+                {
+                    movieState.moviePointer = movieData + movieState.loopDestination;
+                } else {
+                    // skip chunk
+                    movieState.moviePointer += 5;
+                }
             }
-            // goto anyway
-            movieState.loopCount --;
-            if (movieState.loopCount > 0)
-            {
-                movieState.moviePointer = movieData + movieState.loopDestination;
-            } else {
-                // skip chunk
-                movieState.moviePointer += 5;
-            }
-        }
-        break;
+            break;
         case MOVIE_LOOP_CLEARED:
-        {
-            if (EnemiesCleared())
             {
-                // skip chunk
-                movieState.moviePointer += 4;
-            } else {
-                movieState.moviePointer = movieData + movieState.loopDestination;
+                if (EnemiesCleared())
+                {
+                    // skip chunk
+                    movieState.moviePointer += 4;
+                } else {
+                    movieState.moviePointer = movieData + movieState.loopDestination;
+                }
             }
-        }
-        break;
-
+            break;
         case MOVIE_WARP_OFF:
-        {
-            SetWarp(false, 0);
-        }
-        break;
+            {
+                SetWarp(false, 0);
+            }
+            break;
         case MOVIE_WARP_ON:
-        {
-            SetWarp(true, movieState.frameIndex);
-        }
-        break;
+            {
+                SetWarp(true, movieState.frameIndex);
+            }
+            break;
         case MOVIE_WARP_STRIPES_OFF:
-        {
-            SetWarpStripes(false);
-        }
-        break;
+            {
+                SetWarpStripes(false);
+            }
+            break;
         case MOVIE_WARP_STRIPES_ON:
-        {
-            SetWarpStripes(true);
-        }
-        break;
+            {
+                SetWarpStripes(true);
+            }
+            break;
         case MOVIE_WARP_BACKGROUND_OFF:
-        {
-            SetWarpBackground(false);
-        }
-        break;
+            {
+                SetWarpBackground(false);
+            }
+            break;
         case MOVIE_WARP_BACKGROUND_ON:
-        {
-            SetWarpBackground(true);
-        }
-        break;
+            {
+                SetWarpBackground(true);
+            }
+            break;
+        case MOVIE_PATH:
+            {
+                uint16_t pathIndex = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                movieState.paths[pathIndex] = movieState.moviePointer;
+                uint16_t pointCount = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                
+                movieState.moviePointer += pointCount * 4;
+            }
+            break;
+        case MOVIE_SPAWN:
+            {
+                MovieSpawn newSpawn;
+                newSpawn.pathIndex = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                newSpawn.x = *(short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                newSpawn.y = *(short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                newSpawn.timeOffset = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                if (newSpawn.timeOffset == 0)
+                {
+                    // spawn now
+                    DoSpawn(&newSpawn);
+                    break;
+                }
+                // find a spawn entry
+                for(int i = 0; i < MOVIE_MAX_SPAWNS; i++)
+                {
+                    struct MovieSpawn* spawn = &movieState.spawns[i];
+                    if (spawn->timeOffset == 0)
+                    {
+                        *spawn = newSpawn;
+                        break;
+                    }
+                }
+            }
+            break;
 
     }
     return 1;
 }
-
-
 
 FrameDecodedInfos DecodeNextFrame()
 {
@@ -360,6 +413,20 @@ FrameDecodedInfos DecodeNextFrame()
     {
         movieState.scrollx += movieState.scrollDeltax;
         movieState.scrolly += movieState.scrollDeltay;
+    }
+    
+    // spawns
+    for (int i = 0; i < MOVIE_MAX_SPAWNS; i++)
+    {
+        struct MovieSpawn* spawn = &movieState.spawns[i];
+        if (spawn->timeOffset > 0)
+        {
+            spawn->timeOffset--;
+            if (spawn->timeOffset == 0)
+            {
+                DoSpawn(spawn);
+            }
+        }
     }
 
     DecodeNextFrameInfos(&frameDecodedInfos, &movieState.sequencePlaying);
@@ -445,7 +512,7 @@ int GetMovieFrameCount()
             if (!ReadChunk())
             {
                 movieState.moviePointer = svgMoviePointer;
-                return count;
+                return count * MOVIE_TO_GAMEPLAY_RATIO;
             }
         };
         count += movieState.playCount;
@@ -461,10 +528,11 @@ void RenderMovieSingleFrame(int frameIndex)
     SetWarpStripes(false);
     SetWarpBackground(false);
     
-    for (int i = 0; i < frameIndex; i++)
+    for (int i = 0; i < frameIndex / MOVIE_TO_GAMEPLAY_RATIO; i++)
     {
         FrameDecodedInfos frameDecodedInfos = DecodeNextFrame();
         UpdatePalette(&frameDecodedInfos, MOVIE_COLOR_OFFSET_FOREGROUND);
+        TickFrame();
     }
     RenderMovieFrame();
 }

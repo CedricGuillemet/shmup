@@ -51,7 +51,9 @@ inline void FPU_MatrixF_x_MatrixF(const float *a, const float *b, float *r)
 	r[15]= a[12]*b[3]+ a[13]*b[7]+ a[14]*b[11]+ a[15]*b[15];
 }
 
+#ifndef PI
 const float PI    =  3.14159265358979323846f;
+#endif
 const float RAD2DEG = (180.f / PI);
 const float DEG2RAD = (PI / 180.f);
 

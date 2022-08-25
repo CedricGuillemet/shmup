@@ -4,7 +4,6 @@
 #include <algorithm>
 #include "imgui_internal.h"
 #include <string>
-#include "Movie.h"
 #include "sokol_gfx.h"
 
 
@@ -40,8 +39,14 @@ extern "C" {
 #include "states.h"
 #include "record.h"
 #include "sprites.h"
-
+}
+#include "Movie.h"
+extern "C" {
 /*
+ - enemy content
+ - shoot emitting
+ - path evaluation
+ - sub functions (?)
  
  - per frame debug display (frame count, vt count, colors, frame size)
  */
@@ -57,6 +62,7 @@ void BackgroundVisible(bool visible)
 
 uint32_t temp_bitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
 uint8_t backgroundBitmap[SCREEN_WIDTH * SCREEN_HEIGHT];
+uint8_t cachedScreen[SCREEN_WIDTH * SCREEN_HEIGHT];
 
 int frameIndex(-1);
 int frameIndexStartWarp;
@@ -108,6 +114,16 @@ int EnemiesCleared()
     return 1;
 }
 
+void DoSpawn(MovieSpawn* spawn)
+{
+    SpawnEnemy(EnemyTypeWhite/*spawn->type*/, V2FromInt(spawn->x, spawn->y), spawn->pathIndex, 0, 0, 0);
+}
+
+void TickFrame()
+{
+    TickEnemies();
+}
+
 bool playing(false), nextFrame(true);
 
 int totalFrameCount(0);
@@ -121,9 +137,18 @@ void CompileMovie()
         ReadMovie("movie.bin");
         
         totalFrameCount = GetMovieFrameCount();
-        frameIndex = -1;
+        frameIndex = (frameIndex >= totalFrameCount -1) ? totalFrameCount-1 : frameIndex;
         playing = false;
-        nextFrame = true;
+        
+        if (frameIndex >= 0)
+        {
+            ClearEnemies();
+            RenderMovieSingleFrame(frameIndex);
+        }
+        else
+        {
+            nextFrame = true;
+        }
     }
     errorMessage = movie.GetParsingError();
 }
@@ -190,10 +215,12 @@ void frame()
     }
     if (!totalFrameCount)
     {
+        ImGui::End();
         return;
     }
     if (ImGui::SliderInt("Frame", &frameIndex, 0, totalFrameCount-1))
     {
+        ClearEnemies();
         RenderMovieSingleFrame(frameIndex);
     }
     ImGui::SameLine();
@@ -212,25 +239,30 @@ void frame()
     
     if (nextFrame || playing)
     {
+        TickEnemies();
+        frameIndex ++;
+        nextFrame = false;
+        
         static int other = 0;
         other ++;
-        if (other %3 == 0)
+        if (other % MOVIE_TO_GAMEPLAY_RATIO == 0)
         {
-            nextFrame = false;
-            
             if (frameIndex < totalFrameCount-1)
             {
                 RenderMovieFrame();
-                frameIndex ++;
+                memcpy(cachedScreen, buffer, SCREEN_WIDTH * SCREEN_HEIGHT);
             }
             else
             {
                 playing = false;
             }
+        } else {
+            memcpy(buffer, cachedScreen, SCREEN_WIDTH * SCREEN_HEIGHT);
         }
     }
     
     ComputeMatrices();
+    DrawEnemies();
     if (warpOn)
     {
         int warpFrame = frameIndex - frameIndexStartWarp;
@@ -246,6 +278,7 @@ void frame()
 int main(int, char **) {
     CompileMovie();
     SpritesInit();
+    PrecomputePaths();
     imgui_app(frame, "shmup Tool", 1024, 768);
     return 0;
 }

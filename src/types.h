@@ -73,8 +73,10 @@ struct Fixed Div(struct Fixed a, struct Fixed b)
         mov res.value, eax
     }
 #else
-    int64_t v = (int64_t)a.value / (int64_t)b.value;
+    int64_t v = (int64_t)a.value;
     v <<= 16u;
+    v /= (int64_t)b.value;
+    //v <<= 16u;
     res.value = v;
 #endif
     //res.value = a.value / b.value;

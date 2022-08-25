@@ -15,7 +15,8 @@ void ComputePathBase(struct Vector2* steps, struct Vector2* positions, int posit
         for (int i = 0; i < segmentStepCount; i++)
         {
             struct Fixed t = Mul(FromInt(i), speed);
-            *step++ = V2Add(offset, V2Lerp(V2Lerp(positions[seg*2], positions[seg*2 + 1], t), V2Lerp(positions[seg*2 + 1], positions[seg*2 + 2], t), t));
+            struct Vector2 value = V2Add(offset, V2Lerp(V2Lerp(positions[seg*2], positions[seg*2 + 1], t), V2Lerp(positions[seg*2 + 1], positions[seg*2 + 2], t), t));
+            *step++ = value;
         }
     }
 }
@@ -147,7 +148,6 @@ void TearShot(struct Enemy* enemy)
     struct Bullet* bullet = SpawnBullet(enemy->position, V2Mul(direction, FromFixed(0x10000)), (enemy->enemyType&1) ? EnemyTearBlack : EnemyTearWhite);
     bullet->directionAngle16 = 15 - ((angle.parts.integer * 16 / 2048) & 15);
 }
-
 
 void TearShotCircular(struct Enemy* enemy)
 {

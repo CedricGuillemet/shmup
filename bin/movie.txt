@@ -17,6 +17,7 @@ SEQ road_tunnel Levels/road.glb Cam_tunnel 38
 SEQ road_tunnel_in Levels/road.glb Cam_tunnel_in 25
 SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 25
 
+PATH p0 (0, 0) (-200, -30) (-280, 200)
 
 # scroll
 BACK Levels/road_back.glb Cam_background 640 100
@@ -26,6 +27,7 @@ BACK SCROLL ON
 
 
 # patio in/patio out
+SPAWN WhiteHunter p0 (330, 80) 32
 PLAY road 20
 PLAY road_patio_in 20
 PLAY road_patio 40

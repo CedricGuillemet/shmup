@@ -30,12 +30,17 @@ protected:
     void PushLoop(uint32_t destination, uint8_t count) { mBytes.push_back(MOVIE_LOOP); PushUI32(destination); PushUI8(count); };
     void PushScrollFrom(int x, int y);
     void PushScrollTo(int x, int y);
+    void PushPath(uint16_t pathIndex, const std::vector<Vector2>& path);
+    void PushSpawn(int ship, int pathIndex, int x, int y, int timeOffset);
+    
     void PushUI32(uint32_t v);
     void PushI32(uint32_t v);
     void PushUI16(uint16_t v);
     void PushI16(int16_t v);
     void PushUI8(uint8_t v) { mBytes.push_back(v); }
-
+   
+    
+    bool ParsePoint(const std::string& str, int line, int& x, int& y);
     // SEQ road Levels/road.glb Cam_road 5
     struct Sequence
     {
@@ -44,9 +49,16 @@ protected:
         uint16_t mFrameCount;
         int8_t mSlot{-1};
     };
+    
+    struct Path
+    {
+        uint16_t pathIndex;
+        std::vector<Vector2> points;
+    };
 
     std::map<std::string, Sequence> mSequences;
     std::map<std::string, uint32_t> mLabels;
+    std::map<std::string, Path> mPaths;
     uint32_t mSlots{0};
     std::vector<uint8_t> mBytes;
     std::string mParsingError;
@@ -60,9 +72,10 @@ protected:
 
 };
 
+
 static int ParseTokens(char* str, std::vector<std::string>& strings)
 {
-    static const char* sep = " ";
+    /*static const char* sep = " ";
     
     char* token = strtok(str, sep);
     int index = 0;
@@ -72,7 +85,50 @@ static int ParseTokens(char* str, std::vector<std::string>& strings)
         index++;
         token = strtok(NULL, sep);
     }
-    return index;
+    return index;*/
+    
+    const int l = strlen(str);
+    bool inParenthesis = false;
+    std::string currentString;
+    for (int i = 0; i < l; i++)
+    {
+        char chr = str[i];
+        if (chr == '(')
+        {
+            if (currentString.size()>0)
+            {
+                strings.push_back(currentString);
+                currentString = "";
+            }
+            inParenthesis = true;
+        }
+        else if (chr == ')')
+        {
+            if (currentString.size()>0)
+            {
+                strings.push_back(currentString);
+                currentString = "";
+            }
+            inParenthesis = false;
+        }
+        else if ((chr == ' ' && !inParenthesis) || (chr == '\n') )
+        {
+            if (currentString.size()>0)
+            {
+                strings.push_back(currentString);
+                currentString = "";
+            }
+        }
+        else
+        {
+            currentString += chr;
+        }
+    }
+    if (currentString.size()>0)
+    {
+        strings.push_back(currentString);
+    }
+    return strings.size();
 }
 
 static void ConvertGLTFToMesh(const GLTFFrame& frame, Mesh& mesh, Imm::matrix& view, Imm::matrix& projection, float& znear)
@@ -229,6 +285,39 @@ void Movie::PushScrollOff()
     mScrollOn = false;
 }
 
+void Movie::PushPath(uint16_t pathIndex, const std::vector<Vector2>& path)
+{
+    mBytes.push_back(MOVIE_PATH);
+    PushUI16(pathIndex);
+    PushUI16((uint16_t)path.size());
+    for(auto v : path)
+    {
+        PushI16(v.x.parts.integer);
+        PushI16(v.y.parts.integer);
+    }
+}
+
+bool Movie::ParsePoint(const std::string& str, int line, int& x, int& y)
+{
+    if (sscanf(str.c_str(), "%d,%d", &x, &y) != 2)
+    {
+        std::stringstream strm;
+        strm << "Unable to parse path point line " << line;
+        mParsingError = strm.str();
+        return false;
+    }
+    return true;
+}
+
+void Movie::PushSpawn(int ship, int pathIndex, int x, int y, int timeOffset)
+{
+    mBytes.push_back(MOVIE_SPAWN);
+    PushUI16(pathIndex);
+    PushI16(x);
+    PushI16(y);
+    PushUI16(timeOffset);
+}
+
 bool Movie::ParseScript(const std::string& filename)
 {
     FILE* fp = fopen(filename.c_str(), "rt");
@@ -244,6 +333,7 @@ bool Movie::ParseScript(const std::string& filename)
         mFromy = 0;
         mScrollOn = false;
         mLabels.clear();
+        mPaths.clear();
 
         int line = 0;
 
@@ -265,6 +355,66 @@ bool Movie::ParseScript(const std::string& filename)
             else if (tmps[0] == '#')
             {
                 continue;
+            }
+            // SPAWN
+            else if (l >= 5 && tmps[0] == 'S' && tmps[1] == 'P' && tmps[2] == 'A' && tmps[3] == 'W' && tmps[4] == 'N')
+            {
+                std::vector<std::string> strings;
+                int tokenCount = ParseTokens(tmps, strings);
+                // SPAWN WhiteHunter p0 (330, 80) 32
+                const std::string& pathName = strings[2];
+                auto iter = mPaths.find(pathName);
+                if (iter == mPaths.end())
+                {
+                    std::stringstream strm;
+                    strm << "Path not found line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                
+                int x, y;
+                if (!ParsePoint(strings[3], line, x, y))
+                {
+                    return false;
+                }
+                int timeOffset = atoi(strings[4].c_str());
+                PushSpawn(0, iter->second.pathIndex, x, y, timeOffset);
+
+            }
+            // PATH
+            else if (l >= 4 && tmps[0] == 'P' && tmps[1] == 'A' && tmps[2] == 'T' && tmps[3] == 'H')
+            {
+                std::vector<std::string> strings;
+                int tokenCount = ParseTokens(tmps, strings);
+                if (tokenCount <= 2)
+                {
+                    std::stringstream strm;
+                    strm << "Syntax error line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                const std::string& pathName = strings[1];
+                auto iter = mPaths.find(pathName);
+                if (iter != mPaths.end())
+                {
+                    std::stringstream strm;
+                    strm << "Path name already exists line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                std::vector<Vector2> path;
+                for (int pointIndex = 0; pointIndex < tokenCount - 2; pointIndex++)
+                {
+                    int x,y;
+                    if (!ParsePoint(strings[pointIndex + 2], line, x, y))
+                    {
+                        return false;
+                    }
+                    path.push_back(V2FromInt(x, y));
+                }
+                uint16_t pathIndex = (uint16_t)mPaths.size();
+                mPaths[pathName] = Path{pathIndex, path};
+                PushPath(pathIndex, path);
             }
             // LOOP
             else if (l >= 4 && tmps[0] == 'L' && tmps[1] == 'O' && tmps[2] == 'O' && tmps[3] == 'P')
