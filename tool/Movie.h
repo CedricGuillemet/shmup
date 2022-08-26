@@ -87,6 +87,7 @@ static int ParseTokens(char* str, std::vector<std::string>& strings)
     }
     return index;*/
     
+    strings.clear();
     const int l = strlen(str);
     bool inParenthesis = false;
     std::string currentString;
@@ -111,7 +112,7 @@ static int ParseTokens(char* str, std::vector<std::string>& strings)
             }
             inParenthesis = false;
         }
-        else if ((chr == ' ' && !inParenthesis) || (chr == '\n') )
+        else if (((chr == ' ' || chr == '\t') && !inParenthesis) || (chr == '\n') )
         {
             if (currentString.size()>0)
             {
@@ -337,30 +338,26 @@ bool Movie::ParseScript(const std::string& filename)
 
         int line = 0;
 
+        std::vector<std::string> strings;
         while(!feof(fp))
         {
             line++;
             char tmps[1024];
             fgets(tmps, sizeof(tmps), fp);
-            auto l = strlen(tmps);
-            if (!l)
+            
+            int tokenCount = ParseTokens(tmps, strings);
+            if (!tokenCount || strings[0][0] == '#')
             {
                 continue;
             }
             // END
-            else if (l >= 3 && tmps[0] == 'E' && tmps[1] == 'N' && tmps[2] == 'D')
+            else if (strings[0] == "END")
             {
                 break;
             }
-            else if (tmps[0] == '#')
-            {
-                continue;
-            }
             // SPAWN
-            else if (l >= 5 && tmps[0] == 'S' && tmps[1] == 'P' && tmps[2] == 'A' && tmps[3] == 'W' && tmps[4] == 'N')
+            else if (strings[0] == "SPAWN")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 // SPAWN WhiteHunter p0 (330, 80) 32
                 const std::string& pathName = strings[2];
                 auto iter = mPaths.find(pathName);
@@ -382,10 +379,8 @@ bool Movie::ParseScript(const std::string& filename)
 
             }
             // PATH
-            else if (l >= 4 && tmps[0] == 'P' && tmps[1] == 'A' && tmps[2] == 'T' && tmps[3] == 'H')
+            else if (strings[0] == "PATH")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount <= 2)
                 {
                     std::stringstream strm;
@@ -417,10 +412,8 @@ bool Movie::ParseScript(const std::string& filename)
                 PushPath(pathIndex, path);
             }
             // LOOP
-            else if (l >= 4 && tmps[0] == 'L' && tmps[1] == 'O' && tmps[2] == 'O' && tmps[3] == 'P')
+            else if (strings[0] == "LOOP")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount != 3)
                 {
                     std::stringstream strm;
@@ -444,10 +437,8 @@ bool Movie::ParseScript(const std::string& filename)
                 PushLoop(iter->second, loopCount);
             }
             // LABEL
-            else if (l >= 5 && tmps[0] == 'L' && tmps[1] == 'A' && tmps[2] == 'B' && tmps[3] == 'E' && tmps[4] == 'L')
+            else if (strings[0] == "LABEL")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 auto iter = mLabels.find(strings[1]);
                 if (iter != mLabels.end())
                 {
@@ -459,11 +450,8 @@ bool Movie::ParseScript(const std::string& filename)
                 mLabels[strings[1]] = mBytes.size();
             }
             // WARP
-            else if (l >= 4 && tmps[0] == 'W' && tmps[1] == 'A' && tmps[2] == 'R' && tmps[3] == 'P')
+            else if (strings[0] == "WARP")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
-                
                 bool isOn = (tokenCount == 2 && strings[1].substr(0, 2) == "ON") || (tokenCount == 3 && strings[2].substr(0, 2) == "ON");
                 
                 if (tokenCount == 2)
@@ -482,31 +470,18 @@ bool Movie::ParseScript(const std::string& filename)
                 
             }
             // foreground
-            else if (l >= 7 && tmps[0] == 'F' && tmps[1] == 'O' && tmps[2] == 'R' && tmps[3] == 'E' && tmps[5] == 'O' && tmps[6] == 'N')
+            else if (strings[0] == "FORE")
             {
-                PushForeground(true);
-            }
-            // BACK OFF
-            else if (l >= 8 && tmps[0] == 'F' && tmps[1] == 'O' && tmps[2] == 'R' && tmps[3] == 'E' && tmps[5] == 'O' && tmps[6] == 'F' && tmps[7] == 'F')
-            {
-                PushForeground(false);
+                PushForeground(strings[1] == "ON");
             }
             // BACK ON
-            else if (l >= 7 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'N')
+            else if (strings[0] == "BACK")
             {
-                PushBackground(true);
-            }
-            // BACK OFF
-            else if (l >= 8 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K' && tmps[5] == 'O' && tmps[6] == 'F' && tmps[7] == 'F')
-            {
-                PushBackground(false);
-            }
-
-            // BACK Levels/road_back.glb Cam_background 640 100
-            else if (l >= 4 && tmps[0] == 'B' && tmps[1] == 'A' && tmps[2] == 'C' && tmps[3] == 'K')
-            {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
+                if (strings[1] == "ON" || strings[1] == "OFF")
+                {
+                    PushBackground(strings[1] == "ON");
+                    continue;
+                }
                 if (tokenCount != 5 && tokenCount != 3)
                 {
                     std::stringstream strm;
@@ -597,10 +572,8 @@ bool Movie::ParseScript(const std::string& filename)
                 }
             }
             // PLAY
-            if (l >= 4 && tmps[0] == 'P' && tmps[1] == 'L' && tmps[2] == 'A' && tmps[3] == 'Y')
+            else if (strings[0] == "PLAY")
             {
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount != 2 && tokenCount != 3)
                 {
                     std::stringstream strm;
@@ -681,12 +654,9 @@ bool Movie::ParseScript(const std::string& filename)
                 PushPlayback(seq.mSlot, playCount);
             }
             // SEQ
-            else if (l >= 3 && tmps[0] == 'S' && tmps[1] == 'E' && tmps[2] == 'Q')
+            else if (strings[0] == "SEQ")
             {
                 Sequence seq;
-                
-                std::vector<std::string> strings;
-                int tokenCount = ParseTokens(tmps, strings);
                 if (tokenCount != 5)
                 {
                     std::stringstream strm;

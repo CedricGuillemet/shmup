@@ -243,7 +243,7 @@ void frame()
         frameIndex ++;
         nextFrame = false;
         
-        static int other = 0;
+        static int other = 1;
         other ++;
         if (other % MOVIE_TO_GAMEPLAY_RATIO == 0)
         {
