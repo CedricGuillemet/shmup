@@ -32,6 +32,9 @@ protected:
     void PushScrollTo(int x, int y);
     void PushPath(uint16_t pathIndex, const std::vector<Vector2>& path);
     void PushSpawn(int ship, int pathIndex, int x, int y, int timeOffset);
+    void PushEnd() { mBytes.push_back(MOVIE_END); }
+    void PushCall(uint32_t destination) { mBytes.push_back(MOVIE_CALL); PushUI32(destination); }
+    void PushSkip(uint16_t offset) { mBytes.push_back(MOVIE_SKIP); PushUI16(offset); }
     
     void PushUI32(uint32_t v);
     void PushI32(uint32_t v);
@@ -58,6 +61,7 @@ protected:
 
     std::map<std::string, Sequence> mSequences;
     std::map<std::string, uint32_t> mLabels;
+    std::map<std::string, uint32_t> mFunctions;
     std::map<std::string, Path> mPaths;
     uint32_t mSlots{0};
     std::vector<uint8_t> mBytes;
@@ -66,6 +70,9 @@ protected:
     int mScrollFrameCount;
     int mFromx, mFromy;
     bool mScrollOn{};
+    bool mIsInDefinition{};
+    uint32_t mSkipOffset;
+        
     
     int8_t AcquireSequenceSlot();
     bool ReleaseSequenceSlot(int8_t slot);
@@ -317,6 +324,7 @@ void Movie::PushSpawn(int ship, int pathIndex, int x, int y, int timeOffset)
     PushI16(x);
     PushI16(y);
     PushUI16(timeOffset);
+    PushUI8((uint8_t)ship);
 }
 
 bool Movie::ParseScript(const std::string& filename)
@@ -335,6 +343,8 @@ bool Movie::ParseScript(const std::string& filename)
         mScrollOn = false;
         mLabels.clear();
         mPaths.clear();
+        mIsInDefinition = false;
+        mFunctions.clear();
 
         int line = 0;
 
@@ -353,7 +363,53 @@ bool Movie::ParseScript(const std::string& filename)
             // END
             else if (strings[0] == "END")
             {
-                break;
+                if (mIsInDefinition)
+                {
+                    mIsInDefinition = false;
+                    PushEnd();
+                    uint16_t offset = mBytes.size() - (mSkipOffset + 3); // 3 == size of chunk skip
+                    uint16_t* offsetPtr = (uint16_t*)&mBytes[mSkipOffset + 1];
+                    *offsetPtr = offset;
+                } else {
+                    break;
+                }
+            }
+            else if (strings[0] == "CALL")
+            {
+                const auto& functionName = strings[1];
+                auto iter = mFunctions.find(functionName);
+                if (iter == mFunctions.end())
+                {
+                    std::stringstream strm;
+                    strm << "Trying to call an undefined function " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                PushCall(iter->second);
+            }
+            else if (strings[0] == "FUNCTION")
+            {
+                if (mIsInDefinition)
+                {
+                    std::stringstream strm;
+                    strm << "Nested function definition not allowed " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                const auto& functionName = strings[1];
+                auto iter = mFunctions.find(functionName);
+                if (iter != mFunctions.end())
+                {
+                    std::stringstream strm;
+                    strm << "Function name if already existing " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                
+                mSkipOffset = mBytes.size();
+                PushSkip(0);
+                mFunctions[functionName] = mBytes.size();
+                mIsInDefinition = true;
             }
             // SPAWN
             else if (strings[0] == "SPAWN")
@@ -375,8 +431,39 @@ bool Movie::ParseScript(const std::string& filename)
                     return false;
                 }
                 int timeOffset = atoi(strings[4].c_str());
-                PushSpawn(0, iter->second.pathIndex, x, y, timeOffset);
-
+                EnemyType enemyType = EnemyCount;
+                struct EnemyTypes
+                {
+                    EnemyType type;
+                    const char* str;
+                };
+                static EnemyTypes types[EnemyCount] = {
+                    {EnemyTypeWhite, "White"},
+                    {EnemyTypeBlack, "Black"},
+                    {EnemyTypeWhiteSmall, "WhiteSmall"},
+                    {EnemyTypeBlackSmall, "BlackSmall"},
+                    {EnemyTypeWhiteHunter, "WhiteHunter"},
+                    {EnemyTypeBlackHunter, "BlackHunter"},
+                    {EnemyTypeWhiteBig, "WhiteBig"},
+                    {EnemyTypeBlackBig, "BlackBig"}};
+                for (auto& type : types)
+                {
+                    if (strings[1] == type.str)
+                    {
+                        enemyType = type.type;
+                        break;
+                    }
+                }
+                
+                if (enemyType == EnemyCount)
+                {
+                    std::stringstream strm;
+                    strm << "Unknown enemy type line " << line;
+                    mParsingError = strm.str();
+                    return false;
+                }
+                
+                PushSpawn(enemyType, iter->second.pathIndex, x, y, timeOffset);
             }
             // PATH
             else if (strings[0] == "PATH")
@@ -672,6 +759,14 @@ bool Movie::ParseScript(const std::string& filename)
                 mSequences.insert(std::make_pair(name, seq));
             }
         } // while !feof
+        
+        if (mIsInDefinition)
+        {
+            std::stringstream strm;
+            strm << "Script ends in a function definition";
+            mParsingError = strm.str();
+            return false;
+        }
         
         fclose(fp);
         return true;

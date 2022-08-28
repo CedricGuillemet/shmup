@@ -19,18 +19,26 @@ SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 25
 
 PATH p0 (0, 0) (-200, -30) (-280, 200)
 
+FUNCTION spawn_L0_b0
+    SPAWN White p0 (330, 80) 32
+    SPAWN White p0 (330, 80) 64
+    SPAWN White p0 (330, 80) 96
+    SPAWN White p0 (330, 80) 128
+    SPAWN White p0 (330, 80) 160
+    SPAWN Black p0 (330, 80) 192
+END
+
 # scroll
 BACK Levels/road_back.glb Cam_background 640 100
 BACK ON
 BACK SCROLL FROM 0 0
 BACK SCROLL ON
 
-
 # patio in/patio out
-SPAWN WhiteHunter p0 (330, 80) 32
 PLAY road 20
 PLAY road_patio_in 20
 PLAY road_patio 40
+CALL spawn_L0_b0
 PLAY road_patio_out 20
 PLAY road 20
 

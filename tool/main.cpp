@@ -46,7 +46,6 @@ extern "C" {
  - enemy content
  - shoot emitting
  - path evaluation
- - sub functions (?)
  
  - per frame debug display (frame count, vt count, colors, frame size)
  */
@@ -116,7 +115,7 @@ int EnemiesCleared()
 
 void DoSpawn(MovieSpawn* spawn)
 {
-    SpawnEnemy(EnemyTypeWhite/*spawn->type*/, V2FromInt(spawn->x, spawn->y), spawn->pathIndex, 0, 0, 0);
+    SpawnEnemy((EnemyType)spawn->type, V2FromInt(spawn->x, spawn->y), spawn->pathIndex, 0, 0, 0);
 }
 
 void TickFrame()

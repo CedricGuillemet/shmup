@@ -63,10 +63,14 @@ extern uint32_t palette[256];
 
 #define MOVIE_PATH 0x14
 #define MOVIE_SPAWN 0x15
+#define MOVIE_END 0x16
+#define MOVIE_CALL 0x17
+#define MOVIE_SKIP 0x18
 
 #define MOVIE_SLOT_COUNT 32
 #define MOVIE_PATH_COUNT 4096
 #define MOVIE_MAX_SPAWNS 256
+#define MOVIE_MAX_CALLSTACK 8
 #define MOVIE_COLOR_OFFSET_BACKGROUND 200
 #define MOVIE_COLOR_OFFSET_FOREGROUND 50
 #define MOVIE_COLOR_COUNT_BACKGROUND 50
@@ -89,6 +93,7 @@ struct MovieSpawn
     uint16_t pathIndex;
     int16_t x,y;
     uint16_t timeOffset;
+    uint8_t type;
 };
 
 struct MovieState
@@ -114,6 +119,9 @@ struct MovieState
     // loop
     int loopCount;
     int loopDestination;
+    // call stack
+    unsigned char* callStack[MOVIE_MAX_CALLSTACK];
+    int callStackIndex;
 };
 
 MovieState movieState;
@@ -363,6 +371,8 @@ int ReadChunk()
                 movieState.moviePointer += 2;
                 newSpawn.timeOffset = *(unsigned short*)movieState.moviePointer;
                 movieState.moviePointer += 2;
+                newSpawn.type = *movieState.moviePointer++;
+
                 if (newSpawn.timeOffset == 0)
                 {
                     // spawn now
@@ -381,6 +391,28 @@ int ReadChunk()
                 }
             }
             break;
+        case MOVIE_END:
+            {
+                movieState.callStackIndex --;
+                movieState.moviePointer = movieState.callStack[movieState.callStackIndex];
+            }
+            break;
+        case MOVIE_CALL:
+            {
+                uint32_t callOffset = *(uint32_t*)movieState.moviePointer;
+                movieState.moviePointer += 4;
+                movieState.callStack[movieState.callStackIndex++] = movieState.moviePointer;
+                movieState.moviePointer = movieData + callOffset;
+            }
+            break;
+        case MOVIE_SKIP:
+            {
+                uint16_t offset = *(unsigned short*)movieState.moviePointer;
+                movieState.moviePointer += 2;
+                movieState.moviePointer += offset;
+            }
+            break;
+            
 
     }
     return 1;
