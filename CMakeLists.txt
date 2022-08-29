@@ -44,6 +44,7 @@ TARGET_LINK_LIBRARIES(${TOOL_NAME})
 
 if(WIN32)
 add_definitions(-DWIN32)
+add_definitions(-DSOKOL_D3D11)
 endif()
 if(APPLE)
 add_definitions(-DSOKOL_METAL)
