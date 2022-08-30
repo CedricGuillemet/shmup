@@ -18,6 +18,46 @@ SEQ road_tunnel_in Levels/road.glb Cam_tunnel_in 25
 SEQ road_tunnel_out Levels/road.glb Cam_tunnel_out 25
 
 PATH p0 (0, 0) (-200, -30) (-280, 200)
+PATH p1 (0, 0), (-200, 30), (-280, -200)
+PATH p2 (0, -20) (-150, -140) (-150, 140)
+
+PATH p3Base (0, 0) (-110, 0) (-110, -200)
+PATH p3 Append(p2, p3Base, 240)
+PATH p4 Append(p2, p3Base, 216)
+PATH p5 Append(p2, p3Base, 192)
+PATH p6 Append(p2, p3Base, 168)
+PATH p7 Append(p2, p3Base, 144)
+PATH p8 Append(p2, p3Base, 120)
+
+PATH p9Base HSymetry(p2)
+PATH p9Append (0, 0) (-110, 0)(-110, 200)
+PATH p9 Append(p9Base, p9Append, 240)
+PATH p10 Append(p9Base, p9Append, 216)
+PATH p11 Append(p9Base, p9Append, 192)
+PATH p12 Append(p9Base, p9Append, 168)
+PATH p13 Append(p9Base, p9Append, 144)
+PATH p14 Append(p9Base, p9Append, 120)
+
+PATH p15 (0, 0) (-80, 0) (-80, 70) (-80, 120) (-180, 120) (-240, 120) (-240, -80)
+PATH p16 HSymetry(p15)
+
+PATH p17 (0, 0), (-100, 100) (-110, 100) (-120, 100) (-130, 100) (-140, 100) (-250, -100)
+PATH p18 HSymetry(p17)
+
+PATH p19 (0, 0), (-100, 80) (-100, 60) (-105, 58) (-98, 62) (-103, 61) (-95, 57) (-80, 50) (0, 0)
+PATH p20 HSymetry(p19)
+
+PATH p21 (0, 0), (-20, 80) (-350, 80)
+PATH p22 HSymetry(p21)
+
+PATH p23 (0, 0), (-100, 100) (-150, 0) (-200, -100) (-250, 0) (-300, 100) (-340, 80)
+PATH p24 HSymetry(p23)
+
+PATH p25 (-100, 0) (-100, 1) (-100, 0)
+PATH p26 (32, 0) (0, 1) (32, 0)
+
+PATH p27 (0, 75) (-160, 75) (-300, 75) (-310, 75) (-310, 65) (-310, 0) (-310, -65) (-310, -75) (-300, -75) (-160, -75) (-90, -75) (-80, -75) (-80, -65) (-80, 0) (-80, 65) (-80, 75) (-90, 75) (-160, 75) (-300, 75) (-310, 75) (-310, 65) (-310, 0) (-310, -65) (-310, -75) (-300, -75) (-0, -75) (20, -75)
+PATH p28 HSymetry(p27)
 
 FUNCTION spawn_L0_b0
     SPAWN White p0 (330, 80) 32
